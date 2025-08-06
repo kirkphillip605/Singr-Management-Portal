@@ -23,7 +23,7 @@ export default async function DashboardLayout({
           <div className="flex items-center justify-between">
             <Link href="/dashboard" className="flex items-center space-x-2">
               <img
-                src="/Color%20(For%20Light%20BG).svg"
+                src="/singr-logo-color.svg"
                 alt="Singr Karaoke"
                 className="h-8 w-8"
               />

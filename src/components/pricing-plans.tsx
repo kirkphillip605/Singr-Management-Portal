@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { CheckCircle, Star, Loader2, CreditCard } from 'lucide-react'
-import { formatAmountForDisplay } from '@/lib/stripe'
+import { formatAmountForDisplay } from '@/lib/format-currency'
 
 interface StripePrice {
   id: string

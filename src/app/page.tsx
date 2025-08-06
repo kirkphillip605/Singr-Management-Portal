@@ -83,7 +83,7 @@ export default function HomePage() {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
               <img
-                src="/Color%20(For%20Light%20BG).svg"
+                src="/singr-logo-color.svg"
                 alt="Singr Karaoke"
                 className="h-8 w-8"
               />
@@ -107,7 +107,7 @@ export default function HomePage() {
           <div className="text-center">
             <div className="flex justify-center mb-8">
               <img 
-                src="/Color%20(For%20Light%20BG).svg" 
+                src="/singr-logo-color.svg"
                 alt="Singr Karaoke" 
                 className="h-20 w-20 md:h-32 md:w-32"
               />
@@ -365,7 +365,7 @@ export default function HomePage() {
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="flex items-center mb-4 md:mb-0">
               <img 
-                src="/B%26W%20(For%20Light%20BG).svg" 
+                src="/singr-logo-bw.svg"
                 alt="Singr Karaoke" 
                 className="h-8 w-8 brightness-0 invert"
               />

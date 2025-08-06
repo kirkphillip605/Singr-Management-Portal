@@ -158,7 +158,7 @@ export default async function DashboardPage() {
             ) : (
               <div className="text-center py-4">
                 <p className="text-muted-foreground mb-4">No active subscription</p>
-                <Link href="/dashboard/billing">
+                <Link href="/dashboard/billing/plans">
                   <Button>Choose a Plan</Button>
                 </Link>
               </div>

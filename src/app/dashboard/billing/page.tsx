@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { CreditCard, FileText, Download, ExternalLink, Loader2, CheckCircle, AlertTriangle } from 'lucide-react'
 import Link from 'next/link'
-import { formatAmountForDisplay } from '@/lib/stripe'
+import { formatAmountForDisplay } from '@/lib/format-currency'
 import { logger } from '@/lib/logger'
 import { CustomerPortalButton } from '@/components/customer-portal-button'
 
@@ -164,7 +164,9 @@ async function BillingPage() {
                 You don't have an active subscription. Choose a plan to unlock all features.
               </p>
               <Link href="/dashboard/billing/plans">
-                <Button>Choose a Plan</Button>
+                <Link href="/dashboard/billing/plans">
+                  <Button>Choose a Plan</Button>
+                </Link>
               </Link>
             </div>
           )}
