@@ -107,9 +107,9 @@ export default function HomePage() {
           <div className="text-center">
             <div className="flex justify-center mb-8">
               <img 
-                src="/singr-logo-color.png"
+                src="/singr-icon.png"
                 alt="Singr Karaoke" 
-                className="h-411 w-129 md:h-32 md:w-32"
+                className="h-32 w-32 md:h-32 md:w-32"
               />
             </div>
             <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
