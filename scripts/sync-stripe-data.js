@@ -42,7 +42,7 @@ async function syncStripeProducts() {
     });
 
     for (const product of data) {
-      await prisma.product.upsert({
+      await prisma.stripeProduct.upsert({
         where: { id: product.id },
         update: {
           active: product.active,
@@ -101,7 +101,7 @@ async function syncStripePrices() {
     });
 
     for (const price of data) {
-      await prisma.price.upsert({
+      await prisma.stripePrice.upsert({
         where: { id: price.id },
         update: {
           active: price.active,
@@ -173,8 +173,8 @@ async function main() {
 
     // Summary
     const [productCount, priceCount] = await Promise.all([
-      prisma.product.count(),
-      prisma.price.count(),
+      prisma.stripeProduct.count(),
+      prisma.stripePrice.count(),
     ]);
 
     console.log('\n📊 Database Summary:');

@@ -93,7 +93,7 @@ async function createStripeData() {
     
     try {
       // Sync product
-      await prisma.product.upsert({
+      await prisma.stripeProduct.upsert({
         where: { id: product.id },
         update: {
           active: product.active,
@@ -121,7 +121,7 @@ async function createStripeData() {
       
       // Sync prices
       for (const price of [monthlyPrice, semiAnnualPrice, annualPrice]) {
-        await prisma.price.upsert({
+        await prisma.stripePrice.upsert({
           where: { id: price.id },
           update: {
             active: price.active,
