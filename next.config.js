@@ -5,7 +5,6 @@ const nextConfig = {
     NEXT_PUBLIC_GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
   },
   images: {
-    loader: "akamai",
     path: "/",
   },
   // Allow cross-origin requests from billing subdomain
