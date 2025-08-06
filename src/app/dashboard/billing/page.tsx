@@ -132,10 +132,10 @@ export default async function BillingPage() {
                     <FileText className="h-5 w-5 text-muted-foreground" />
                     <div>
                       <p className="font-medium">
-                        {formatAmountForDisplay(Number(invoice.amountPaid || 0), invoice.currency)}
+                        {formatAmountForDisplay(Number(invoice.amount_paid || 0), invoice.currency)}
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        {new Date(invoice.createdAt).toLocaleDateString()} • {invoice.status}
+                        {new Date(invoice.created).toLocaleDateString()} • {invoice.status}
                       </p>
                     </div>
                   </div>
@@ -151,9 +151,9 @@ export default async function BillingPage() {
                     >
                       {invoice.status}
                     </Badge>
-                    {invoice.hostedInvoiceUrl && (
+                    {invoice.hosted_invoice_url && (
                       <Button variant="outline" size="sm" asChild>
-                        <a href={invoice.hostedInvoiceUrl} target="_blank" rel="noopener noreferrer">
+                        <a href={invoice.hosted_invoice_url} target="_blank" rel="noopener noreferrer">
                           <Download className="h-4 w-4" />
                         </a>
                       </Button>
