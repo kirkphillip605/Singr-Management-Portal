@@ -54,6 +54,12 @@ export function PricingPlans({ prices }: PricingPlansProps) {
       const { url } = await response.json()
       window.location.href = url
     } catch (error) {
+      setError(error instanceof Error ? error.message : 'An error occurred')
+    } finally {
+      setLoadingPriceId(null)
+    }
+  }
+
   const getSavingsPercentage = (price: StripePrice) => {
     if (price.metadata?.savings_percentage) {
       return parseInt(price.metadata.savings_percentage)
