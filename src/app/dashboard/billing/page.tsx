@@ -155,12 +155,7 @@ async function BillingPage() {
                 </Alert>
               )}
 
-              <form action="/api/billing/customer-portal" method="POST" className="w-full">
-                <Button type="submit" className="w-full">
-                  <ExternalLink className="mr-2 h-4 w-4" />
-                  Manage Subscription & Billing
-                </Button>
-              </form>
+              <CustomerPortalButton />
             </div>
           ) : (
             <div className="text-center py-6">
@@ -209,12 +204,7 @@ async function BillingPage() {
                   </div>
                 </div>
               ))}
-              <form action="/api/billing/customer-portal" method="POST" className="w-full">
-                <Button variant="outline" type="submit" className="w-full">
-                  <ExternalLink className="mr-2 h-4 w-4" />
-                  Manage Payment Methods
-                </Button>
-              </form>
+              <CustomerPortalButton variant="outline" text="Manage Payment Methods" />
             </div>
           </CardContent>
         </Card>
@@ -266,12 +256,7 @@ async function BillingPage() {
                   </div>
                 </div>
               ))}
-              <form action="/api/billing/customer-portal" method="POST" className="w-full">
-                <Button variant="outline" type="submit" className="w-full">
-                  <ExternalLink className="mr-2 h-4 w-4" />
-                  View All Invoices
-                </Button>
-              </form>
+              <CustomerPortalButton variant="outline" text="View All Invoices" />
             </div>
           </CardContent>
         </Card>

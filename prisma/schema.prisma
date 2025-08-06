@@ -295,6 +295,7 @@ enum PricingInterval {
 
 enum ApiKeyStatus {
   active
+  suspended
   revoked
   expired
 
