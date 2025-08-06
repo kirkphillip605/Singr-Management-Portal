@@ -352,7 +352,7 @@ export default function HomePage() {
               </Button>
             </Link>
             <Link href="/auth/signin">
-              <Button size="lg" variant="outline" className="w-full sm:w-auto text-lg px-8 py-3 border-white text-primary hover:bg-white hover:text-primary">
+              <Button size="lg" variant="outline" className="w-full sm:w-auto text-lg px-8 py-3 border-white text-white hover:bg-white hover:text-primary">
                 Sign In
               </Button>
             </Link>
