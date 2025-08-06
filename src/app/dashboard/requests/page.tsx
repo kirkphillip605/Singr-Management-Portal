@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
-import { getAuthSession } from '@/lib/auth-server'
+import { getServerSession } from 'next-auth/next'
+import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -9,7 +10,7 @@ import { Music, Clock, User, MapPin, Trash2, CheckCircle, RefreshCw } from 'luci
 import { formatDistanceToNow } from 'date-fns'
 
 export default async function RequestsPage() {
-  const session = await getAuthSession()
+  const session = await getServerSession(authOptions)
 
   if (!session?.user?.id) {
     redirect('/auth/signin')
@@ -17,16 +18,12 @@ export default async function RequestsPage() {
 
   const requests = await prisma.request.findMany({
     where: {
-      venueRelationship: {
+      venue: {
         userId: session.user.id,
       },
     },
     include: {
-      venueRelationship: {
-        include: {
-          venue: true,
-        },
-      },
+      venue: true,
     },
     orderBy: {
       requestTime: 'desc',
@@ -36,16 +33,15 @@ export default async function RequestsPage() {
 
   const totalRequests = await prisma.request.count({
     where: {
-      venueRelationship: {
+      venue: {
         userId: session.user.id,
       },
     },
   })
 
-  const venues = await prisma.venueRelationship.findMany({
+  const venues = await prisma.venue.findMany({
     where: { userId: session.user.id },
     include: {
-      venue: true,
       _count: {
         select: {
           requests: true,
@@ -128,7 +124,7 @@ export default async function RequestsPage() {
                 <div className="flex items-center space-x-3">
                   <MapPin className="h-4 w-4 text-muted-foreground" />
                   <div>
-                    <p className="font-medium">{venue.displayName || venue.venue.name}</p>
+                    <p className="font-medium">{venue.name}</p>
                     <p className="text-sm text-muted-foreground">
                       {venue._count.requests} requests
                     </p>
@@ -190,7 +186,7 @@ export default async function RequestsPage() {
                         </div>
                         <div className="flex items-center gap-1">
                           <MapPin className="h-3 w-3" />
-                          {request.venueRelationship.displayName || request.venueRelationship.venue.name}
+                          {request.venue.name}
                         </div>
                         <div className="flex items-center gap-1">
                           <Clock className="h-3 w-3" />

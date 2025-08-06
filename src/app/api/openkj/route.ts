@@ -67,8 +67,8 @@ async function updateSerial(venueRelationshipId: string, systemId: number): Prom
   try {
     const state = await prisma.state.upsert({
       where: {
-        venueRelationshipId_systemId: {
-          venueRelationshipId,
+        venueId_systemId: {
+          venueId,
           systemId,
         },
       },
@@ -78,7 +78,7 @@ async function updateSerial(venueRelationshipId: string, systemId: number): Prom
         },
       },
       create: {
-        venueRelationshipId,
+        venueId,
         systemId,
         serial: 1,
         accepting: false,
@@ -108,9 +108,8 @@ async function authenticateApiKey(apiKey: string) {
           include: {
             user: {
               include: {
-                venueRelationships: {
+                venues: {
                   include: {
-                    venue: true,
                     states: true,
                   }
                 }
@@ -134,7 +133,7 @@ async function authenticateApiKey(apiKey: string) {
           apiKeyId: key.id,
           customer: key.customer,
           user: key.customer.user,
-          venueRelationships: key.customer.user.venueRelationships,
+          venues: key.customer.user.venues,
         }
       }
     }
@@ -146,14 +145,14 @@ async function authenticateApiKey(apiKey: string) {
   }
 }
 
-function findVenueRelationship(venueRelationships: any[], venueId?: number) {
+function findVenue(venues: any[], venueId?: number) {
   if (!venueId) return null
   
   // In the old system, venue_id was an integer
-  // We need to find the venue relationship that matches
-  return venueRelationships.find(vr => 
-    vr.venue && (vr.venue.name === venueId.toString() || vr.id === venueId.toString())
-  ) || venueRelationships[0] // Fallback to first venue
+  // We need to find the venue that matches
+  return venues.find(v => 
+    v.name === venueId.toString() || v.id === venueId.toString()
+  ) || venues[0] // Fallback to first venue
 }
 
 export async function POST(request: NextRequest) {
@@ -196,14 +195,14 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    const { user, venueRelationships } = auth
+    const { user, venues } = auth
 
     // Handle commands
     switch (command) {
       case 'getSerial': {
         // For getSerial, return the highest serial across all venues
-        const maxSerial = venueRelationships.reduce((max, vr) => {
-          const state = vr.states.find((s: any) => s.systemId === (body.system_id || 0))
+        const maxSerial = venues.reduce((max, venue) => {
+          const state = venue.states.find((s: any) => s.systemId === (body.system_id || 0))
           return Math.max(max, state?.serial || 1)
         }, 1)
 
@@ -224,8 +223,8 @@ export async function POST(request: NextRequest) {
           })
         }
 
-        const venueRelationship = findVenueRelationship(venueRelationships, validation.data.venue_id)
-        if (!venueRelationship) {
+        const venue = findVenue(venues, validation.data.venue_id)
+        if (!venue) {
           return NextResponse.json({
             command,
             error: true,
@@ -235,7 +234,7 @@ export async function POST(request: NextRequest) {
 
         const requests = await prisma.request.findMany({
           where: {
-            venueRelationshipId: venueRelationship.id,
+            venueId: venue.id,
             systemId: validation.data.system_id,
           },
           orderBy: {
@@ -255,8 +254,8 @@ export async function POST(request: NextRequest) {
         // Get current serial
         const state = await prisma.state.findUnique({
           where: {
-            venueRelationshipId_systemId: {
-              venueRelationshipId: venueRelationship.id,
+            venueId_systemId: {
+              venueId: venue.id,
               systemId: validation.data.system_id,
             }
           }
@@ -280,8 +279,8 @@ export async function POST(request: NextRequest) {
           })
         }
 
-        const venueRelationship = findVenueRelationship(venueRelationships, validation.data.venue_id)
-        if (!venueRelationship) {
+        const venue = findVenue(venues, validation.data.venue_id)
+        if (!venue) {
           return NextResponse.json({
             command,
             error: true,
@@ -292,7 +291,7 @@ export async function POST(request: NextRequest) {
         const deleted = await prisma.request.deleteMany({
           where: {
             requestId: BigInt(validation.data.request_id),
-            venueRelationshipId: venueRelationship.id,
+            venueId: venue.id,
             systemId: validation.data.system_id,
           }
         })
@@ -305,7 +304,7 @@ export async function POST(request: NextRequest) {
           })
         }
 
-        const newSerial = await updateSerial(venueRelationship.id, validation.data.system_id)
+        const newSerial = await updateSerial(venue.id, validation.data.system_id)
 
         return NextResponse.json({
           command,
@@ -324,8 +323,8 @@ export async function POST(request: NextRequest) {
           })
         }
 
-        const venueRelationship = findVenueRelationship(venueRelationships, validation.data.venue_id)
-        if (!venueRelationship) {
+        const venue = findVenue(venues, validation.data.venue_id)
+        if (!venue) {
           return NextResponse.json({
             command,
             error: true,
@@ -333,17 +332,17 @@ export async function POST(request: NextRequest) {
           })
         }
 
-        // Update venue relationship accepting status
-        await prisma.venueRelationship.update({
-          where: { id: venueRelationship.id },
+        // Update venue accepting status
+        await prisma.venue.update({
+          where: { id: venue.id },
           data: { acceptingRequests: validation.data.accepting }
         })
 
         // Update state
         await prisma.state.upsert({
           where: {
-            venueRelationshipId_systemId: {
-              venueRelationshipId: venueRelationship.id,
+            venueId_systemId: {
+              venueId: venue.id,
               systemId: validation.data.system_id,
             }
           },
@@ -351,14 +350,14 @@ export async function POST(request: NextRequest) {
             accepting: validation.data.accepting,
           },
           create: {
-            venueRelationshipId: venueRelationship.id,
+            venueId: venue.id,
             systemId: validation.data.system_id,
             accepting: validation.data.accepting,
             serial: 1,
           }
         })
 
-        const newSerial = await updateSerial(venueRelationship.id, validation.data.system_id)
+        const newSerial = await updateSerial(venue.id, validation.data.system_id)
 
         return NextResponse.json({
           command,
@@ -370,16 +369,16 @@ export async function POST(request: NextRequest) {
       }
 
       case 'getVenues': {
-        const venues = venueRelationships.map((vr, index) => ({
+        const venuesFormatted = venues.map((venue, index) => ({
           venue_id: index + 1, // Use index as ID for compatibility
-          name: vr.displayName || vr.venue.name,
-          url_name: vr.urlName,
-          accepting: vr.acceptingRequests,
+          name: venue.name,
+          url_name: venue.urlName,
+          accepting: venue.acceptingRequests,
         }))
 
         return NextResponse.json({
           command,
-          venues,
+          venues: venuesFormatted,
           error: false
         })
       }
@@ -394,8 +393,8 @@ export async function POST(request: NextRequest) {
           })
         }
 
-        const venueRelationship = findVenueRelationship(venueRelationships, validation.data.venue_id)
-        if (!venueRelationship) {
+        const venue = findVenue(venues, validation.data.venue_id)
+        if (!venue) {
           return NextResponse.json({
             command,
             error: true,
@@ -405,12 +404,12 @@ export async function POST(request: NextRequest) {
 
         await prisma.request.deleteMany({
           where: {
-            venueRelationshipId: venueRelationship.id,
+            venueId: venue.id,
             systemId: validation.data.system_id,
           }
         })
 
-        const newSerial = await updateSerial(venueRelationship.id, validation.data.system_id)
+        const newSerial = await updateSerial(venue.id, validation.data.system_id)
 
         return NextResponse.json({
           command,
@@ -482,7 +481,7 @@ export async function POST(request: NextRequest) {
         // Get current serial
         const state = await prisma.state.findFirst({
           where: {
-            venueRelationship: {
+            venue: {
               userId: user.id
             },
             systemId: system_id,
@@ -514,7 +513,7 @@ export async function POST(request: NextRequest) {
         // Get current serial
         const state = await prisma.state.findFirst({
           where: {
-            venueRelationship: {
+            venue: {
               userId: user.id
             },
             systemId: system_id,
@@ -540,10 +539,10 @@ export async function POST(request: NextRequest) {
       }
 
       case 'getEntitledSystemCount': {
-        // Return number of venue relationships as entitled systems
+        // Return number of venues as entitled systems
         return NextResponse.json({
           command,
-          count: Math.max(venueRelationships.length, 1),
+          count: Math.max(venues.length, 1),
           error: false
         })
       }

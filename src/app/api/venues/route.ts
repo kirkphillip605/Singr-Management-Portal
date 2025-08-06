@@ -11,10 +11,43 @@ const createVenueSchema = z.object({
   address: z.string().optional(),
   city: z.string().optional(),
   state: z.string().optional(),
+  stateCode: z.string().optional(),
   postalCode: z.string().optional(),
   country: z.string().default('US'),
+  countryCode: z.string().optional(),
+  phoneNumber: z.string().optional(),
+  website: z.string().optional(),
+  herePlaceId: z.string().optional(),
+  latitude: z.number().optional(),
+  longitude: z.number().optional(),
   acceptingRequests: z.boolean().default(true),
 })
+
+async function geocodeAddress(address: string): Promise<{ lat: number; lng: number } | null> {
+  const apiKey = process.env.HERE_API_KEY
+  if (!apiKey) return null
+
+  try {
+    const url = `https://geocode.search.hereapi.com/v1/geocode?q=${encodeURIComponent(address)}&apiKey=${apiKey}`
+    const response = await fetch(url)
+    
+    if (!response.ok) return null
+    
+    const data = await response.json()
+    const firstResult = data.items?.[0]
+    
+    if (firstResult?.position) {
+      return {
+        lat: firstResult.position.lat,
+        lng: firstResult.position.lng,
+      }
+    }
+  } catch (error) {
+    console.error('Geocoding error:', error)
+  }
+  
+  return null
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,62 +61,61 @@ export async function POST(request: NextRequest) {
     const validatedData = createVenueSchema.parse(body)
 
     // Check if URL name is already taken by this user
-    const existingVenueRelationship = await prisma.venueRelationship.findFirst({
+    const existingVenue = await prisma.venue.findFirst({
       where: {
         userId: session.user.id,
         urlName: validatedData.urlName,
       },
     })
 
-    if (existingVenueRelationship) {
+    if (existingVenue) {
       return NextResponse.json(
         { error: 'URL name is already in use' },
         { status: 400 }
       )
     }
 
-    // Create or find existing venue
-    const venue = await prisma.venue.upsert({
-      where: {
-        name_address: {
-          name: validatedData.name,
-          address: validatedData.address || '',
-        },
-      },
-      update: {
-        city: validatedData.city,
-        state: validatedData.state,
-        postalCode: validatedData.postalCode,
-        country: validatedData.country,
-      },
-      create: {
+    // If no coordinates provided but we have address, try to geocode
+    let coordinates = null
+    if (!validatedData.latitude && !validatedData.longitude && validatedData.address) {
+      const addressString = [
+        validatedData.address,
+        validatedData.city,
+        validatedData.state,
+        validatedData.postalCode
+      ].filter(Boolean).join(' ')
+      
+      if (addressString.trim()) {
+        coordinates = await geocodeAddress(addressString)
+      }
+    }
+
+    // Create venue
+    const venue = await prisma.venue.create({
+      data: {
+        userId: session.user.id,
         name: validatedData.name,
+        urlName: validatedData.urlName,
+        acceptingRequests: validatedData.acceptingRequests,
+        herePlaceId: validatedData.herePlaceId,
         address: validatedData.address,
         city: validatedData.city,
         state: validatedData.state,
+        stateCode: validatedData.stateCode,
         postalCode: validatedData.postalCode,
         country: validatedData.country,
-      },
-    })
-
-    // Create venue relationship
-    const venueRelationship = await prisma.venueRelationship.create({
-      data: {
-        userId: session.user.id,
-        venueId: venue.id,
-        displayName: validatedData.displayName,
-        urlName: validatedData.urlName,
-        acceptingRequests: validatedData.acceptingRequests,
-      },
-      include: {
-        venue: true,
+        countryCode: validatedData.countryCode,
+        phoneNumber: validatedData.phoneNumber,
+        website: validatedData.website,
+        latitude: validatedData.latitude || coordinates?.lat,
+        longitude: validatedData.longitude || coordinates?.lng,
       },
     })
 
     // Initialize state for the venue
     await prisma.state.create({
       data: {
-        venueRelationshipId: venueRelationship.id,
+        venueId: venue.id,
         systemId: 0,
         accepting: validatedData.acceptingRequests,
         serial: 1,
@@ -91,11 +123,19 @@ export async function POST(request: NextRequest) {
     })
 
     return NextResponse.json({
-      id: venueRelationship.id,
-      venue: venueRelationship.venue,
-      displayName: venueRelationship.displayName,
-      urlName: venueRelationship.urlName,
-      acceptingRequests: venueRelationship.acceptingRequests,
+      id: venue.id,
+      name: venue.name,
+      urlName: venue.urlName,
+      acceptingRequests: venue.acceptingRequests,
+      address: venue.address,
+      city: venue.city,
+      state: venue.state,
+      postalCode: venue.postalCode,
+      country: venue.country,
+      phoneNumber: venue.phoneNumber,
+      website: venue.website,
+      latitude: venue.latitude,
+      longitude: venue.longitude,
     })
   } catch (error) {
     if (error instanceof z.ZodError) {

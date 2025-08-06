@@ -1,12 +1,13 @@
 import { redirect } from 'next/navigation'
-import { getAuthSession } from '@/lib/auth-server'
+import { getServerSession } from 'next-auth/next'
+import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 
 export default async function DashboardPage() {
-  const session = await getAuthSession()
+  const session = await getServerSession(authOptions)
 
   if (!session?.user?.id) {
     redirect('/auth/signin')
@@ -34,9 +35,8 @@ export default async function DashboardPage() {
           },
         },
       },
-      venueRelationships: {
+      venues: {
         include: {
-          venue: true,
           requests: {
             take: 5,
             orderBy: {
@@ -64,7 +64,7 @@ export default async function DashboardPage() {
 
   const totalRequests = await prisma.request.count({
     where: {
-      venueRelationship: {
+      venue: {
         userId: session.user.id,
       },
     },
@@ -86,7 +86,7 @@ export default async function DashboardPage() {
             <CardTitle className="text-sm font-medium">Venues</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{user?.venueRelationships.length || 0}</div>
+            <div className="text-2xl font-bold">{user?.venues.length || 0}</div>
           </CardContent>
         </Card>
 
@@ -171,10 +171,10 @@ export default async function DashboardPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {user?.venueRelationships.some(vr => vr.requests.length > 0) ? (
+            {user?.venues.some(venue => venue.requests.length > 0) ? (
               <div className="space-y-3">
-                {user.venueRelationships
-                  .flatMap(vr => vr.requests.map(req => ({ ...req, venue: vr.venue })))
+                {user.venues
+                  .flatMap(venue => venue.requests.map(req => ({ ...req, venue })))
                   .slice(0, 5)
                   .map((request) => (
                     <div key={request.requestId.toString()} className="flex justify-between items-start">
