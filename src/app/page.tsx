@@ -368,7 +368,7 @@ export default function HomePage() {
               <img 
                 src="/singr-icon.png"
                 alt="Singr Karaoke" 
-                objectFit="contain"
+                objectFit="cover"
               />
               <span className="ml-2 text-xl font-bold">Singr Karaoke Connect</span>
             </div>
