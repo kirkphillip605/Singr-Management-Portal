@@ -1,5 +1,5 @@
 const Stripe = require('stripe')
-
+const LOG_SEPARATOR = '────────────────────────────────────────────';
 async function createStripeData() {
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
     apiVersion: '2024-06-20',
