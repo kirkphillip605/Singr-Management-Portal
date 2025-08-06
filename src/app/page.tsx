@@ -366,7 +366,7 @@ export default function HomePage() {
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="flex items-center mb-4 md:mb-0">
               <img 
-                src="/singr-logo-color-white.png"
+                src="/singr-icon.png"
                 alt="Singr Karaoke" 
                 objectFit="contain"
               />
