@@ -116,6 +116,9 @@ export async function POST(request: NextRequest) {
       await prisma.stripeWebhookEvent.create({
         data: {
           eventId: event.id,
+          eventType: event.type,
+          livemode: event.livemode,
+          apiVersion: event.api_version,
           payload: event as any,
           receivedAt: new Date(),
           processed: false,
@@ -499,11 +502,13 @@ export async function POST(request: NextRequest) {
               amountPaid: safeBigInt(invoice.amount_paid),
               amountRemaining: safeBigInt(invoice.amount_remaining),
               currency: invoice.currency,
+              collectionMethod: invoice.collection_method || 'charge_automatically',
               hostedInvoiceUrl: invoice.hosted_invoice_url || null,
               invoicePdf: invoice.invoice_pdf || null,
               periodStart,
               periodEnd,
               dueDate: safeTimestampToDate(invoice.due_date),
+              created: safeTimestampToDate(invoice.created) || new Date(),
               metadata: invoice.metadata as any,
             },
           })
@@ -539,6 +544,7 @@ export async function POST(request: NextRequest) {
             currency: paymentIntent.currency,
             status: paymentIntent.status,
             captureMethod: paymentIntent.capture_method,
+            created: safeTimestampToDate(paymentIntent.created) || new Date(),
             metadata: paymentIntent.metadata as any,
           }
 
@@ -588,6 +594,7 @@ export async function POST(request: NextRequest) {
               cardExpMonth: paymentMethod.card?.exp_month || null,
               cardExpYear: paymentMethod.card?.exp_year || null,
               billingDetails: paymentMethod.billing_details as any,
+              created: safeTimestampToDate(paymentMethod.created) || new Date(),
               metadata: paymentMethod.metadata as any,
             },
           })
@@ -635,6 +642,7 @@ export async function POST(request: NextRequest) {
             mode: session.mode,
             amountTotal: safeBigInt(session.amount_total),
             currency: session.currency || 'usd',
+            created: safeTimestampToDate(session.created) || new Date(),
             expiresAt: safeTimestampToDate(session.expires_at),
             url: session.url || null,
             metadata: session.metadata as any,

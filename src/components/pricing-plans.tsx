@@ -24,7 +24,7 @@ interface Price {
 interface PricingPlansProps {
   prices: Price[]
   currentSubscription?: {
-    priceId: string
+    price: string
     status: string
   }
 }

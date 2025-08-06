@@ -21,11 +21,11 @@ import { formatAmountForDisplay } from '@/lib/stripe'
 interface Subscription {
   id: string
   status: string
-  cancelAtPeriodEnd: boolean
-  currentPeriodStart: Date | string
-  currentPeriodEnd: Date | string
-  cancelAt?: string | null
-  price?: string // Stripe price ID
+  cancel_at_period_end: boolean
+  current_period_start: Date | string
+  current_period_end: Date | string
+  cancel_at?: string | null
+  priceId?: string // Stripe price ID
   currency: string
   items?: any // Subscription items JSON
 }
@@ -44,13 +44,12 @@ export function SubscriptionManagement({
 
   // Fetch price and product info when subscription loads
   useEffect(() => {
-    if (subscription?.price) {
-      fetch(`/api/prices/${subscription.price}`)
+    if (subscription?.priceId) {
+      fetch(`/api/prices/${subscription.priceId}`)
         .then(res => res.json())
         .then(data => setPriceInfo(data))
         .catch(() => {})
     }
-  }, [subscription?.price])
 
   const handleCancelSubscription = async () => {
     if (!subscription) return
@@ -276,7 +275,7 @@ export function SubscriptionManagement({
                     <DialogDescription>
                       Are you sure you want to cancel your subscription? You'll continue to have access 
                       until the end of your current billing period on{' '}
-                      {new Date(subscription.currentPeriodEnd).toLocaleDateString()}.
+                      {new Date(subscription.current_period_end).toLocaleDateString()}.
                     </DialogDescription>
                   </DialogHeader>
                   <DialogFooter>

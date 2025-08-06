@@ -59,7 +59,7 @@ export default async function PlansPage() {
       <PricingPlans 
         prices={prices} 
         currentSubscription={currentSubscription ? {
-          priceId: currentSubscription.price,
+          price: currentSubscription.priceId,
           status: currentSubscription.status,
         } : undefined}
       />

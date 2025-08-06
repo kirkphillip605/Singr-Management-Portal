@@ -80,6 +80,7 @@ export async function POST(request: NextRequest) {
         mode: checkoutSession.mode,
         amountTotal: checkoutSession.amount_total ? BigInt(checkoutSession.amount_total) : null,
         currency: checkoutSession.currency || 'usd',
+        created: new Date(checkoutSession.created * 1000),
         expiresAt: checkoutSession.expires_at ? new Date(checkoutSession.expires_at * 1000) : null,
         url: checkoutSession.url,
         metadata: checkoutSession.metadata as any,

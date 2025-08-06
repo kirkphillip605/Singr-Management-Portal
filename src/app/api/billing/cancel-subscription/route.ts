@@ -44,8 +44,8 @@ export async function POST(request: NextRequest) {
     await prisma.subscription.update({
       where: { id: subscriptionId },
       data: {
-        cancelAtPeriodEnd: updatedSubscription.cancel_at_period_end,
-        cancelAt: updatedSubscription.cancel_at ? new Date(updatedSubscription.cancel_at * 1000) : null,
+        cancel_at_period_end: updatedSubscription.cancel_at_period_end,
+        cancel_at: updatedSubscription.cancel_at ? new Date(updatedSubscription.cancel_at * 1000) : null,
         status: updatedSubscription.status as any,
       },
     })

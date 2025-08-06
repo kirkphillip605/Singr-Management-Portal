@@ -24,12 +24,8 @@ export default async function SettingsPage() {
       customer: {
         include: {
           subscriptions: {
-            include: {
-              price: {
-                include: {
-                  product: true,
-                },
-              },
+            orderBy: {
+              created: 'desc',
             },
           },
         },
@@ -272,9 +268,9 @@ export default async function SettingsPage() {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h3 className="font-semibold">{activeSubscription.price.product?.name}</h3>
+                      <h3 className="font-semibold">Pro Plan</h3>
                       <p className="text-sm text-muted-foreground">
-                        ${(Number(activeSubscription.price.unitAmount) / 100).toFixed(2)} / {activeSubscription.price.interval}
+                        Active Subscription
                       </p>
                     </div>
                     <Badge
@@ -285,7 +281,7 @@ export default async function SettingsPage() {
                   </div>
 
                   <div className="text-sm">
-                    <p>Next billing date: {new Date(activeSubscription.currentPeriodEnd).toLocaleDateString()}</p>
+                    <p>Next billing date: {new Date(activeSubscription.current_period_end).toLocaleDateString()}</p>
                   </div>
 
                   <div className="flex gap-2">
