@@ -38,12 +38,10 @@ interface Subscription {
 
 interface SubscriptionManagementProps {
   subscription: Subscription | null
-  onSubscriptionUpdate: () => void
 }
 
 export function SubscriptionManagement({ 
-  subscription, 
-  onSubscriptionUpdate 
+  subscription
 }: SubscriptionManagementProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
@@ -72,7 +70,7 @@ export function SubscriptionManagement({
         throw new Error(data.error || 'Failed to cancel subscription')
       }
 
-      onSubscriptionUpdate()
+      router.refresh()
     } catch (error) {
       setError(error instanceof Error ? error.message : 'An error occurred')
     } finally {
@@ -102,7 +100,7 @@ export function SubscriptionManagement({
         throw new Error(data.error || 'Failed to reactivate subscription')
       }
 
-      onSubscriptionUpdate()
+      router.refresh()
     } catch (error) {
       setError(error instanceof Error ? error.message : 'An error occurred')
     } finally {

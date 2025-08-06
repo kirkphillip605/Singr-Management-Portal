@@ -57,12 +57,6 @@ export default async function BillingPage() {
 
   const recentInvoices = user?.customer?.invoices || []
   const paymentMethods = user?.customer?.paymentMethods || []
-
-  const refreshData = () => {
-    // This would trigger a revalidation in a real app
-    // For now, we'll just redirect to refresh the page
-    window.location.reload()
-  }
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -77,7 +71,6 @@ export default async function BillingPage() {
       {/* Subscription Status */}
       <SubscriptionManagement 
         subscription={activeSubscription} 
-        onSubscriptionUpdate={refreshData}
       />
 
       {/* Payment Methods */}
