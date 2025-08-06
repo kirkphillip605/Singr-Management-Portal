@@ -123,6 +123,14 @@ async function authenticateApiKey(apiKey: string) {
     for (const key of apiKeys) {
       const isValid = await bcrypt.compare(apiKey, key.apiKeyHash)
       if (isValid) {
+        // Check if customer has active subscription
+        const hasActiveSubscription = await verifyActiveSubscription(key.customer.stripeCustomerId)
+        
+        if (!hasActiveSubscription) {
+          logger.warn(`API access denied - no active subscription for customer ${key.customer.id}`)
+          return null
+        }
+
         // Update last used timestamp
         await prisma.apiKey.update({
           where: { id: key.id },
@@ -142,6 +150,35 @@ async function authenticateApiKey(apiKey: string) {
   } catch (error) {
     logger.error('API key authentication error:', error)
     return null
+  }
+}
+
+async function verifyActiveSubscription(stripeCustomerId: string): Promise<boolean> {
+  try {
+    const stripe = await import('stripe').then(m => new m.default(process.env.STRIPE_SECRET_KEY!, {
+      apiVersion: '2024-06-20',
+    }))
+
+    const subscriptions = await stripe.subscriptions.list({
+      customer: stripeCustomerId,
+      status: 'active',
+      limit: 1,
+    })
+
+    // Also check for trialing subscriptions
+    if (subscriptions.data.length === 0) {
+      const trialingSubscriptions = await stripe.subscriptions.list({
+        customer: stripeCustomerId,
+        status: 'trialing',
+        limit: 1,
+      })
+      return trialingSubscriptions.data.length > 0
+    }
+
+    return subscriptions.data.length > 0
+  } catch (error) {
+    logger.error('Error verifying subscription:', error)
+    return false
   }
 }
 

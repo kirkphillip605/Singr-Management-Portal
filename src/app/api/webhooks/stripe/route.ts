@@ -28,6 +28,68 @@ function extractCustomerId(customer: string | Stripe.Customer | null): string | 
   return typeof customer === 'string' ? customer : customer.id
 }
 
+async function updateApiKeysAndVenues(customerId: string, suspend: boolean) {
+  try {
+    const customer = await prisma.customer.findUnique({
+      where: { stripeCustomerId: customerId },
+      include: {
+        user: {
+          include: {
+            venues: true,
+          }
+        },
+        apiKeys: true,
+      },
+    })
+
+    if (!customer) {
+      logger.warn(`Customer not found for Stripe ID: ${customerId}`)
+      return
+    }
+
+    // Update API keys status
+    await prisma.apiKey.updateMany({
+      where: { 
+        customerId: customer.id,
+        status: suspend ? 'active' : 'suspended'
+      },
+      data: { 
+        status: suspend ? 'suspended' : 'active',
+        updatedAt: new Date(),
+      },
+    })
+
+    if (suspend) {
+      // Set all venues to not accepting requests when subscription lapses
+      await prisma.venue.updateMany({
+        where: { userId: customer.user.id },
+        data: { 
+          acceptingRequests: false,
+          updatedAt: new Date(),
+        },
+      })
+
+      // Update venue states
+      await prisma.state.updateMany({
+        where: {
+          venue: {
+            userId: customer.user.id,
+          }
+        },
+        data: {
+          accepting: false,
+          serial: { increment: 1 },
+          updatedAt: new Date(),
+        },
+      })
+    }
+    
+    logger.info(`${suspend ? 'Suspended' : 'Reactivated'} access for customer ${customerId}`)
+  } catch (error) {
+    logger.error(`Error updating access for customer ${customerId}:`, error)
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Get request body and signature
@@ -274,6 +336,70 @@ export async function POST(request: NextRequest) {
           })
           
           logger.info(`Customer deleted: ${customer.id}`)
+          break
+        }
+
+        // Subscription events - critical for access control
+        case 'customer.subscription.created': {
+          const subscription = event.data.object as Stripe.Subscription
+          const customerId = extractCustomerId(subscription.customer)
+          
+          if (customerId && (subscription.status === 'active' || subscription.status === 'trialing')) {
+            await updateApiKeysAndVenues(customerId, false) // Reactivate
+          }
+          
+          logger.info(`Subscription created: ${subscription.id} (${subscription.status})`)
+          break
+        }
+
+        case 'customer.subscription.updated': {
+          const subscription = event.data.object as Stripe.Subscription
+          const customerId = extractCustomerId(subscription.customer)
+          
+          if (customerId) {
+            const shouldSuspend = !['active', 'trialing'].includes(subscription.status)
+            await updateApiKeysAndVenues(customerId, shouldSuspend)
+          }
+          
+          logger.info(`Subscription updated: ${subscription.id} (${subscription.status})`)
+          break
+        }
+
+        case 'customer.subscription.deleted': {
+          const subscription = event.data.object as Stripe.Subscription
+          const customerId = extractCustomerId(subscription.customer)
+          
+          if (customerId) {
+            await updateApiKeysAndVenues(customerId, true) // Suspend
+          }
+          
+          logger.info(`Subscription deleted: ${subscription.id}`)
+          break
+        }
+
+        case 'invoice.payment_failed': {
+          const invoice = event.data.object as Stripe.Invoice
+          const customerId = extractCustomerId(invoice.customer)
+          
+          if (customerId && invoice.billing_reason === 'subscription_cycle') {
+            // Only suspend on subscription payment failures, not one-time payments
+            await updateApiKeysAndVenues(customerId, true)
+          }
+          
+          logger.info(`Payment failed: ${invoice.id} for customer ${customerId}`)
+          break
+        }
+
+        case 'invoice.payment_succeeded': {
+          const invoice = event.data.object as Stripe.Invoice
+          const customerId = extractCustomerId(invoice.customer)
+          
+          if (customerId && invoice.billing_reason === 'subscription_cycle') {
+            // Reactivate on successful subscription payment
+            await updateApiKeysAndVenues(customerId, false)
+          }
+          
+          logger.info(`Payment succeeded: ${invoice.id} for customer ${customerId}`)
           break
         }
 
