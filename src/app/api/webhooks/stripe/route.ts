@@ -7,7 +7,6 @@ import Stripe from 'stripe'
 // Rate limiting map (in production, use Redis or similar)
 const rateLimitMap = new Map()
 
-// Helper function for rate limiting
 function rateLimit(ip: string): boolean {
   const now = Date.now()
   const windowMs = 60000 // 1 minute
@@ -102,18 +101,18 @@ export async function POST(request: NextRequest) {
     // Log the webhook event for debugging
     logger.info(`Stripe webhook received: ${event.type}`, { eventId: event.id })
 
-    // Store webhook event for audit trail
+    // Store webhook event for audit trail - use exact schema field names
     try {
       await prisma.stripeWebhookEvent.create({
         data: {
-          event_id: event.id,
-          event_type: event.type,
+          eventId: event.id, // Use camelCase as per schema
+          eventType: event.type,
           livemode: event.livemode,
-          api_version: event.api_version,
-          request_id: event.request?.id || null,
-          endpoint_secret: process.env.STRIPE_WEBHOOK_SECRET,
+          apiVersion: event.api_version,
+          requestId: event.request?.id || null,
+          endpointSecret: process.env.STRIPE_WEBHOOK_SECRET,
           payload: event as any,
-          received_at: new Date(),
+          receivedAt: new Date(),
           processed: false,
         },
       })
@@ -129,7 +128,7 @@ export async function POST(request: NextRequest) {
           const customer = event.data.object as Stripe.Customer
           
           await prisma.customer.upsert({
-            where: { stripe_customer_id: customer.id },
+            where: { stripeCustomerId: customer.id }, // Use camelCase
             update: {
               email: customer.email,
               name: customer.name,
@@ -142,11 +141,11 @@ export async function POST(request: NextRequest) {
               tax_ids: customer.tax_ids as any,
               livemode: customer.livemode,
               data: customer as any,
-              updated: new Date(),
+              updatedAt: new Date(),
             },
             create: {
               id: crypto.randomUUID(),
-              stripe_customer_id: customer.id,
+              stripeCustomerId: customer.id, // Use camelCase
               email: customer.email,
               name: customer.name,
               phone: customer.phone,
@@ -158,8 +157,8 @@ export async function POST(request: NextRequest) {
               tax_ids: customer.tax_ids as any,
               livemode: customer.livemode,
               data: customer as any,
-              created: safeTimestampToDate(customer.created) || new Date(),
-              updated: new Date(),
+              createdAt: safeTimestampToDate(customer.created) || new Date(),
+              updatedAt: new Date(),
             },
           })
           
@@ -170,12 +169,11 @@ export async function POST(request: NextRequest) {
         case 'customer.deleted': {
           const customer = event.data.object as Stripe.Customer
           
-          // Mark customer as deleted rather than actually deleting (preserve audit trail)
           await prisma.customer.updateMany({
-            where: { stripe_customer_id: customer.id },
+            where: { stripeCustomerId: customer.id }, // Use camelCase
             data: {
               data: customer as any,
-              updated: new Date(),
+              updatedAt: new Date(),
             },
           })
           
@@ -196,11 +194,11 @@ export async function POST(request: NextRequest) {
               description: product.description,
               images: product.images || [],
               metadata: product.metadata as any,
-              package_dimensions: product.package_dimensions as any,
+              packageDimensions: product.package_dimensions as any,
               shippable: product.shippable,
-              statement_descriptor: product.statement_descriptor,
-              tax_code: product.tax_code,
-              unit_label: product.unit_label,
+              statementDescriptor: product.statement_descriptor,
+              taxCode: product.tax_code,
+              unitLabel: product.unit_label,
               url: product.url,
               livemode: product.livemode,
               data: product as any,
@@ -214,11 +212,11 @@ export async function POST(request: NextRequest) {
               description: product.description,
               images: product.images || [],
               metadata: product.metadata as any,
-              package_dimensions: product.package_dimensions as any,
+              packageDimensions: product.package_dimensions as any,
               shippable: product.shippable,
-              statement_descriptor: product.statement_descriptor,
-              tax_code: product.tax_code,
-              unit_label: product.unit_label,
+              statementDescriptor: product.statement_descriptor,
+              taxCode: product.tax_code,
+              unitLabel: product.unit_label,
               url: product.url,
               livemode: product.livemode,
               data: product as any,
@@ -256,18 +254,18 @@ export async function POST(request: NextRequest) {
             where: { id: price.id },
             update: {
               active: price.active,
-              billing_scheme: price.billing_scheme,
+              billingScheme: price.billing_scheme,
               currency: price.currency,
-              custom_unit_amount: price.custom_unit_amount as any,
-              lookup_key: price.lookup_key,
+              customUnitAmount: price.custom_unit_amount as any,
+              lookupKey: price.lookup_key,
               nickname: price.nickname,
               recurring: price.recurring as any,
-              tax_behavior: price.tax_behavior,
-              tiers_mode: price.tiers_mode,
-              transform_quantity: price.transform_quantity as any,
+              taxBehavior: price.tax_behavior,
+              tiersMode: price.tiers_mode,
+              transformQuantity: price.transform_quantity as any,
               type: price.type,
-              unit_amount: safeBigInt(price.unit_amount),
-              unit_amount_decimal: price.unit_amount_decimal,
+              unitAmount: safeBigInt(price.unit_amount),
+              unitAmountDecimal: price.unit_amount_decimal,
               metadata: price.metadata as any,
               livemode: price.livemode,
               data: price as any,
@@ -277,21 +275,21 @@ export async function POST(request: NextRequest) {
               id: price.id,
               object: price.object,
               active: price.active,
-              billing_scheme: price.billing_scheme,
+              billingScheme: price.billing_scheme,
               currency: price.currency,
-              custom_unit_amount: price.custom_unit_amount as any,
+              customUnitAmount: price.custom_unit_amount as any,
               livemode: price.livemode,
-              lookup_key: price.lookup_key,
+              lookupKey: price.lookup_key,
               metadata: price.metadata as any,
               nickname: price.nickname,
               product: extractCustomerId(price.product) || '',
               recurring: price.recurring as any,
-              tax_behavior: price.tax_behavior,
-              tiers_mode: price.tiers_mode,
-              transform_quantity: price.transform_quantity as any,
+              taxBehavior: price.tax_behavior,
+              tiersMode: price.tiers_mode,
+              transformQuantity: price.transform_quantity as any,
               type: price.type,
-              unit_amount: safeBigInt(price.unit_amount),
-              unit_amount_decimal: price.unit_amount_decimal,
+              unitAmount: safeBigInt(price.unit_amount),
+              unitAmountDecimal: price.unit_amount_decimal,
               data: price as any,
               created: safeTimestampToDate(price.created) || new Date(),
               updated: new Date(),
@@ -318,118 +316,6 @@ export async function POST(request: NextRequest) {
           break
         }
 
-        // Coupon events
-        case 'coupon.created':
-        case 'coupon.updated': {
-          const coupon = event.data.object as Stripe.Coupon
-          
-          await prisma.coupon.upsert({
-            where: { id: coupon.id },
-            update: {
-              name: coupon.name,
-              amount_off: safeBigInt(coupon.amount_off),
-              applies_to: coupon.applies_to as any,
-              currency: coupon.currency,
-              duration: coupon.duration,
-              duration_in_months: coupon.duration_in_months,
-              livemode: coupon.livemode,
-              max_redemptions: coupon.max_redemptions,
-              metadata: coupon.metadata as any,
-              percent_off: coupon.percent_off,
-              redeem_by: safeTimestampToDate(coupon.redeem_by),
-              times_redeemed: coupon.times_redeemed,
-              valid: coupon.valid,
-              data: coupon as any,
-              updated: new Date(),
-            },
-            create: {
-              id: coupon.id,
-              object: coupon.object,
-              amount_off: safeBigInt(coupon.amount_off),
-              applies_to: coupon.applies_to as any,
-              currency: coupon.currency,
-              duration: coupon.duration,
-              duration_in_months: coupon.duration_in_months,
-              livemode: coupon.livemode,
-              max_redemptions: coupon.max_redemptions,
-              metadata: coupon.metadata as any,
-              name: coupon.name,
-              percent_off: coupon.percent_off,
-              redeem_by: safeTimestampToDate(coupon.redeem_by),
-              times_redeemed: coupon.times_redeemed,
-              valid: coupon.valid,
-              data: coupon as any,
-              created: safeTimestampToDate(coupon.created) || new Date(),
-              updated: new Date(),
-            },
-          })
-          
-          logger.info(`Coupon ${event.type}: ${coupon.name || coupon.id}`)
-          break
-        }
-
-        case 'coupon.deleted': {
-          const coupon = event.data.object as Stripe.Coupon
-          
-          await prisma.coupon.updateMany({
-            where: { id: coupon.id },
-            data: {
-              valid: false,
-              data: coupon as any,
-              updated: new Date(),
-            },
-          })
-          
-          logger.info(`Coupon deleted: ${coupon.id}`)
-          break
-        }
-
-        // Promotion code events
-        case 'promotion_code.created':
-        case 'promotion_code.updated': {
-          const promoCode = event.data.object as Stripe.PromotionCode
-          const couponId = extractCustomerId(promoCode.coupon) || ''
-          
-          await prisma.promotionCode.upsert({
-            where: { id: promoCode.id },
-            update: {
-              code: promoCode.code,
-              active: promoCode.active,
-              customer: promoCode.customer,
-              expires_at: safeTimestampToDate(promoCode.expires_at),
-              first_time_transaction: promoCode.first_time_transaction,
-              livemode: promoCode.livemode,
-              max_redemptions: promoCode.max_redemptions,
-              metadata: promoCode.metadata as any,
-              restrictions: promoCode.restrictions as any,
-              times_redeemed: promoCode.times_redeemed,
-              data: promoCode as any,
-              updated: new Date(),
-            },
-            create: {
-              id: promoCode.id,
-              object: promoCode.object,
-              active: promoCode.active,
-              code: promoCode.code,
-              coupon: couponId,
-              customer: promoCode.customer,
-              expires_at: safeTimestampToDate(promoCode.expires_at),
-              first_time_transaction: promoCode.first_time_transaction,
-              livemode: promoCode.livemode,
-              max_redemptions: promoCode.max_redemptions,
-              metadata: promoCode.metadata as any,
-              restrictions: promoCode.restrictions as any,
-              times_redeemed: promoCode.times_redeemed,
-              data: promoCode as any,
-              created: safeTimestampToDate(promoCode.created) || new Date(),
-              updated: new Date(),
-            },
-          })
-          
-          logger.info(`Promotion code ${event.type}: ${promoCode.code}`)
-          break
-        }
-
         // Subscription events
         case 'customer.subscription.created':
         case 'customer.subscription.updated':
@@ -443,9 +329,9 @@ export async function POST(request: NextRequest) {
             break
           }
 
-          // Find our customer record
+          // Find our customer record using correct field name
           const customer = await prisma.customer.findUnique({
-            where: { stripe_customer_id: customerId },
+            where: { stripeCustomerId: customerId }, // Use camelCase
           })
 
           if (!customer) {
@@ -502,7 +388,7 @@ export async function POST(request: NextRequest) {
             },
             create: {
               id: subscription.id,
-              userid: customer.id,
+              userId: customer.id,
               currency: subscription.currency,
               customer: customerId,
               status: subscription.status,
@@ -583,13 +469,18 @@ export async function POST(request: NextRequest) {
           }
 
           const customer = await prisma.customer.findUnique({
-            where: { stripe_customer_id: customerId },
+            where: { stripeCustomerId: customerId }, // Use camelCase
           })
 
           if (!customer) {
             logger.error(`Customer not found for invoice: ${invoice.id}`)
             break
           }
+
+          // Extract finalized_at from status_transitions
+          const finalizedAt = invoice.status_transitions?.finalized_at 
+            ? safeTimestampToDate(invoice.status_transitions.finalized_at)
+            : null
 
           await prisma.invoice.upsert({
             where: { id: invoice.id },
@@ -605,7 +496,7 @@ export async function POST(request: NextRequest) {
               invoice_pdf: invoice.invoice_pdf,
               paid: invoice.paid,
               number: invoice.number,
-              finalized_at: safeTimestampToDate(invoice.status_transitions?.finalized_at),
+              finalized_at: finalizedAt, // Use the new field
               due_date: safeTimestampToDate(invoice.due_date),
               subscription: extractCustomerId(invoice.subscription),
               data: invoice as any,
@@ -613,7 +504,7 @@ export async function POST(request: NextRequest) {
             },
             create: {
               id: invoice.id,
-              customerid: customer.id,
+              customerId: customer.id,
               status: invoice.status || 'draft',
               currency: invoice.currency,
               customer: customerId,
@@ -631,7 +522,7 @@ export async function POST(request: NextRequest) {
               invoice_pdf: invoice.invoice_pdf,
               paid: invoice.paid,
               number: invoice.number,
-              finalized_at: safeTimestampToDate(invoice.status_transitions?.finalized_at),
+              finalized_at: finalizedAt, // Use the new field
               due_date: safeTimestampToDate(invoice.due_date),
               subscription: extractCustomerId(invoice.subscription),
               metadata: invoice.metadata as any,
@@ -704,7 +595,6 @@ export async function POST(request: NextRequest) {
         case 'invoice.deleted': {
           const invoice = event.data.object as Stripe.Invoice
           
-          // Mark as deleted rather than removing
           await prisma.invoice.updateMany({
             where: { id: invoice.id },
             data: {
@@ -717,7 +607,7 @@ export async function POST(request: NextRequest) {
           break
         }
 
-        // Payment Method events
+        // Payment Method events - store only essential data
         case 'payment_method.attached':
         case 'payment_method.automatically_updated':
         case 'payment_method.updated': {
@@ -744,41 +634,6 @@ export async function POST(request: NextRequest) {
                 metadata: paymentMethod.metadata as any,
                 livemode: paymentMethod.livemode,
                 object: paymentMethod.object,
-                acss_debit: paymentMethod.acss_debit as any,
-                affirm: paymentMethod.affirm as any,
-                afterpay_clearpay: paymentMethod.afterpay_clearpay as any,
-                alipay: paymentMethod.alipay as any,
-                au_becs_debit: paymentMethod.au_becs_debit as any,
-                bacs_debit: paymentMethod.bacs_debit as any,
-                bancontact: paymentMethod.bancontact as any,
-                blik: paymentMethod.blik as any,
-                boleto: paymentMethod.boleto as any,
-                card_present: paymentMethod.card_present as any,
-                cashapp: paymentMethod.cashapp as any,
-                customer_balance: paymentMethod.customer_balance as any,
-                eps: paymentMethod.eps as any,
-                fpx: paymentMethod.fpx as any,
-                giropay: paymentMethod.giropay as any,
-                grabpay: paymentMethod.grabpay as any,
-                ideal: paymentMethod.ideal as any,
-                interac_present: paymentMethod.interac_present as any,
-                klarna: paymentMethod.klarna as any,
-                konbini: paymentMethod.konbini as any,
-                link: paymentMethod.link as any,
-                oxxo: paymentMethod.oxxo as any,
-                p24: paymentMethod.p24 as any,
-                paynow: paymentMethod.paynow as any,
-                paypal: paymentMethod.paypal as any,
-                pix: paymentMethod.pix as any,
-                promptpay: paymentMethod.promptpay as any,
-                radar_options: paymentMethod.radar_options as any,
-                revolut_pay: paymentMethod.revolut_pay as any,
-                sepa_debit: paymentMethod.sepa_debit as any,
-                sofort: paymentMethod.sofort as any,
-                swish: paymentMethod.swish as any,
-                us_bank_account: paymentMethod.us_bank_account as any,
-                wechat_pay: paymentMethod.wechat_pay as any,
-                zip: paymentMethod.zip as any,
                 data: paymentMethod as any,
                 created: safeTimestampToDate(paymentMethod.created) || new Date(),
                 updated: new Date(),
@@ -816,7 +671,7 @@ export async function POST(request: NextRequest) {
           
           if (customerId) {
             const customer = await prisma.customer.findUnique({
-              where: { stripe_customer_id: customerId },
+              where: { stripeCustomerId: customerId }, // Use camelCase
             })
 
             if (customer) {
@@ -836,7 +691,7 @@ export async function POST(request: NextRequest) {
                 },
                 create: {
                   id: paymentIntent.id,
-                  customerid: customer.id,
+                  customerId: customer.id,
                   amount: safeBigInt(paymentIntent.amount) || BigInt(0),
                   currency: paymentIntent.currency,
                   status: paymentIntent.status,
@@ -864,8 +719,8 @@ export async function POST(request: NextRequest) {
                   on_behalf_of: paymentIntent.on_behalf_of,
                   payment_method: paymentIntent.payment_method,
                   payment_method_configuration_details: paymentIntent.payment_method_configuration_details as any,
-                  payment_method_options: paymentMethod.payment_method_options as any || {},
-                  payment_method_types: paymentMethod.payment_method_types as any || [],
+                  payment_method_options: paymentIntent.payment_method_options as any || {},
+                  payment_method_types: paymentIntent.payment_method_types as any || [],
                   processing: paymentIntent.processing as any,
                   receipt_email: paymentIntent.receipt_email,
                   review: paymentIntent.review,
@@ -897,7 +752,7 @@ export async function POST(request: NextRequest) {
           
           if (customerId) {
             const customer = await prisma.customer.findUnique({
-              where: { stripe_customer_id: customerId },
+              where: { stripeCustomerId: customerId }, // Use camelCase
             })
 
             if (customer) {
@@ -916,7 +771,7 @@ export async function POST(request: NextRequest) {
                 },
                 create: {
                   id: session.id,
-                  customerid: customer.id,
+                  customerId: customer.id,
                   payment_status: session.payment_status,
                   mode: session.mode,
                   amount_total: safeBigInt(session.amount_total),
@@ -959,7 +814,6 @@ export async function POST(request: NextRequest) {
                   shipping_cost: session.shipping_cost as any,
                   shipping_details: session.shipping_details as any,
                   shipping_options: session.shipping_options as any || [],
-                  status: session.status,
                   submit_type: session.submit_type,
                   success_url: session.success_url,
                   total_details: session.total_details as any,
@@ -976,18 +830,130 @@ export async function POST(request: NextRequest) {
           break
         }
 
+        // Coupon events
+        case 'coupon.created':
+        case 'coupon.updated': {
+          const coupon = event.data.object as Stripe.Coupon
+          
+          await prisma.coupon.upsert({
+            where: { id: coupon.id },
+            update: {
+              name: coupon.name,
+              amountOff: safeBigInt(coupon.amount_off),
+              appliesTo: coupon.applies_to as any,
+              currency: coupon.currency,
+              duration: coupon.duration,
+              durationInMonths: coupon.duration_in_months,
+              livemode: coupon.livemode,
+              maxRedemptions: coupon.max_redemptions,
+              metadata: coupon.metadata as any,
+              percentOff: coupon.percent_off,
+              redeemBy: safeTimestampToDate(coupon.redeem_by),
+              timesRedeemed: coupon.times_redeemed,
+              valid: coupon.valid,
+              data: coupon as any,
+              updated: new Date(),
+            },
+            create: {
+              id: coupon.id,
+              object: coupon.object,
+              amountOff: safeBigInt(coupon.amount_off),
+              appliesTo: coupon.applies_to as any,
+              currency: coupon.currency,
+              duration: coupon.duration,
+              durationInMonths: coupon.duration_in_months,
+              livemode: coupon.livemode,
+              maxRedemptions: coupon.max_redemptions,
+              metadata: coupon.metadata as any,
+              name: coupon.name,
+              percentOff: coupon.percent_off,
+              redeemBy: safeTimestampToDate(coupon.redeem_by),
+              timesRedeemed: coupon.times_redeemed,
+              valid: coupon.valid,
+              data: coupon as any,
+              created: safeTimestampToDate(coupon.created) || new Date(),
+              updated: new Date(),
+            },
+          })
+          
+          logger.info(`Coupon ${event.type}: ${coupon.name || coupon.id}`)
+          break
+        }
+
+        case 'coupon.deleted': {
+          const coupon = event.data.object as Stripe.Coupon
+          
+          await prisma.coupon.updateMany({
+            where: { id: coupon.id },
+            data: {
+              valid: false,
+              data: coupon as any,
+              updated: new Date(),
+            },
+          })
+          
+          logger.info(`Coupon deleted: ${coupon.id}`)
+          break
+        }
+
+        // Promotion code events
+        case 'promotion_code.created':
+        case 'promotion_code.updated': {
+          const promoCode = event.data.object as Stripe.PromotionCode
+          const couponId = extractCustomerId(promoCode.coupon) || ''
+          
+          await prisma.promotionCode.upsert({
+            where: { id: promoCode.id },
+            update: {
+              code: promoCode.code,
+              active: promoCode.active,
+              customer: promoCode.customer,
+              expiresAt: safeTimestampToDate(promoCode.expires_at),
+              firstTimeTransaction: promoCode.first_time_transaction,
+              livemode: promoCode.livemode,
+              maxRedemptions: promoCode.max_redemptions,
+              metadata: promoCode.metadata as any,
+              restrictions: promoCode.restrictions as any,
+              timesRedeemed: promoCode.times_redeemed,
+              data: promoCode as any,
+              updated: new Date(),
+            },
+            create: {
+              id: promoCode.id,
+              object: promoCode.object,
+              active: promoCode.active,
+              code: promoCode.code,
+              coupon: couponId,
+              customer: promoCode.customer,
+              expiresAt: safeTimestampToDate(promoCode.expires_at),
+              firstTimeTransaction: promoCode.first_time_transaction,
+              livemode: promoCode.livemode,
+              maxRedemptions: promoCode.max_redemptions,
+              metadata: promoCode.metadata as any,
+              restrictions: promoCode.restrictions as any,
+              timesRedeemed: promoCode.times_redeemed,
+              data: promoCode as any,
+              created: safeTimestampToDate(promoCode.created) || new Date(),
+              updated: new Date(),
+            },
+          })
+          
+          logger.info(`Promotion code ${event.type}: ${promoCode.code}`)
+          break
+        }
+
         default: {
           logger.info(`Unhandled webhook event type: ${event.type}`)
           break
         }
       }
 
-      // Mark webhook as processed
+      // Mark webhook as processed - use exact field names
       await prisma.stripeWebhookEvent.updateMany({
-        where: { event_id: event.id },
+        where: { eventId: event.id }, // Use camelCase
         data: { 
           processed: true, 
-          processed_at: new Date() 
+          processedAt: new Date() // Use camelCase
         },
       })
 
@@ -996,12 +962,12 @@ export async function POST(request: NextRequest) {
     } catch (error) {
       logger.error(`Error processing webhook ${event.type}:`, error)
       
-      // Mark webhook as failed
+      // Mark webhook as failed - use exact field names
       await prisma.stripeWebhookEvent.updateMany({
-        where: { event_id: event.id },
+        where: { eventId: event.id }, // Use camelCase
         data: { 
           processed: false,
-          error_message: error instanceof Error ? error.message : 'Unknown error'
+          errorMessage: error instanceof Error ? error.message : 'Unknown error' // Use camelCase
         },
       })
 
