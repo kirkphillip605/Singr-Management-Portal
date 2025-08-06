@@ -367,7 +367,6 @@ export default function HomePage() {
               <img 
                 src="/singr-logo-color.png"
                 alt="Singr Karaoke" 
-                className="h-8 w-8"
               />
               <span className="ml-2 text-xl font-bold">Singr Karaoke Connect</span>
             </div>
