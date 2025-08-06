@@ -50,6 +50,7 @@ export function SubscriptionManagement({
         .then(data => setPriceInfo(data))
         .catch(() => {})
     }
+  }, [subscription?.priceId])
 
   const handleCancelSubscription = async () => {
     if (!subscription) return
@@ -212,29 +213,29 @@ export function SubscriptionManagement({
             <div>
               <p className="text-sm font-medium">Current period</p>
               <p className="text-sm text-muted-foreground">
-                {new Date(subscription.currentPeriodStart).toLocaleDateString()} -{' '}
-                {new Date(subscription.currentPeriodEnd).toLocaleDateString()}
+                {new Date(subscription.current_period_start).toLocaleDateString()} -{' '}
+                {new Date(subscription.current_period_end).toLocaleDateString()}
               </p>
             </div>
             <div>
               <p className="text-sm font-medium">
-                {subscription.cancelAtPeriodEnd ? 'Cancels on' : 'Next billing date'}
+                {subscription.cancel_at_period_end ? 'Cancels on' : 'Next billing date'}
               </p>
               <p className="text-sm text-muted-foreground">
-                {subscription.cancelAt 
-                  ? new Date(subscription.cancelAt).toLocaleDateString()
-                  : new Date(subscription.currentPeriodEnd).toLocaleDateString()
+                {subscription.cancel_at 
+                  ? new Date(subscription.cancel_at).toLocaleDateString()
+                  : new Date(subscription.current_period_end).toLocaleDateString()
                 }
               </p>
             </div>
           </div>
 
-          {subscription.cancelAtPeriodEnd && (
+          {subscription.cancel_at_period_end && (
             <Alert>
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
                 Your subscription will be cancelled at the end of the current billing period on{' '}
-                {new Date(subscription.currentPeriodEnd).toLocaleDateString()}.
+                {new Date(subscription.current_period_end).toLocaleDateString()}.
               </AlertDescription>
             </Alert>
           )}
@@ -249,7 +250,7 @@ export function SubscriptionManagement({
               Manage Billing
             </Button>
 
-            {subscription.cancelAtPeriodEnd ? (
+            {subscription.cancel_at_period_end ? (
               <Button 
                 variant="outline" 
                 onClick={handleReactivateSubscription}
