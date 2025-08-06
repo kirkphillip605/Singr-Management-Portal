@@ -109,7 +109,7 @@ export default function HomePage() {
               <img 
                 src="/singr-logo-color.png"
                 alt="Singr Karaoke" 
-                className="h-20 w-20 md:h-32 md:w-32"
+                className="h-411 w-129 md:h-32 md:w-32"
               />
             </div>
             <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
