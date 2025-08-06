@@ -1,14 +1,12 @@
-import { getServerSession } from 'next-auth/next'
-import { headers, cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { authOptions } from '@/lib/auth'
+import { getAuthSession } from '@/lib/auth-server'
 import { CreateApiKeyForm } from '@/components/create-api-key-form'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Key, AlertTriangle } from 'lucide-react'
 
 export default async function NewApiKeyPage() {
-  const session = await getServerSession(authOptions, { headers: headers(), cookies: cookies() })
+  const session = await getAuthSession()
 
   if (!session?.user?.id) {
     redirect('/auth/signin')

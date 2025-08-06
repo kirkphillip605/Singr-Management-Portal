@@ -92,6 +92,11 @@ export const authOptions: NextAuthOptions = {
   events: {
     async createUser({ user }) {
       // Create Stripe customer when user is created
+      if (!process.env.STRIPE_SECRET_KEY) {
+        console.warn('STRIPE_SECRET_KEY not found, skipping Stripe customer creation')
+        return
+      }
+
       try {
         const stripe = await import('stripe').then(m => new m.default(process.env.STRIPE_SECRET_KEY!, {
           apiVersion: '2024-06-20',
