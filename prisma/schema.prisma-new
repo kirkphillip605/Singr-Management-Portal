@@ -1,0 +1,430 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId             String   @map("userid") @db.Uuid
+  type               String
+  provider           String
+  providerAccountId  String   @map("provideraccountid")
+  refresh_token      String?
+  access_token       String?
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?
+  session_state      String?
+  oauth_token_secret String?
+  oauth_token        String?
+  createdAt          DateTime @default(now()) @map("createdat") @db.Timestamptz(6)
+  updatedAt          DateTime @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId], map: "idx_accounts_userid")
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sessionToken String   @unique @map("sessiontoken")
+  userId       String   @map("userid") @db.Uuid
+  expires      DateTime @db.Timestamptz(6)
+  createdAt    DateTime @default(now()) @map("createdat") @db.Timestamptz(6)
+  updatedAt    DateTime @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
+
+  @@index([userId], map: "idx_sessions_userid")
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime @db.Timestamptz(6)
+  createdAt  DateTime @default(now()) @map("createdat") @db.Timestamptz(6)
+  updatedAt  DateTime @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
+
+  @@id([identifier, token])
+  @@map("verification_tokens")
+}
+
+model User {
+  id                 String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name               String?
+  email              String              @unique
+  emailVerified      DateTime?           @map("emailverified") @db.Timestamptz(6)
+  image              String?
+  businessName       String?             @map("businessname")
+  phoneNumber        String?             @map("phonenumber")
+  passwordHash       String?             @map("passwordhash")
+  createdAt          DateTime            @default(now()) @map("createdat") @db.Timestamptz(6)
+  updatedAt          DateTime            @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
+  songDb             SongDb[]
+  venueRelationships VenueRelationship[]
+
+  @@index([email], map: "idx_users_email")
+  @@map("users")
+}
+
+model Customer {
+  id               String   @id @db.Uuid
+  stripeCustomerId String   @unique @map("stripecustomerid")
+  createdAt        DateTime @default(now()) @map("createdat") @db.Timestamptz(6)
+  updatedAt        DateTime @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
+
+  @@index([stripeCustomerId], map: "idx_customers_stripecustomerid")
+  @@map("customers")
+}
+
+model Product {
+  id          String   @id
+  active      Boolean?
+  name        String?
+  description String?
+  image       String?
+  metadata    Json?
+  createdAt   DateTime @default(now()) @map("createdat") @db.Timestamptz(6)
+  updatedAt   DateTime @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
+
+  @@map("products")
+}
+
+model Price {
+  id              String           @id
+  productId       String           @map("productid")
+  active          Boolean?
+  description     String?
+  unitAmount      BigInt?          @map("unitamount")
+  currency        String
+  type            PricingType
+  interval        PricingInterval?
+  intervalCount   Int?             @map("intervalcount")
+  trialPeriodDays Int?             @map("trialperioddays")
+  metadata        Json?
+  createdAt       DateTime         @default(now()) @map("createdat") @db.Timestamptz(6)
+  updatedAt       DateTime         @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
+
+  @@index([productId], map: "idx_prices_productid")
+  @@map("prices")
+}
+
+model Coupon {
+  id               String          @id
+  name             String?
+  amountOff        BigInt?         @map("amountoff")
+  currency         String?         @db.Char(3)
+  duration         String?
+  durationInMonths Int?            @map("durationinmonths")
+  maxRedemptions   Int?            @map("maxredemptions")
+  percentOff       Float?          @map("percentoff")
+  redeemBy         DateTime?       @map("redeemby") @db.Timestamptz(6)
+  timesRedeemed    Int             @default(0) @map("timesredeemed")
+  valid            Boolean         @default(true)
+  metadata         Json?
+  createdAt        DateTime        @default(now()) @map("createdat") @db.Timestamptz(6)
+  updatedAt        DateTime        @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
+  promotionCodes   PromotionCode[]
+
+  @@map("coupons")
+}
+
+model PromotionCode {
+  id             String    @id
+  couponId       String    @map("couponid")
+  code           String    @unique
+  active         Boolean
+  maxRedemptions Int?      @map("maxredemptions")
+  timesRedeemed  Int       @default(0) @map("timesredeemed")
+  expiresAt      DateTime? @map("expiresat") @db.Timestamptz(6)
+  metadata       Json?
+  createdAt      DateTime  @default(now()) @map("createdat") @db.Timestamptz(6)
+  updatedAt      DateTime  @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
+  coupon         Coupon    @relation(fields: [couponId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([couponId], map: "idx_promotion_codes_couponid")
+  @@map("promotion_codes")
+}
+
+model Subscription {
+  id                 String              @id
+  userId             String              @map("userid") @db.Uuid
+  status             SubscriptionStatus?
+  metadata           Json?
+  priceId            String              @map("priceid")
+  quantity           Int                 @default(1)
+  cancelAtPeriodEnd  Boolean?            @map("cancelatperiodend")
+  createdAt          DateTime            @map("createdat") @db.Timestamptz(6)
+  currentPeriodStart DateTime            @map("currentperiodstart") @db.Timestamptz(6)
+  currentPeriodEnd   DateTime            @map("currentperiodend") @db.Timestamptz(6)
+  endedAt            DateTime?           @map("endedat") @db.Timestamptz(6)
+  cancelAt           DateTime?           @map("cancelat") @db.Timestamptz(6)
+  canceledAt         DateTime?           @map("canceledat") @db.Timestamptz(6)
+  trialStart         DateTime?           @map("trialstart") @db.Timestamptz(6)
+  trialEnd           DateTime?           @map("trialend") @db.Timestamptz(6)
+  updatedAt          DateTime            @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
+  pausedAt           DateTime?           @map("pausedat") @db.Timestamptz(6)
+  resumedAt          Int?                @map("resumedat")
+
+  @@index([priceId], map: "idx_subscriptions_priceid")
+  @@index([userId], map: "idx_subscriptions_userid")
+  @@map("subscriptions")
+}
+
+model Invoice {
+  id               String    @id
+  customerId       String    @map("customerid") @db.Uuid
+  stripeCustomerId String    @map("stripecustomerid")
+  subscriptionId   String?   @map("subscriptionid")
+  status           String
+  amountDue        BigInt?   @map("amountdue")
+  amountPaid       BigInt?   @map("amountpaid")
+  amountRemaining  BigInt?   @map("amountremaining")
+  currency         String
+  invoicePdf       String?   @map("invoicepdf")
+  hostedInvoiceUrl String?   @map("hostedinvoiceurl")
+  periodStart      DateTime  @map("periodstart") @db.Timestamptz(6)
+  periodEnd        DateTime  @map("periodend") @db.Timestamptz(6)
+  dueDate          DateTime? @map("duedate") @db.Timestamptz(6)
+  metadata         Json?
+  createdAt        DateTime  @default(now()) @map("createdat") @db.Timestamptz(6)
+  updatedAt        DateTime  @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
+
+  @@index([customerId], map: "idx_invoices_customerid")
+  @@index([stripeCustomerId], map: "idx_invoices_stripecustomerid")
+  @@map("invoices")
+}
+
+model InvoiceItem {
+  id             String   @id
+  invoiceId      String   @map("invoiceid")
+  priceId        String?  @map("priceid")
+  subscriptionId String?  @map("subscriptionid")
+  quantity       Int?
+  description    String?
+  amount         BigInt?
+  currency       String
+  metadata       Json?
+  createdAt      DateTime @default(now()) @map("createdat") @db.Timestamptz(6)
+  updatedAt      DateTime @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
+
+  @@index([invoiceId], map: "idx_invoice_items_invoiceid")
+  @@index([priceId], map: "idx_invoice_items_priceid")
+  @@index([subscriptionId], map: "idx_invoice_items_subscriptionid")
+  @@map("invoice_items")
+}
+
+model PaymentMethod {
+  id               String   @id
+  stripeCustomerId String   @map("stripecustomerid")
+  type             String
+  cardBrand        String?  @map("cardbrand")
+  cardLast4        String?  @map("cardlast4")
+  cardExpMonth     Int?     @map("cardexpmonth")
+  cardExpYear      Int?     @map("cardexpyear")
+  billingDetails   Json?    @map("billingdetails")
+  metadata         Json?
+  createdAt        DateTime @default(now()) @map("createdat") @db.Timestamptz(6)
+  updatedAt        DateTime @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
+
+  @@index([stripeCustomerId], map: "idx_payment_methods_stripecustomerid")
+  @@map("payment_methods")
+}
+
+model ApiKey {
+  id          String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  customerId  String       @map("customerid") @db.Uuid
+  description String?
+  apiKeyHash  String       @map("apikeyhash")
+  createdAt   DateTime     @default(now()) @map("createdat") @db.Timestamptz(6)
+  lastUsedAt  DateTime?    @map("lastusedat") @db.Timestamptz(6)
+  status      ApiKeyStatus @default(active)
+  revokedAt   DateTime?    @map("revokedat") @db.Timestamptz(6)
+  updatedAt   DateTime     @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
+
+  @@index([customerId], map: "idx_api_keys_customerid")
+  @@map("api_keys")
+}
+
+model Venue {
+  id                 String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  hereplaceid        String?             @unique(map: "idx_venues_hereplaceid")
+  name               String
+  address            String?
+  city               String?
+  state              String?
+  statecode          String?             @db.VarChar(5)
+  postalCode         String?             @map("postalcode")
+  country            String?
+  countrycode        String?             @db.VarChar(3)
+  phonenumber        String?             @db.VarChar(20)
+  website            String?
+  latitude           Float?
+  longitude          Float?
+  createdAt          DateTime            @default(now()) @map("createdat") @db.Timestamptz(6)
+  updatedAt          DateTime            @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
+  venueRelationships VenueRelationship[]
+
+  @@index([address], map: "idx_venues_address")
+  @@index([city], map: "idx_venues_city")
+  @@index([latitude, longitude], map: "idx_venues_location_brin", type: Brin)
+  @@index([name], map: "idx_venues_name")
+  @@index([countrycode, statecode, city], map: "idx_venues_region")
+  @@map("venues")
+}
+
+model VenueRelationship {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId            String   @map("userid") @db.Uuid
+  venueId           String   @map("venueid") @db.Uuid
+  displayName       String?  @map("displayname")
+  urlName           String   @map("urlname")
+  acceptingRequests Boolean  @default(true) @map("acceptingrequests")
+  createdAt         DateTime @default(now()) @map("createdat") @db.Timestamptz(6)
+  updatedAt         DateTime @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
+  states            State[]
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  venue             Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([userId, venueId])
+  @@unique([userId, urlName])
+  @@index([userId, urlName], map: "idx_vr_urlname")
+  @@index([userId], map: "idx_vr_userid")
+  @@index([venueId], map: "idx_vr_venueid")
+  @@map("venue_relationships")
+}
+
+model State {
+  venueRelationshipId String            @map("venue_relationship_id") @db.Uuid
+  systemId            Int               @default(0) @map("system_id")
+  accepting           Boolean           @default(false)
+  serial              Int               @default(1)
+  createdAt           DateTime          @default(now()) @map("createdat") @db.Timestamptz(6)
+  updatedAt           DateTime          @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
+  venueRelationship   VenueRelationship @relation(fields: [venueRelationshipId], references: [id], onDelete: Cascade)
+
+  @@id([venueRelationshipId, systemId])
+  @@map("state")
+}
+
+model SongDb {
+  songId             BigInt   @id @default(autoincrement()) @map("song_id")
+  userId             String   @map("user_id") @db.Uuid
+  systemId           Int      @default(0) @map("system_id")
+  artist             String   @db.VarChar(255)
+  title              String   @db.VarChar(255)
+  combined           String   @db.VarChar(255)
+  normalizedCombined String   @map("normalized_combined") @db.VarChar(255)
+  createdAt          DateTime @default(now()) @map("createdat") @db.Timestamptz(6)
+  updatedAt          DateTime @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, systemId, combined])
+  @@unique([userId, systemId, normalizedCombined])
+  @@index([userId, systemId, artist], map: "idx_songdb_user_system_artist")
+  @@index([userId, systemId, normalizedCombined], map: "idx_songdb_user_system_normcombined")
+  @@index([userId, systemId, title], map: "idx_songdb_user_system_title")
+  @@map("songdb")
+}
+
+model Request {
+  requestId           BigInt   @id @default(autoincrement()) @map("request_id")
+  venueRelationshipId String   @map("venue_relationship_id") @db.Uuid
+  systemId            Int      @default(0) @map("system_id")
+  artist              String
+  title               String
+  singer              String?
+  requestTime         DateTime @default(now()) @map("request_time") @db.Timestamptz(6)
+  keyChange           Int      @default(0) @map("key_change")
+  createdAt           DateTime @default(now()) @map("createdat") @db.Timestamptz(6)
+  updatedAt           DateTime @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
+
+  @@unique([venueRelationshipId, systemId, requestId])
+  @@index([venueRelationshipId, systemId, requestTime], map: "idx_requests_vr_sys_time")
+  @@map("requests")
+}
+
+model StripeWebhookEvent {
+  id           Int       @id @default(autoincrement())
+  eventId      String    @unique @map("event_id")
+  payload      Json
+  receivedAt   DateTime  @default(now()) @map("received_at") @db.Timestamptz(6)
+  processed    Boolean   @default(false)
+  processedAt  DateTime? @map("processed_at") @db.Timestamptz(6)
+  errorMessage String?   @map("error_message")
+
+  @@index([receivedAt], map: "idx_stripe_webhook_events_received_at")
+  @@map("stripe_webhook_events")
+}
+
+model StripeCheckoutSession {
+  id            String    @id
+  customerId    String    @map("customerid") @db.Uuid
+  paymentStatus String    @map("payment_status")
+  mode          String
+  amountTotal   BigInt?   @map("amount_total")
+  currency      String
+  expiresAt     DateTime? @map("expires_at") @db.Timestamptz(6)
+  url           String?
+  metadata      Json?
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("stripe_checkout_sessions")
+}
+
+model StripePaymentIntent {
+  id            String   @id
+  sessionId     String?  @map("session_id")
+  customerId    String   @map("customerid") @db.Uuid
+  amount        BigInt?
+  currency      String
+  status        String?
+  captureMethod String?  @map("capture_method")
+  metadata      Json?
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("stripe_payment_intents")
+}
+
+enum PricingType {
+  one_time
+  recurring
+
+  @@map("pricingtype")
+}
+
+enum PricingInterval {
+  day
+  week
+  month
+  year
+
+  @@map("pricinginterval")
+}
+
+enum SubscriptionStatus {
+  trialing
+  active
+  canceled
+  incomplete
+  incomplete_expired
+  past_due
+  unpaid
+  paused
+
+  @@map("subscriptionstatus")
+}
+
+enum ApiKeyStatus {
+  active
+  revoked
+  expired
+
+  @@map("apikeystatus")
+}
