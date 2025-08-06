@@ -22,18 +22,12 @@ interface Subscription {
   id: string
   status: string
   cancelAtPeriodEnd: boolean
-  currentPeriodStart: string
-  currentPeriodEnd: string
+  currentPeriodStart: Date | string
+  currentPeriodEnd: Date | string
   cancelAt?: string | null
-  price: {
-    id: string
-    unitAmount: bigint
-    currency: string
-    interval: string
-    product: {
-      name: string
-    }
-  }
+  price?: string // Stripe price ID
+  currency: string
+  items?: any // Subscription items JSON
 }
 
 interface SubscriptionManagementProps {
@@ -45,7 +39,18 @@ export function SubscriptionManagement({
 }: SubscriptionManagementProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const [priceInfo, setPriceInfo] = useState<any>(null)
   const router = useRouter()
+
+  // Fetch price and product info when subscription loads
+  useEffect(() => {
+    if (subscription?.price) {
+      fetch(`/api/prices/${subscription.price}`)
+        .then(res => res.json())
+        .then(data => setPriceInfo(data))
+        .catch(() => {})
+    }
+  }, [subscription?.price])
 
   const handleCancelSubscription = async () => {
     if (!subscription) return
@@ -182,13 +187,13 @@ export function SubscriptionManagement({
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-lg font-semibold">
-                {subscription.price.product?.name || 'Pro Plan'}
+                {priceInfo?.productRelation?.name || 'Pro Plan'}
               </h3>
               <p className="text-muted-foreground">
                 {formatAmountForDisplay(
-                  Number(subscription.price.unitAmount), 
-                  subscription.price.currency
-                )} / {subscription.price.interval}
+                  Number(priceInfo?.unitAmount || 0), 
+                  subscription.currency
+                )} / {priceInfo?.recurring?.interval || 'month'}
               </p>
             </div>
             <Badge
@@ -208,7 +213,7 @@ export function SubscriptionManagement({
             <div>
               <p className="text-sm font-medium">Current period</p>
               <p className="text-sm text-muted-foreground">
-                {new Date(subscription.currentPeriodStart).toLocaleDateString()} - {' '}
+                {new Date(subscription.currentPeriodStart).toLocaleDateString()} -{' '}
                 {new Date(subscription.currentPeriodEnd).toLocaleDateString()}
               </p>
             </div>

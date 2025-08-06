@@ -15,10 +15,10 @@ export default async function PlansPage() {
   const prices = await prisma.price.findMany({
     where: {
       active: true,
-      type: 'recurring',
+      type: 'recurring', 
     },
     include: {
-      product: true,
+      productRelation: true,
     },
     orderBy: {
       unitAmount: 'asc',
@@ -33,13 +33,10 @@ export default async function PlansPage() {
         include: {
           subscriptions: {
             where: {
-              status: { in: ['active', 'trialing', 'past_due'] },
-            },
-            include: {
-              price: true,
+              status: { in: ['active', 'trialing', 'past_due'] }, 
             },
             orderBy: {
-              createdAt: 'desc',
+              created: 'desc',
             },
             take: 1,
           },
@@ -62,7 +59,7 @@ export default async function PlansPage() {
       <PricingPlans 
         prices={prices} 
         currentSubscription={currentSubscription ? {
-          priceId: currentSubscription.priceId,
+          priceId: currentSubscription.price,
           status: currentSubscription.status,
         } : undefined}
       />

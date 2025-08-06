@@ -20,12 +20,8 @@ export default async function DashboardPage() {
       customer: {
         include: {
           subscriptions: {
-            include: {
-              price: {
-                include: {
-                  product: true,
-                },
-              },
+            orderBy: {
+              created: 'desc',
             },
           },
           apiKeys: {
@@ -54,9 +50,23 @@ export default async function DashboardPage() {
     },
   })
 
-  const activeSubscription = user?.customer?.subscriptions.find(
-    sub => sub.status === 'active' || sub.status === 'trialing'
+  // Find active subscription
+  const activeSubscription = user?.customer?.subscriptions.find(sub => 
+    sub.status === 'active' || sub.status === 'trialing'
   )
+
+  // Get product name from price metadata or product lookup
+  let productName = 'Pro Plan'
+  if (activeSubscription?.priceId) {
+    const price = await prisma.price.findUnique({
+      where: { id: activeSubscription.priceId },
+      include: { productRelation: true }
+    }).catch(() => null)
+    
+    if (price?.productRelation?.name) {
+      productName = price.productRelation.name
+    }
+  }
 
   const totalSongs = await prisma.songDb.count({
     where: { userId: session.user.id },
@@ -133,7 +143,7 @@ export default async function DashboardPage() {
                 <div className="flex justify-between">
                   <span>Plan:</span>
                   <span className="font-medium">
-                    {activeSubscription.price.product?.name}
+                    {productName}
                   </span>
                 </div>
                 <div className="flex justify-between">

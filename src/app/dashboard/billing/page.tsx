@@ -24,26 +24,19 @@ export default async function BillingPage() {
       customer: {
         include: {
           subscriptions: {
-            include: {
-              price: {
-                include: {
-                  product: true,
-                },
-              },
-            },
             orderBy: {
-              createdAt: 'desc',
+              created: 'desc',
             },
           },
           invoices: {
             orderBy: {
-              createdAt: 'desc',
+              created: 'desc',
             },
             take: 10,
           },
           paymentMethods: {
             orderBy: {
-              createdAt: 'desc',
+              created: 'desc',
             },
           },
         },

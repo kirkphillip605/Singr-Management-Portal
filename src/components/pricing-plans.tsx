@@ -12,10 +12,9 @@ interface Price {
   id: string
   unitAmount: bigint
   currency: string
-  interval: string
-  intervalCount: number
+  recurring: any
   metadata: Record<string, string>
-  product: {
+  productRelation: {
     id: string
     name: string
     description?: string
@@ -77,10 +76,10 @@ export function PricingPlans({ prices, currentSubscription }: PricingPlansProps)
         case 'monthly': return 'Monthly'
         case 'semi-annual': return 'Semi-Annual'
         case 'annual': return 'Annual'
-        default: return price.product.name || 'Plan'
+        default: return price.productRelation.name || 'Plan'
       }
     }
-    return price.product.name || 'Plan'
+    return price.productRelation.name || 'Plan'
   }
 
   const isCurrentPlan = (priceId: string) => {
@@ -156,7 +155,9 @@ export function PricingPlans({ prices, currentSubscription }: PricingPlansProps)
                   <span className="text-4xl font-bold">
                     {formatAmountForDisplay(Number(price.unitAmount), price.currency)}
                   </span>
-                  <span className="text-muted-foreground">/{price.interval}</span>
+                  <span className="text-muted-foreground">
+                    /{price.recurring?.interval || 'month'}
+                  </span>
                 </div>
                 {savings && (
                   <Badge variant="secondary" className="mt-2 bg-green-100 text-green-700">
