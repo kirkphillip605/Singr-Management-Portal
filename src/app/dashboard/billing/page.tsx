@@ -51,6 +51,18 @@ export default async function BillingPage() {
   const recentInvoices = user?.customer?.invoices || []
   const paymentMethods = user?.customer?.paymentMethods || []
   return (
+  // Format for compatibility with subscription management component
+  const formattedSubscription = activeSubscription ? {
+    id: activeSubscription.id,
+    status: activeSubscription.status,
+    cancel_at_period_end: activeSubscription.cancelAtPeriodEnd,
+    current_period_start: activeSubscription.currentPeriodStart,
+    current_period_end: activeSubscription.currentPeriodEnd,
+    cancel_at: activeSubscription.cancelAt?.toISOString() || null,
+    currency: activeSubscription.currency,
+    customer: activeSubscription.customer,
+    priceId: activeSubscription.priceId,
+  } : null
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
@@ -62,9 +74,7 @@ export default async function BillingPage() {
       </div>
 
       {/* Subscription Status */}
-      <SubscriptionManagement 
-        subscription={activeSubscription} 
-      />
+      <SubscriptionManagement subscription={formattedSubscription} />
 
       {/* Payment Methods */}
       <Card>

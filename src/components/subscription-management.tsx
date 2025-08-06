@@ -16,7 +16,6 @@ import {
   DialogTrigger 
 } from '@/components/ui/dialog'
 import { CreditCard, AlertTriangle, CheckCircle, ExternalLink, Loader2 } from 'lucide-react'
-import { formatAmountForDisplay } from '@/lib/stripe'
 
 interface Subscription {
   id: string
@@ -25,9 +24,9 @@ interface Subscription {
   current_period_start: Date | string
   current_period_end: Date | string
   cancel_at?: string | null
-  priceId?: string // Stripe price ID
   currency: string
-  items?: any // Subscription items JSON
+  customer: string
+  priceId?: string
 }
 
 interface SubscriptionManagementProps {
@@ -51,6 +50,14 @@ export function SubscriptionManagement({
         .catch(() => {})
     }
   }, [subscription?.priceId])
+
+  const formatAmountForDisplay = (amount: number | bigint, currency: string): string => {
+    const numAmount = typeof amount === 'bigint' ? Number(amount) : amount
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currency.toUpperCase(),
+    }).format(numAmount / 100)
+  }
 
   const handleCancelSubscription = async () => {
     if (!subscription) return
@@ -190,10 +197,10 @@ export function SubscriptionManagement({
                 {priceInfo?.productRelation?.name || 'Pro Plan'}
               </h3>
               <p className="text-muted-foreground">
-                {formatAmountForDisplay(
-                  Number(priceInfo?.unitAmount || 0), 
-                  subscription.currency
-                )} / {priceInfo?.recurring?.interval || 'month'}
+                {priceInfo?.unitAmount 
+                  ? formatAmountForDisplay(Number(priceInfo.unitAmount), subscription.currency)
+                  : 'Loading...'
+                } / {priceInfo?.recurring?.interval || 'month'}
               </p>
             </div>
             <Badge

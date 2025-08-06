@@ -37,28 +37,13 @@ function rateLimit(ip: string): boolean {
 function safeTimestampToDate(timestamp: number | null | undefined): Date | null {
   if (!timestamp || timestamp === 0) return null
   
-  // Stripe timestamps are in seconds, JavaScript dates need milliseconds
-  // Also validate that the timestamp is reasonable (not too far in past/future)
-  const currentTime = Date.now() / 1000 // Current time in seconds
-  const oneYearAgo = currentTime - (365 * 24 * 60 * 60) // One year ago in seconds
-  const tenYearsFromNow = currentTime + (10 * 365 * 24 * 60 * 60) // Ten years from now in seconds
-  
-  // Validate timestamp is within reasonable bounds
-  if (timestamp < oneYearAgo || timestamp > tenYearsFromNow) {
-    console.error(`Invalid timestamp: ${timestamp}, current: ${currentTime}`)
+  try {
+    const date = new Date(timestamp * 1000)
+    if (isNaN(date.getTime())) return null
+    return date
+  } catch {
     return null
   }
-  
-  // Unix timestamps are in seconds, JavaScript dates need milliseconds
-  const date = new Date(timestamp * 1000)
-  
-  // Validate the resulting date is valid
-  if (isNaN(date.getTime())) {
-    console.error(`Invalid date created from timestamp: ${timestamp}`)
-    return null
-  }
-  
-  return date
 }
 
 // Helper to safely convert BigInt
@@ -125,7 +110,6 @@ export async function POST(request: NextRequest) {
         },
       })
     } catch (error) {
-      // Don't fail webhook processing if audit logging fails
       logger.warn('Failed to log webhook event:', error)
     }
 
@@ -136,7 +120,6 @@ export async function POST(request: NextRequest) {
         case 'customer.updated': {
           const customer = event.data.object as Stripe.Customer
           
-          // Only update if we can find a user by email
           if (customer.email) {
             const user = await prisma.user.findUnique({
               where: { email: customer.email },
@@ -161,8 +144,6 @@ export async function POST(request: NextRequest) {
 
         case 'customer.deleted': {
           const customer = event.data.object as Stripe.Customer
-          
-          // Don't delete customer record, just log it
           logger.info(`Customer deleted in Stripe: ${customer.id}`)
           break
         }
@@ -175,32 +156,39 @@ export async function POST(request: NextRequest) {
           await prisma.product.upsert({
             where: { id: product.id },
             update: {
+              object: product.object,
               active: product.active,
               name: product.name,
               description: product.description,
-              image: product.images?.[0] || null,
-              metadata: product.metadata as any,
+              images: product.images || [],
+              metadata: product.metadata || {},
+              packageDimensions: product.package_dimensions || null,
+              shippable: product.shippable,
+              statementDescriptor: product.statement_descriptor,
+              taxCode: product.tax_code,
+              unitLabel: product.unit_label,
+              url: product.url,
+              updated: new Date(),
             },
             create: {
               id: product.id,
+              object: product.object,
               active: product.active,
               name: product.name,
               description: product.description,
-              image: product.images?.[0] || null,
-              metadata: product.metadata as any,
+              images: product.images || [],
+              metadata: product.metadata || {},
+              packageDimensions: product.package_dimensions || null,
+              shippable: product.shippable,
+              statementDescriptor: product.statement_descriptor,
+              taxCode: product.tax_code,
+              unitLabel: product.unit_label,
+              url: product.url,
+              created: safeTimestampToDate(product.created) || new Date(),
+              updated: new Date(),
             },
           })
           logger.info(`Product ${event.type}: ${product.id}`)
-          break
-        }
-
-        case 'product.deleted': {
-          const product = event.data.object as Stripe.Product
-          await prisma.product.update({
-            where: { id: product.id },
-            data: { active: false }
-          })
-          logger.info(`Product deactivated: ${product.id}`)
           break
         }
 
@@ -212,126 +200,54 @@ export async function POST(request: NextRequest) {
           await prisma.price.upsert({
             where: { id: price.id },
             update: {
+              object: price.object,
               active: price.active,
+              billingScheme: price.billing_scheme,
               currency: price.currency,
+              customUnitAmount: price.custom_unit_amount || null,
+              livemode: price.livemode,
+              lookupKey: price.lookup_key,
+              metadata: price.metadata || {},
+              nickname: price.nickname,
+              recurring: price.recurring || null,
+              taxBehavior: price.tax_behavior,
+              tiersMode: price.tiers_mode,
+              transformQuantity: price.transform_quantity || null,
+              type: price.type,
               unitAmount: safeBigInt(price.unit_amount),
-              type: price.type === 'recurring' ? 'recurring' : 'one_time',
-              interval: price.recurring?.interval as any,
-              intervalCount: price.recurring?.interval_count || null,
-              trialPeriodDays: price.recurring?.trial_period_days || null,
-              metadata: price.metadata as any,
+              unitAmountDecimal: price.unit_amount_decimal,
+              updated: new Date(),
             },
             create: {
               id: price.id,
-              productId: typeof price.product === 'string' ? price.product : price.product.id,
+              object: price.object,
               active: price.active,
+              billingScheme: price.billing_scheme,
               currency: price.currency,
+              customUnitAmount: price.custom_unit_amount || null,
+              livemode: price.livemode,
+              lookupKey: price.lookup_key,
+              metadata: price.metadata || {},
+              nickname: price.nickname,
+              product: typeof price.product === 'string' ? price.product : price.product.id,
+              recurring: price.recurring || null,
+              taxBehavior: price.tax_behavior,
+              tiersMode: price.tiers_mode,
+              transformQuantity: price.transform_quantity || null,
+              type: price.type,
               unitAmount: safeBigInt(price.unit_amount),
-              type: price.type === 'recurring' ? 'recurring' : 'one_time',
-              interval: price.recurring?.interval as any,
-              intervalCount: price.recurring?.interval_count || null,
-              trialPeriodDays: price.recurring?.trial_period_days || null,
-              metadata: price.metadata as any,
+              unitAmountDecimal: price.unit_amount_decimal,
+              created: safeTimestampToDate(price.created) || new Date(),
+              updated: new Date(),
             },
           })
           logger.info(`Price ${event.type}: ${price.id}`)
           break
         }
 
-        case 'price.deleted': {
-          const price = event.data.object as Stripe.Price
-          await prisma.price.update({
-            where: { id: price.id },
-            data: { active: false }
-          })
-          logger.info(`Price deactivated: ${price.id}`)
-          break
-        }
-
-        // Coupon events
-        case 'coupon.created':
-        case 'coupon.updated': {
-          const coupon = event.data.object as Stripe.Coupon
-          
-          await prisma.coupon.upsert({
-            where: { id: coupon.id },
-            update: {
-              name: coupon.name || null,
-              amountOff: safeBigInt(coupon.amount_off),
-              currency: coupon.currency || null,
-              duration: coupon.duration,
-              durationInMonths: coupon.duration_in_months || null,
-              maxRedemptions: coupon.max_redemptions || null,
-              percentOff: coupon.percent_off || null,
-              redeemBy: safeTimestampToDate(coupon.redeem_by),
-              timesRedeemed: coupon.times_redeemed || 0,
-              valid: coupon.valid,
-              metadata: coupon.metadata as any,
-            },
-            create: {
-              id: coupon.id,
-              name: coupon.name || null,
-              amountOff: safeBigInt(coupon.amount_off),
-              currency: coupon.currency || null,
-              duration: coupon.duration,
-              durationInMonths: coupon.duration_in_months || null,
-              maxRedemptions: coupon.max_redemptions || null,
-              percentOff: coupon.percent_off || null,
-              redeemBy: safeTimestampToDate(coupon.redeem_by),
-              timesRedeemed: coupon.times_redeemed || 0,
-              valid: coupon.valid,
-              metadata: coupon.metadata as any,
-            },
-          })
-          logger.info(`Coupon ${event.type}: ${coupon.id}`)
-          break
-        }
-
-        case 'coupon.deleted': {
-          const coupon = event.data.object as Stripe.Coupon
-          await prisma.coupon.update({
-            where: { id: coupon.id },
-            data: { valid: false }
-          })
-          logger.info(`Coupon deactivated: ${coupon.id}`)
-          break
-        }
-
-        // Promotion Code events
-        case 'promotion_code.created':
-        case 'promotion_code.updated': {
-          const promotionCode = event.data.object as Stripe.PromotionCode
-          
-          await prisma.promotionCode.upsert({
-            where: { id: promotionCode.id },
-            update: {
-              code: promotionCode.code,
-              active: promotionCode.active,
-              maxRedemptions: promotionCode.max_redemptions || null,
-              timesRedeemed: promotionCode.times_redeemed || 0,
-              expiresAt: safeTimestampToDate(promotionCode.expires_at),
-              metadata: promotionCode.metadata as any,
-            },
-            create: {
-              id: promotionCode.id,
-              couponId: typeof promotionCode.coupon === 'string' ? promotionCode.coupon : promotionCode.coupon.id,
-              code: promotionCode.code,
-              active: promotionCode.active,
-              maxRedemptions: promotionCode.max_redemptions || null,
-              timesRedeemed: promotionCode.times_redeemed || 0,
-              expiresAt: safeTimestampToDate(promotionCode.expires_at),
-              metadata: promotionCode.metadata as any,
-            },
-          })
-          logger.info(`Promotion code ${event.type}: ${promotionCode.id}`)
-          break
-        }
-
         // Subscription events
         case 'customer.subscription.created':
-        case 'customer.subscription.updated':
-        case 'customer.subscription.paused':
-        case 'customer.subscription.resumed': {
+        case 'customer.subscription.updated': {
           const subscription = event.data.object as Stripe.Subscription
           
           const customer = await prisma.customer.findUnique({
@@ -343,91 +259,98 @@ export async function POST(request: NextRequest) {
             break
           }
 
-          const currentPeriodStart = safeTimestampToDate(subscription.current_period_start)
-          const currentPeriodEnd = safeTimestampToDate(subscription.current_period_end)
-
-          // For incomplete subscriptions, periods might not be set yet
-          if (!currentPeriodStart || !currentPeriodEnd) {
-            if (subscription.status === 'incomplete') {
-              // For incomplete subscriptions, use created timestamp as fallback
-              const fallbackDate = safeTimestampToDate(subscription.created) || new Date()
-              logger.warn(`Using fallback dates for incomplete subscription ${subscription.id}`)
-              
-              await prisma.subscription.upsert({
-                where: { id: subscription.id },
-                update: {
-                  status: subscription.status as any,
-                  priceId: subscription.items.data[0]?.price.id || '',
-                  quantity: subscription.items.data[0]?.quantity || 1,
-                  cancelAtPeriodEnd: subscription.cancel_at_period_end,
-                  endedAt: safeTimestampToDate(subscription.ended_at),
-                  cancelAt: safeTimestampToDate(subscription.cancel_at),
-                  canceledAt: safeTimestampToDate(subscription.canceled_at),
-                  trialStart: safeTimestampToDate(subscription.trial_start),
-                  trialEnd: safeTimestampToDate(subscription.trial_end),
-                  pausedAt: subscription.pause_collection?.behavior === 'keep_as_draft' ? new Date() : null,
-                  resumedAt: subscription.pause_collection?.behavior !== 'keep_as_draft' && event.type === 'customer.subscription.resumed' ? new Date() : null,
-                  metadata: subscription.metadata as any,
-                },
-                create: {
-                  id: subscription.id,
-                  userId: customer.id,
-                  status: subscription.status as any,
-                  priceId: subscription.items.data[0]?.price.id || '',
-                  quantity: subscription.items.data[0]?.quantity || 1,
-                  cancelAtPeriodEnd: subscription.cancel_at_period_end,
-                  createdAt: fallbackDate,
-                  currentPeriodStart: fallbackDate,
-                  currentPeriodEnd: new Date(fallbackDate.getTime() + (30 * 24 * 60 * 60 * 1000)), // 30 days from now
-                  endedAt: safeTimestampToDate(subscription.ended_at),
-                  cancelAt: safeTimestampToDate(subscription.cancel_at),
-                  canceledAt: safeTimestampToDate(subscription.canceled_at),
-                  trialStart: safeTimestampToDate(subscription.trial_start),
-                  trialEnd: safeTimestampToDate(subscription.trial_end),
-                  metadata: subscription.metadata as any,
-                },
-              })
-              break
-            } else {
-              logger.error(`Invalid subscription periods for ${subscription.id}: start=${subscription.current_period_start}, end=${subscription.current_period_end}`)
-              break
-            }
-          }
+          // Get the first price ID from subscription items
+          const priceId = subscription.items.data[0]?.price.id || ''
 
           await prisma.subscription.upsert({
             where: { id: subscription.id },
             update: {
-              status: subscription.status as any,
-              priceId: subscription.items.data[0]?.price.id || '',
-              quantity: subscription.items.data[0]?.quantity || 1,
-              cancelAtPeriodEnd: subscription.cancel_at_period_end,
-              currentPeriodStart,
-              currentPeriodEnd,
-              endedAt: safeTimestampToDate(subscription.ended_at),
+              object: subscription.object,
+              applicationFeePercent: subscription.application_fee_percent,
+              automaticTax: subscription.automatic_tax || {},
+              billingCycleAnchor: safeTimestampToDate(subscription.billing_cycle_anchor),
+              billingThresholds: subscription.billing_thresholds || null,
               cancelAt: safeTimestampToDate(subscription.cancel_at),
+              cancelAtPeriodEnd: subscription.cancel_at_period_end,
               canceledAt: safeTimestampToDate(subscription.canceled_at),
-              trialStart: safeTimestampToDate(subscription.trial_start),
+              collectionMethod: subscription.collection_method,
+              currency: subscription.currency,
+              customer: subscription.customer as string,
+              daysUntilDue: subscription.days_until_due,
+              defaultPaymentMethod: subscription.default_payment_method,
+              defaultSource: subscription.default_source,
+              defaultTaxRates: subscription.default_tax_rates || [],
+              description: subscription.description,
+              discount: subscription.discount || null,
+              endedAt: safeTimestampToDate(subscription.ended_at),
+              items: subscription.items || {},
+              latestInvoice: subscription.latest_invoice,
+              livemode: subscription.livemode,
+              metadata: subscription.metadata || {},
+              nextPendingInvoiceItemInvoice: safeTimestampToDate(subscription.next_pending_invoice_item_invoice),
+              pauseCollection: subscription.pause_collection || null,
+              paymentSettings: subscription.payment_settings || {},
+              pendingInvoiceItemInterval: subscription.pending_invoice_item_interval || null,
+              pendingSetupIntent: subscription.pending_setup_intent,
+              pendingUpdate: subscription.pending_update || null,
+              schedule: subscription.schedule,
+              startDate: safeTimestampToDate(subscription.start_date),
+              status: subscription.status,
+              testClock: subscription.test_clock,
+              transferData: subscription.transfer_data || null,
               trialEnd: safeTimestampToDate(subscription.trial_end),
-              pausedAt: subscription.pause_collection?.behavior === 'keep_as_draft' ? new Date() : null,
-              resumedAt: subscription.pause_collection?.behavior !== 'keep_as_draft' && event.type === 'customer.subscription.resumed' ? new Date() : null,
-              metadata: subscription.metadata as any,
+              trialStart: safeTimestampToDate(subscription.trial_start),
+              currentPeriodEnd: safeTimestampToDate(subscription.current_period_end),
+              currentPeriodStart: safeTimestampToDate(subscription.current_period_start),
+              updated: new Date(),
+              // App-specific fields
+              userId: customer.id,
+              priceId,
             },
             create: {
               id: subscription.id,
-              userId: customer.id,
-              status: subscription.status as any,
-              priceId: subscription.items.data[0]?.price.id || '',
-              quantity: subscription.items.data[0]?.quantity || 1,
-              cancelAtPeriodEnd: subscription.cancel_at_period_end,
-              createdAt: safeTimestampToDate(subscription.created) || new Date(),
-              currentPeriodStart,
-              currentPeriodEnd,
-              endedAt: safeTimestampToDate(subscription.ended_at),
+              object: subscription.object,
+              applicationFeePercent: subscription.application_fee_percent,
+              automaticTax: subscription.automatic_tax || {},
+              billingCycleAnchor: safeTimestampToDate(subscription.billing_cycle_anchor),
+              billingThresholds: subscription.billing_thresholds || null,
               cancelAt: safeTimestampToDate(subscription.cancel_at),
+              cancelAtPeriodEnd: subscription.cancel_at_period_end,
               canceledAt: safeTimestampToDate(subscription.canceled_at),
-              trialStart: safeTimestampToDate(subscription.trial_start),
+              collectionMethod: subscription.collection_method,
+              currency: subscription.currency,
+              customer: subscription.customer as string,
+              daysUntilDue: subscription.days_until_due,
+              defaultPaymentMethod: subscription.default_payment_method,
+              defaultSource: subscription.default_source,
+              defaultTaxRates: subscription.default_tax_rates || [],
+              description: subscription.description,
+              discount: subscription.discount || null,
+              endedAt: safeTimestampToDate(subscription.ended_at),
+              items: subscription.items || {},
+              latestInvoice: subscription.latest_invoice,
+              livemode: subscription.livemode,
+              metadata: subscription.metadata || {},
+              nextPendingInvoiceItemInvoice: safeTimestampToDate(subscription.next_pending_invoice_item_invoice),
+              pauseCollection: subscription.pause_collection || null,
+              paymentSettings: subscription.payment_settings || {},
+              pendingInvoiceItemInterval: subscription.pending_invoice_item_interval || null,
+              pendingSetupIntent: subscription.pending_setup_intent,
+              pendingUpdate: subscription.pending_update || null,
+              schedule: subscription.schedule,
+              startDate: safeTimestampToDate(subscription.start_date),
+              status: subscription.status,
+              testClock: subscription.test_clock,
+              transferData: subscription.transfer_data || null,
               trialEnd: safeTimestampToDate(subscription.trial_end),
-              metadata: subscription.metadata as any,
+              trialStart: safeTimestampToDate(subscription.trial_start),
+              currentPeriodEnd: safeTimestampToDate(subscription.current_period_end) || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+              currentPeriodStart: safeTimestampToDate(subscription.current_period_start) || new Date(),
+              created: safeTimestampToDate(subscription.created) || new Date(),
+              updated: new Date(),
+              // App-specific fields
+              userId: customer.id,
+              priceId,
             },
           })
           logger.info(`Subscription ${event.type}: ${subscription.id}`)
@@ -437,7 +360,6 @@ export async function POST(request: NextRequest) {
         case 'customer.subscription.deleted': {
           const subscription = event.data.object as Stripe.Subscription
           
-          // Update subscription status instead of deleting
           await prisma.subscription.updateMany({
             where: { id: subscription.id },
             data: { 
@@ -453,12 +375,10 @@ export async function POST(request: NextRequest) {
         // Invoice events
         case 'invoice.created':
         case 'invoice.paid':
-        case 'invoice.payment_failed':
-        case 'invoice.upcoming': {
+        case 'invoice.payment_failed': {
           const invoice = event.data.object as Stripe.Invoice
           
           if (event.type === 'invoice.upcoming') {
-            // Don't store upcoming invoices, just log them
             logger.info(`Upcoming invoice for customer: ${invoice.customer}`)
             break
           }
@@ -472,44 +392,165 @@ export async function POST(request: NextRequest) {
             break
           }
 
-          const periodStart = safeTimestampToDate(invoice.period_start)
-          const periodEnd = safeTimestampToDate(invoice.period_end)
-
-          if (!periodStart || !periodEnd) {
-            logger.error(`Invalid invoice periods for ${invoice.id}`)
-            break
-          }
-
           await prisma.invoice.upsert({
             where: { id: invoice.id },
             update: {
-              status: invoice.status || '',
-              amountDue: safeBigInt(invoice.amount_due),
-              amountPaid: safeBigInt(invoice.amount_paid),
-              amountRemaining: safeBigInt(invoice.amount_remaining),
-              hostedInvoiceUrl: invoice.hosted_invoice_url || null,
-              invoicePdf: invoice.invoice_pdf || null,
+              object: invoice.object,
+              accountCountry: invoice.account_country,
+              accountName: invoice.account_name,
+              accountTaxIds: invoice.account_tax_ids || null,
+              amountDue: safeBigInt(invoice.amount_due) || BigInt(0),
+              amountPaid: safeBigInt(invoice.amount_paid) || BigInt(0),
+              amountRemaining: safeBigInt(invoice.amount_remaining) || BigInt(0),
+              amountShipping: safeBigInt(invoice.amount_shipping) || BigInt(0),
+              application: invoice.application,
+              applicationFeeAmount: safeBigInt(invoice.application_fee_amount),
+              attemptCount: invoice.attempt_count || 0,
+              attempted: invoice.attempted || false,
+              autoAdvance: invoice.auto_advance || true,
+              automaticTax: invoice.automatic_tax || {},
+              billingReason: invoice.billing_reason,
+              charge: invoice.charge,
+              customerAddress: invoice.customer_address || null,
+              customerEmail: invoice.customer_email,
+              customerName: invoice.customer_name,
+              customerPhone: invoice.customer_phone,
+              customerShipping: invoice.customer_shipping || null,
+              customerTaxExempt: invoice.customer_tax_exempt,
+              customerTaxIds: invoice.customer_tax_ids || null,
+              defaultPaymentMethod: invoice.default_payment_method,
+              defaultSource: invoice.default_source,
+              defaultTaxRates: invoice.default_tax_rates || [],
+              description: invoice.description,
+              discount: invoice.discount || null,
+              discounts: invoice.discounts || [],
               dueDate: safeTimestampToDate(invoice.due_date),
-              metadata: invoice.metadata as any,
+              effectiveAt: safeTimestampToDate(invoice.effective_at),
+              endingBalance: safeBigInt(invoice.ending_balance),
+              footer: invoice.footer,
+              fromInvoice: invoice.from_invoice || null,
+              hostedInvoiceUrl: invoice.hosted_invoice_url,
+              invoicePdf: invoice.invoice_pdf,
+              lastFinalizationError: invoice.last_finalization_error || null,
+              latestRevision: invoice.latest_revision,
+              lines: invoice.lines || {},
+              nextPaymentAttempt: safeTimestampToDate(invoice.next_payment_attempt),
+              number: invoice.number,
+              onBehalfOf: invoice.on_behalf_of,
+              paid: invoice.paid || false,
+              paidOutOfBand: invoice.paid_out_of_band || false,
+              paymentIntent: invoice.payment_intent,
+              paymentSettings: invoice.payment_settings || {},
+              periodEnd: safeTimestampToDate(invoice.period_end) || new Date(),
+              periodStart: safeTimestampToDate(invoice.period_start) || new Date(),
+              postPaymentCreditNotesAmount: safeBigInt(invoice.post_payment_credit_notes_amount) || BigInt(0),
+              prePaymentCreditNotesAmount: safeBigInt(invoice.pre_payment_credit_notes_amount) || BigInt(0),
+              quote: invoice.quote,
+              receiptNumber: invoice.receipt_number,
+              renderingOptions: invoice.rendering_options || null,
+              shippingCost: invoice.shipping_cost || null,
+              shippingDetails: invoice.shipping_details || null,
+              startingBalance: safeBigInt(invoice.starting_balance) || BigInt(0),
+              statementDescriptor: invoice.statement_descriptor,
+              status: invoice.status,
+              statusTransitions: invoice.status_transitions || {},
+              subscription: invoice.subscription,
+              subscriptionDetails: invoice.subscription_details || null,
+              subtotal: safeBigInt(invoice.subtotal) || BigInt(0),
+              subtotalExcludingTax: safeBigInt(invoice.subtotal_excluding_tax),
+              tax: safeBigInt(invoice.tax),
+              testClock: invoice.test_clock,
+              total: safeBigInt(invoice.total) || BigInt(0),
+              totalDiscountAmounts: invoice.total_discount_amounts || [],
+              totalExcludingTax: safeBigInt(invoice.total_excluding_tax),
+              totalTaxAmounts: invoice.total_tax_amounts || [],
+              transferData: invoice.transfer_data || null,
+              webhooksDeliveredAt: safeTimestampToDate(invoice.webhooks_delivered_at),
+              updated: new Date(),
             },
             create: {
               id: invoice.id,
-              customerId: customer.id,
-              stripeCustomerId: invoice.customer as string,
-              subscriptionId: invoice.subscription as string || null,
-              status: invoice.status || '',
-              amountDue: safeBigInt(invoice.amount_due),
-              amountPaid: safeBigInt(invoice.amount_paid),
-              amountRemaining: safeBigInt(invoice.amount_remaining),
-              currency: invoice.currency,
+              object: invoice.object,
+              accountCountry: invoice.account_country,
+              accountName: invoice.account_name,
+              accountTaxIds: invoice.account_tax_ids || null,
+              amountDue: safeBigInt(invoice.amount_due) || BigInt(0),
+              amountPaid: safeBigInt(invoice.amount_paid) || BigInt(0),
+              amountRemaining: safeBigInt(invoice.amount_remaining) || BigInt(0),
+              amountShipping: safeBigInt(invoice.amount_shipping) || BigInt(0),
+              application: invoice.application,
+              applicationFeeAmount: safeBigInt(invoice.application_fee_amount),
+              attemptCount: invoice.attempt_count || 0,
+              attempted: invoice.attempted || false,
+              autoAdvance: invoice.auto_advance || true,
+              automaticTax: invoice.automatic_tax || {},
+              billingReason: invoice.billing_reason,
+              charge: invoice.charge,
               collectionMethod: invoice.collection_method || 'charge_automatically',
-              hostedInvoiceUrl: invoice.hosted_invoice_url || null,
-              invoicePdf: invoice.invoice_pdf || null,
-              periodStart,
-              periodEnd,
+              currency: invoice.currency,
+              customFields: invoice.custom_fields || null,
+              customer: invoice.customer as string,
+              customerAddress: invoice.customer_address || null,
+              customerEmail: invoice.customer_email,
+              customerName: invoice.customer_name,
+              customerPhone: invoice.customer_phone,
+              customerShipping: invoice.customer_shipping || null,
+              customerTaxExempt: invoice.customer_tax_exempt,
+              customerTaxIds: invoice.customer_tax_ids || null,
+              defaultPaymentMethod: invoice.default_payment_method,
+              defaultSource: invoice.default_source,
+              defaultTaxRates: invoice.default_tax_rates || [],
+              description: invoice.description,
+              discount: invoice.discount || null,
+              discounts: invoice.discounts || [],
               dueDate: safeTimestampToDate(invoice.due_date),
+              effectiveAt: safeTimestampToDate(invoice.effective_at),
+              endingBalance: safeBigInt(invoice.ending_balance),
+              footer: invoice.footer,
+              fromInvoice: invoice.from_invoice || null,
+              hostedInvoiceUrl: invoice.hosted_invoice_url,
+              invoicePdf: invoice.invoice_pdf,
+              lastFinalizationError: invoice.last_finalization_error || null,
+              latestRevision: invoice.latest_revision,
+              lines: invoice.lines || {},
+              livemode: invoice.livemode || false,
+              metadata: invoice.metadata || {},
+              nextPaymentAttempt: safeTimestampToDate(invoice.next_payment_attempt),
+              number: invoice.number,
+              onBehalfOf: invoice.on_behalf_of,
+              paid: invoice.paid || false,
+              paidOutOfBand: invoice.paid_out_of_band || false,
+              paymentIntent: invoice.payment_intent,
+              paymentSettings: invoice.payment_settings || {},
+              periodEnd: safeTimestampToDate(invoice.period_end) || new Date(),
+              periodStart: safeTimestampToDate(invoice.period_start) || new Date(),
+              postPaymentCreditNotesAmount: safeBigInt(invoice.post_payment_credit_notes_amount) || BigInt(0),
+              prePaymentCreditNotesAmount: safeBigInt(invoice.pre_payment_credit_notes_amount) || BigInt(0),
+              quote: invoice.quote,
+              receiptNumber: invoice.receipt_number,
+              renderingOptions: invoice.rendering_options || null,
+              shippingCost: invoice.shipping_cost || null,
+              shippingDetails: invoice.shipping_details || null,
+              startingBalance: safeBigInt(invoice.starting_balance) || BigInt(0),
+              statementDescriptor: invoice.statement_descriptor,
+              status: invoice.status,
+              statusTransitions: invoice.status_transitions || {},
+              subscription: invoice.subscription,
+              subscriptionDetails: invoice.subscription_details || null,
+              subtotal: safeBigInt(invoice.subtotal) || BigInt(0),
+              subtotalExcludingTax: safeBigInt(invoice.subtotal_excluding_tax),
+              tax: safeBigInt(invoice.tax),
+              testClock: invoice.test_clock,
+              total: safeBigInt(invoice.total) || BigInt(0),
+              totalDiscountAmounts: invoice.total_discount_amounts || [],
+              totalExcludingTax: safeBigInt(invoice.total_excluding_tax),
+              totalTaxAmounts: invoice.total_tax_amounts || [],
+              transferData: invoice.transfer_data || null,
+              webhooksDeliveredAt: safeTimestampToDate(invoice.webhooks_delivered_at),
               created: safeTimestampToDate(invoice.created) || new Date(),
-              metadata: invoice.metadata as any,
+              updated: new Date(),
+              // App-specific field
+              customerId: customer.id,
             },
           })
           logger.info(`Invoice ${event.type}: ${invoice.id}`)
@@ -536,28 +577,94 @@ export async function POST(request: NextRequest) {
             break
           }
 
-          // Use correct table and column names
-          const paymentIntentData = {
-            id: paymentIntent.id,
-            customerId: customer.id,
-            amount: safeBigInt(paymentIntent.amount),
-            currency: paymentIntent.currency,
-            status: paymentIntent.status,
-            captureMethod: paymentIntent.capture_method,
-            created: safeTimestampToDate(paymentIntent.created) || new Date(),
-            metadata: paymentIntent.metadata as any,
-          }
-
           await prisma.stripePaymentIntent.upsert({
-            where: { id: paymentIntentData.id },
+            where: { id: paymentIntent.id },
             update: {
-              amount: paymentIntentData.amount,
-              currency: paymentIntentData.currency,
-              status: paymentIntentData.status,
-              captureMethod: paymentIntentData.captureMethod,
-              metadata: paymentIntentData.metadata,
+              object: paymentIntent.object,
+              amount: safeBigInt(paymentIntent.amount) || BigInt(0),
+              amountCapturable: safeBigInt(paymentIntent.amount_capturable) || BigInt(0),
+              amountDetails: paymentIntent.amount_details || null,
+              amountReceived: safeBigInt(paymentIntent.amount_received) || BigInt(0),
+              application: paymentIntent.application,
+              applicationFeeAmount: safeBigInt(paymentIntent.application_fee_amount),
+              automaticPaymentMethods: paymentIntent.automatic_payment_methods || null,
+              canceledAt: safeTimestampToDate(paymentIntent.canceled_at),
+              cancellationReason: paymentIntent.cancellation_reason,
+              captureMethod: paymentIntent.capture_method,
+              charges: paymentIntent.charges || {},
+              clientSecret: paymentIntent.client_secret,
+              confirmationMethod: paymentIntent.confirmation_method,
+              currency: paymentIntent.currency,
+              customer: paymentIntent.customer as string,
+              description: paymentIntent.description,
+              invoice: paymentIntent.invoice,
+              lastPaymentError: paymentIntent.last_payment_error || null,
+              latestCharge: paymentIntent.latest_charge,
+              livemode: paymentIntent.livemode,
+              metadata: paymentIntent.metadata || {},
+              nextAction: paymentIntent.next_action || null,
+              onBehalfOf: paymentIntent.on_behalf_of,
+              paymentMethod: paymentIntent.payment_method,
+              paymentMethodConfigurationDetails: paymentIntent.payment_method_configuration_details || null,
+              paymentMethodOptions: paymentIntent.payment_method_options || {},
+              paymentMethodTypes: paymentIntent.payment_method_types || [],
+              processing: paymentIntent.processing || null,
+              receiptEmail: paymentIntent.receipt_email,
+              review: paymentIntent.review,
+              setupFutureUsage: paymentIntent.setup_future_usage,
+              shipping: paymentIntent.shipping || null,
+              statementDescriptor: paymentIntent.statement_descriptor,
+              statementDescriptorSuffix: paymentIntent.statement_descriptor_suffix,
+              status: paymentIntent.status,
+              transferData: paymentIntent.transfer_data || null,
+              transferGroup: paymentIntent.transfer_group,
+              updated: new Date(),
             },
-            create: paymentIntentData,
+            create: {
+              id: paymentIntent.id,
+              object: paymentIntent.object,
+              amount: safeBigInt(paymentIntent.amount) || BigInt(0),
+              amountCapturable: safeBigInt(paymentIntent.amount_capturable) || BigInt(0),
+              amountDetails: paymentIntent.amount_details || null,
+              amountReceived: safeBigInt(paymentIntent.amount_received) || BigInt(0),
+              application: paymentIntent.application,
+              applicationFeeAmount: safeBigInt(paymentIntent.application_fee_amount),
+              automaticPaymentMethods: paymentIntent.automatic_payment_methods || null,
+              canceledAt: safeTimestampToDate(paymentIntent.canceled_at),
+              cancellationReason: paymentIntent.cancellation_reason,
+              captureMethod: paymentIntent.capture_method,
+              charges: paymentIntent.charges || {},
+              clientSecret: paymentIntent.client_secret,
+              confirmationMethod: paymentIntent.confirmation_method,
+              currency: paymentIntent.currency,
+              customer: paymentIntent.customer as string,
+              description: paymentIntent.description,
+              invoice: paymentIntent.invoice,
+              lastPaymentError: paymentIntent.last_payment_error || null,
+              latestCharge: paymentIntent.latest_charge,
+              livemode: paymentIntent.livemode,
+              metadata: paymentIntent.metadata || {},
+              nextAction: paymentIntent.next_action || null,
+              onBehalfOf: paymentIntent.on_behalf_of,
+              paymentMethod: paymentIntent.payment_method,
+              paymentMethodConfigurationDetails: paymentIntent.payment_method_configuration_details || null,
+              paymentMethodOptions: paymentIntent.payment_method_options || {},
+              paymentMethodTypes: paymentIntent.payment_method_types || [],
+              processing: paymentIntent.processing || null,
+              receiptEmail: paymentIntent.receipt_email,
+              review: paymentIntent.review,
+              setupFutureUsage: paymentIntent.setup_future_usage,
+              shipping: paymentIntent.shipping || null,
+              statementDescriptor: paymentIntent.statement_descriptor,
+              statementDescriptorSuffix: paymentIntent.statement_descriptor_suffix,
+              status: paymentIntent.status,
+              transferData: paymentIntent.transfer_data || null,
+              transferGroup: paymentIntent.transfer_group,
+              created: safeTimestampToDate(paymentIntent.created) || new Date(),
+              updated: new Date(),
+              // App-specific fields
+              customerId: customer.id,
+            },
           })
           logger.info(`Payment intent ${event.type}: ${paymentIntent.id}`)
           break
@@ -577,25 +684,95 @@ export async function POST(request: NextRequest) {
           await prisma.paymentMethod.upsert({
             where: { id: paymentMethod.id },
             update: {
+              object: paymentMethod.object,
+              acssDebit: paymentMethod.acss_debit || null,
+              affirm: paymentMethod.affirm || null,
+              afterpayClearpay: paymentMethod.afterpay_clearpay || null,
+              alipay: paymentMethod.alipay || null,
+              auBecsDebit: paymentMethod.au_becs_debit || null,
+              bacsDebit: paymentMethod.bacs_debit || null,
+              bancontact: paymentMethod.bancontact || null,
+              billingDetails: paymentMethod.billing_details || {},
+              blik: paymentMethod.blik || null,
+              boleto: paymentMethod.boleto || null,
+              card: paymentMethod.card || null,
+              cardPresent: paymentMethod.card_present || null,
+              cashapp: paymentMethod.cashapp || null,
+              customerBalance: paymentMethod.customer_balance || null,
+              eps: paymentMethod.eps || null,
+              fpx: paymentMethod.fpx || null,
+              giropay: paymentMethod.giropay || null,
+              grabpay: paymentMethod.grabpay || null,
+              ideal: paymentMethod.ideal || null,
+              interacPresent: paymentMethod.interac_present || null,
+              klarna: paymentMethod.klarna || null,
+              konbini: paymentMethod.konbini || null,
+              link: paymentMethod.link || null,
+              livemode: paymentMethod.livemode,
+              metadata: paymentMethod.metadata || {},
+              oxxo: paymentMethod.oxxo || null,
+              p24: paymentMethod.p24 || null,
+              paynow: paymentMethod.paynow || null,
+              paypal: paymentMethod.paypal || null,
+              pix: paymentMethod.pix || null,
+              promptpay: paymentMethod.promptpay || null,
+              radarOptions: paymentMethod.radar_options || null,
+              revolutPay: paymentMethod.revolut_pay || null,
+              sepaDebit: paymentMethod.sepa_debit || null,
+              sofort: paymentMethod.sofort || null,
+              swish: paymentMethod.swish || null,
               type: paymentMethod.type,
-              cardBrand: paymentMethod.card?.brand || null,
-              cardLast4: paymentMethod.card?.last4 || null,
-              cardExpMonth: paymentMethod.card?.exp_month || null,
-              cardExpYear: paymentMethod.card?.exp_year || null,
-              billingDetails: paymentMethod.billing_details as any,
-              metadata: paymentMethod.metadata as any,
+              usBankAccount: paymentMethod.us_bank_account || null,
+              wechatPay: paymentMethod.wechat_pay || null,
+              zip: paymentMethod.zip || null,
+              updated: new Date(),
             },
             create: {
               id: paymentMethod.id,
-              stripeCustomerId: paymentMethod.customer as string,
+              object: paymentMethod.object,
+              acssDebit: paymentMethod.acss_debit || null,
+              affirm: paymentMethod.affirm || null,
+              afterpayClearpay: paymentMethod.afterpay_clearpay || null,
+              alipay: paymentMethod.alipay || null,
+              auBecsDebit: paymentMethod.au_becs_debit || null,
+              bacsDebit: paymentMethod.bacs_debit || null,
+              bancontact: paymentMethod.bancontact || null,
+              billingDetails: paymentMethod.billing_details || {},
+              blik: paymentMethod.blik || null,
+              boleto: paymentMethod.boleto || null,
+              card: paymentMethod.card || null,
+              cardPresent: paymentMethod.card_present || null,
+              cashapp: paymentMethod.cashapp || null,
+              customer: paymentMethod.customer as string,
+              customerBalance: paymentMethod.customer_balance || null,
+              eps: paymentMethod.eps || null,
+              fpx: paymentMethod.fpx || null,
+              giropay: paymentMethod.giropay || null,
+              grabpay: paymentMethod.grabpay || null,
+              ideal: paymentMethod.ideal || null,
+              interacPresent: paymentMethod.interac_present || null,
+              klarna: paymentMethod.klarna || null,
+              konbini: paymentMethod.konbini || null,
+              link: paymentMethod.link || null,
+              livemode: paymentMethod.livemode,
+              metadata: paymentMethod.metadata || {},
+              oxxo: paymentMethod.oxxo || null,
+              p24: paymentMethod.p24 || null,
+              paynow: paymentMethod.paynow || null,
+              paypal: paymentMethod.paypal || null,
+              pix: paymentMethod.pix || null,
+              promptpay: paymentMethod.promptpay || null,
+              radarOptions: paymentMethod.radar_options || null,
+              revolutPay: paymentMethod.revolut_pay || null,
+              sepaDebit: paymentMethod.sepa_debit || null,
+              sofort: paymentMethod.sofort || null,
+              swish: paymentMethod.swish || null,
               type: paymentMethod.type,
-              cardBrand: paymentMethod.card?.brand || null,
-              cardLast4: paymentMethod.card?.last4 || null,
-              cardExpMonth: paymentMethod.card?.exp_month || null,
-              cardExpYear: paymentMethod.card?.exp_year || null,
-              billingDetails: paymentMethod.billing_details as any,
+              usBankAccount: paymentMethod.us_bank_account || null,
+              wechatPay: paymentMethod.wechat_pay || null,
+              zip: paymentMethod.zip || null,
               created: safeTimestampToDate(paymentMethod.created) || new Date(),
-              metadata: paymentMethod.metadata as any,
+              updated: new Date(),
             },
           })
           logger.info(`Payment method ${event.type}: ${paymentMethod.id}`)
@@ -605,7 +782,6 @@ export async function POST(request: NextRequest) {
         case 'payment_method.detached': {
           const paymentMethod = event.data.object as Stripe.PaymentMethod
           
-          // Remove the payment method from database
           await prisma.paymentMethod.deleteMany({
             where: { id: paymentMethod.id },
           })
@@ -634,29 +810,112 @@ export async function POST(request: NextRequest) {
             break
           }
 
-          // Use the correct table and column names
-          const sessionData = {
-            id: session.id,
-            customerId: customer.id,
-            paymentStatus: session.payment_status,
-            mode: session.mode,
-            amountTotal: safeBigInt(session.amount_total),
-            currency: session.currency || 'usd',
-            created: safeTimestampToDate(session.created) || new Date(),
-            expiresAt: safeTimestampToDate(session.expires_at),
-            url: session.url || null,
-            metadata: session.metadata as any,
-          }
-
           await prisma.stripeCheckoutSession.upsert({
-            where: { id: sessionData.id },
+            where: { id: session.id },
             update: {
-              paymentStatus: sessionData.paymentStatus,
-              amountTotal: sessionData.amountTotal,
-              url: sessionData.url,
-              metadata: sessionData.metadata,
+              object: session.object,
+              afterExpiration: session.after_expiration || null,
+              allowPromotionCodes: session.allow_promotion_codes,
+              amountSubtotal: safeBigInt(session.amount_subtotal),
+              amountTotal: safeBigInt(session.amount_total),
+              automaticTax: session.automatic_tax || {},
+              billingAddressCollection: session.billing_address_collection,
+              cancelUrl: session.cancel_url,
+              clientReferenceId: session.client_reference_id,
+              consent: session.consent || null,
+              consentCollection: session.consent_collection || null,
+              currency: session.currency,
+              currencyConversion: session.currency_conversion || null,
+              customFields: session.custom_fields || [],
+              customText: session.custom_text || {},
+              customer: session.customer as string,
+              customerCreation: session.customer_creation,
+              customerDetails: session.customer_details || null,
+              customerEmail: session.customer_email,
+              expiresAt: safeTimestampToDate(session.expires_at),
+              invoice: session.invoice,
+              invoiceCreation: session.invoice_creation || null,
+              livemode: session.livemode,
+              locale: session.locale,
+              metadata: session.metadata || {},
+              mode: session.mode,
+              paymentIntent: session.payment_intent,
+              paymentLink: session.payment_link,
+              paymentMethodCollection: session.payment_method_collection,
+              paymentMethodConfigurationDetails: session.payment_method_configuration_details || null,
+              paymentMethodOptions: session.payment_method_options || {},
+              paymentMethodTypes: session.payment_method_types || [],
+              paymentStatus: session.payment_status,
+              phoneNumberCollection: session.phone_number_collection || null,
+              recoveredFrom: session.recovered_from,
+              setupIntent: session.setup_intent,
+              shippingAddressCollection: session.shipping_address_collection || null,
+              shippingCost: session.shipping_cost || null,
+              shippingDetails: session.shipping_details || null,
+              shippingOptions: session.shipping_options || [],
+              status: session.status,
+              submitType: session.submit_type,
+              subscription: session.subscription,
+              successUrl: session.success_url,
+              totalDetails: session.total_details || null,
+              uiMode: session.ui_mode,
+              url: session.url,
+              updated: new Date(),
             },
-            create: sessionData,
+            create: {
+              id: session.id,
+              object: session.object,
+              afterExpiration: session.after_expiration || null,
+              allowPromotionCodes: session.allow_promotion_codes,
+              amountSubtotal: safeBigInt(session.amount_subtotal),
+              amountTotal: safeBigInt(session.amount_total),
+              automaticTax: session.automatic_tax || {},
+              billingAddressCollection: session.billing_address_collection,
+              cancelUrl: session.cancel_url,
+              clientReferenceId: session.client_reference_id,
+              consent: session.consent || null,
+              consentCollection: session.consent_collection || null,
+              currency: session.currency,
+              currencyConversion: session.currency_conversion || null,
+              customFields: session.custom_fields || [],
+              customText: session.custom_text || {},
+              customer: session.customer as string,
+              customerCreation: session.customer_creation,
+              customerDetails: session.customer_details || null,
+              customerEmail: session.customer_email,
+              expiresAt: safeTimestampToDate(session.expires_at),
+              invoice: session.invoice,
+              invoiceCreation: session.invoice_creation || null,
+              livemode: session.livemode,
+              locale: session.locale,
+              metadata: session.metadata || {},
+              mode: session.mode,
+              paymentIntent: session.payment_intent,
+              paymentLink: session.payment_link,
+              paymentMethodCollection: session.payment_method_collection,
+              paymentMethodConfigurationDetails: session.payment_method_configuration_details || null,
+              paymentMethodOptions: session.payment_method_options || {},
+              paymentMethodTypes: session.payment_method_types || [],
+              paymentStatus: session.payment_status,
+              phoneNumberCollection: session.phone_number_collection || null,
+              recoveredFrom: session.recovered_from,
+              setupIntent: session.setup_intent,
+              shippingAddressCollection: session.shipping_address_collection || null,
+              shippingCost: session.shipping_cost || null,
+              shippingDetails: session.shipping_details || null,
+              shippingOptions: session.shipping_options || [],
+              status: session.status,
+              submitType: session.submit_type,
+              subscription: session.subscription,
+              successUrl: session.success_url,
+              totalDetails: session.total_details || null,
+              uiMode: session.ui_mode,
+              url: session.url,
+              created: safeTimestampToDate(session.created) || new Date(),
+              updated: new Date(),
+              // App-specific field
+              customerId: customer.id,
+            },
           })
           logger.info(`Checkout session ${event.type}: ${session.id}`)
           break
