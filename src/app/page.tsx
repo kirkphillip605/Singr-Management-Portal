@@ -273,7 +273,7 @@ export default function HomePage() {
               <Card key={plan.name} className={`border-0 shadow-lg relative hover:shadow-xl transition-all duration-300 ${plan.popular ? 'ring-2 ring-primary transform scale-105' : ''}`}>
                 {plan.popular && (
                   <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                    <span className="bg-primary text-white px-4 py-1 rounded-full text-sm font-medium flex items-center">
+                    <span className="bg-primary text-primary px-4 py-1 rounded-full text-sm font-medium flex items-center">
                       <Star className="h-3 w-3 mr-1" />
                       Most Popular
                     </span>
@@ -361,7 +361,7 @@ export default function HomePage() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12">
+      <footer className="bg-gray-900 text-primary py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="flex items-center mb-4 md:mb-0">
