@@ -107,9 +107,9 @@ export default function HomePage() {
           <div className="text-center">
             <div className="flex justify-center mb-8">
               <img 
-                src="/singr-icon.png"
+                src="/singr-logo-color.png"
                 alt="Singr Karaoke" 
-                className="h-32 w-32 md:h-32 md:w-32"
+                objectFit="contain"
               />
             </div>
             <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
@@ -365,8 +365,9 @@ export default function HomePage() {
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="flex items-center mb-4 md:mb-0">
               <img 
-                src="/singr-logo-color.png"
+                src="/singr-logo-color-white.png"
                 alt="Singr Karaoke" 
+                objectFit="contain"
               />
               <span className="ml-2 text-xl font-bold">Singr Karaoke Connect</span>
             </div>
