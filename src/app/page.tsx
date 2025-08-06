@@ -352,7 +352,7 @@ export default function HomePage() {
               </Button>
             </Link>
             <Link href="/auth/signin">
-              <Button size="lg" variant="outline" className="w-full sm:w-auto text-lg px-8 py-3 border-white text-white hover:bg-white hover:text-primary">
+              <Button size="lg" variant="outline" className="w-full sm:w-auto text-lg px-8 py-3 border-white text-primary hover:bg-white hover:text-primary">
                 Sign In
               </Button>
             </Link>
@@ -361,7 +361,7 @@ export default function HomePage() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-primary py-12">
+      <footer className="bg-gray-900 text-white py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="flex items-center mb-4 md:mb-0">
