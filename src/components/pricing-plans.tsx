@@ -14,7 +14,7 @@ interface StripePrice {
   currency: string
   recurring: any
   metadata: Record<string, string>
-  productRelation: {
+  product: {
     id: string
     name: string
     description?: string
@@ -73,15 +73,10 @@ export function PricingPlans({ prices }: PricingPlansProps) {
         case 'monthly': return 'Monthly'
         case 'semi-annual': return 'Semi-Annual'
         case 'annual': return 'Annual'
-        default: return price.productRelation.name || 'Plan'
+        default: return price.product.name || 'Plan'
       }
     }
-    return price.productRelation.name || 'Plan'
-  }
-
-  const isCurrentPlan = (priceId: string) => {
-    return currentSubscription?.priceId === priceId && 
-           ['active', 'trialing'].includes(currentSubscription.status)
+    return price.product.name || 'Plan'
   }
 
   const sortedPrices = [...prices].sort((a, b) => {

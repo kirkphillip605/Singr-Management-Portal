@@ -1,5 +1,8 @@
 const Stripe = require('stripe')
+const { PrismaClient } = require('@prisma/client')
+
 const LOG_SEPARATOR = '────────────────────────────────────────────';
+
 async function createStripeData() {
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
     apiVersion: '2024-06-20',
@@ -86,7 +89,6 @@ async function createStripeData() {
     // Sync the created data to database
     console.log('\n🔄 Syncing created data to database...')
     
-    const { PrismaClient } = require('@prisma/client')
     const prisma = new PrismaClient()
     
     try {
@@ -100,6 +102,7 @@ async function createStripeData() {
           images: product.images || [],
           metadata: product.metadata || {},
           updated: new Date(),
+          data: product,
         },
         create: {
           id: product.id,
@@ -112,6 +115,7 @@ async function createStripeData() {
           livemode: product.livemode,
           created: new Date(product.created * 1000),
           updated: new Date(),
+          data: product,
         },
       })
       
@@ -128,11 +132,13 @@ async function createStripeData() {
             unitAmount: price.unit_amount ? BigInt(price.unit_amount) : null,
             metadata: price.metadata || {},
             updated: new Date(),
+            data: price,
           },
           create: {
             id: price.id,
             object: price.object,
             active: price.active,
+            billingScheme: price.billing_scheme,
             currency: price.currency,
             livemode: price.livemode,
             metadata: price.metadata || {},
@@ -143,6 +149,7 @@ async function createStripeData() {
             unitAmount: price.unit_amount ? BigInt(price.unit_amount) : null,
             created: new Date(price.created * 1000),
             updated: new Date(),
+            data: price,
           },
         })
       }

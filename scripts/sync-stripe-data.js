@@ -1,6 +1,5 @@
 // syncStripeData.js
-// Synchronizes Stripe products, prices, coupons, and promotion codes
-// with a local database using Prisma.
+// Synchronizes Stripe products and prices with a local database using Prisma.
 // Requirements: Set STRIPE_SECRET_KEY and DATABASE_URL in environment variables.
 
 'use strict';
@@ -8,6 +7,7 @@
 const Stripe = require('stripe');
 const { PrismaClient } = require('@prisma/client');
 const LOG_SEPARATOR = '────────────────────────────────────────────';
+
 // Validate required environment variables
 function validateEnvironment() {
   const requiredEnvVars = ['STRIPE_SECRET_KEY', 'DATABASE_URL'];
@@ -35,7 +35,7 @@ async function syncStripeProducts() {
   let startingAfter = undefined;
 
   while (hasMore) {
-    const { data, has_more: has_more } = await stripe.products.list({
+    const { data, has_more } = await stripe.products.list({
       limit: 100,
       active: true,
       starting_after: startingAfter,
@@ -57,6 +57,7 @@ async function syncStripeProducts() {
           url: product.url,
           metadata: product.metadata || {},
           updated: new Date(),
+          data: product,
         },
         create: {
           id: product.id,
@@ -72,8 +73,10 @@ async function syncStripeProducts() {
           unitLabel: product.unit_label,
           url: product.url,
           metadata: product.metadata || {},
+          livemode: product.livemode,
           created: new Date(product.created * 1000),
           updated: new Date(),
+          data: product,
         },
       });
       console.log(`  ✅ Product synced: ${product.name || product.id} (${product.id})`);
@@ -84,9 +87,6 @@ async function syncStripeProducts() {
   }
 }
 
-/**
- * Upsert Stripe prices into the database, handling pagination.
- */
 async function syncStripePrices() {
   console.log('💰 Syncing Stripe prices...');
 
@@ -94,7 +94,7 @@ async function syncStripePrices() {
   let startingAfter = undefined;
 
   while (hasMore) {
-    const { data, has_more: has_more } = await stripe.prices.list({
+    const { data, has_more } = await stripe.prices.list({
       limit: 100,
       active: true,
       starting_after: startingAfter,
@@ -119,6 +119,7 @@ async function syncStripePrices() {
           unitAmountDecimal: price.unit_amount_decimal,
           metadata: price.metadata || {},
           updated: new Date(),
+          data: price,
         },
         create: {
           id: price.id,
@@ -141,6 +142,7 @@ async function syncStripePrices() {
           unitAmountDecimal: price.unit_amount_decimal,
           created: new Date(price.created * 1000),
           updated: new Date(),
+          data: price,
         },
       });
 
@@ -154,137 +156,6 @@ async function syncStripePrices() {
   }
 }
 
-/**
- * Upsert Stripe coupons into the database, handling pagination.
- */
-async function syncStripeCoupons() {
-  console.log('🎫 Syncing Stripe coupons...');
-
-  let hasMore = true;
-  let startingAfter = undefined;
-
-  while (hasMore) {
-    const { data, has_more: has_more } = await stripe.coupons.list({
-      limit: 100,
-      starting_after: startingAfter,
-    });
-
-    for (const coupon of data) {
-      await prisma.coupon.upsert({
-        where: { id: coupon.id },
-        update: {
-          name: coupon.name || null,
-          amountOff: coupon.amount_off ? BigInt(coupon.amount_off) : null,
-          appliesTo: coupon.applies_to || null,
-          currency: coupon.currency || null,
-          duration: coupon.duration,
-          durationInMonths: coupon.duration_in_months || null,
-          livemode: coupon.livemode,
-          maxRedemptions: coupon.max_redemptions || null,
-          metadata: coupon.metadata || {},
-          percentOff: coupon.percent_off || null,
-          redeemBy: coupon.redeem_by ? new Date(coupon.redeem_by * 1000) : null,
-          timesRedeemed: coupon.times_redeemed || 0,
-          valid: coupon.valid,
-          updated: new Date(),
-        },
-        create: {
-          id: coupon.id,
-          object: coupon.object,
-          amountOff: coupon.amount_off ? BigInt(coupon.amount_off) : null,
-          appliesTo: coupon.applies_to || null,
-          currency: coupon.currency || null,
-          duration: coupon.duration,
-          durationInMonths: coupon.duration_in_months || null,
-          livemode: coupon.livemode,
-          maxRedemptions: coupon.max_redemptions || null,
-          metadata: coupon.metadata || {},
-          name: coupon.name || null,
-          percentOff: coupon.percent_off || null,
-          redeemBy: coupon.redeem_by ? new Date(coupon.redeem_by * 1000) : null,
-          timesRedeemed: coupon.times_redeemed || 0,
-          valid: coupon.valid,
-          created: new Date(coupon.created * 1000),
-          updated: new Date(),
-        },
-      });
-
-      const discount = coupon.percent_off != null
-        ? `${coupon.percent_off}% off`
-        : `$${((coupon.amount_off ?? 0) / 100).toFixed(2)} off`;
-      console.log(`  ✅ Coupon synced: ${coupon.name || coupon.id} (${discount})`);
-    }
-
-    hasMore = has_more;
-    startingAfter = data.length > 0 ? data[data.length - 1].id : undefined;
-  }
-}
-
-/**
- * Upsert Stripe promotion codes into the database, handling pagination.
- */
-async function syncStripePromotionCodes() {
-  console.log('🏷️  Syncing Stripe promotion codes...');
-
-  let hasMore = true;
-  let startingAfter = undefined;
-
-  while (hasMore) {
-    const { data, has_more: has_more } = await stripe.promotionCodes.list({
-      limit: 100,
-      starting_after: startingAfter,
-    });
-
-    for (const promoCode of data) {
-      const couponId = typeof promoCode.coupon === 'string'
-        ? promoCode.coupon
-        : promoCode.coupon?.id;
-
-      await prisma.promotionCode.upsert({
-        where: { id: promoCode.id },
-        update: {
-          coupon: couponId,
-          code: promoCode.code,
-          active: promoCode.active,
-          customer: promoCode.customer,
-          expiresAt: promoCode.expires_at ? new Date(promoCode.expires_at * 1000) : null,
-          firstTimeTransaction: promoCode.first_time_transaction,
-          livemode: promoCode.livemode,
-          maxRedemptions: promoCode.max_redemptions || null,
-          metadata: promoCode.metadata || {},
-          restrictions: promoCode.restrictions || {},
-          timesRedeemed: promoCode.times_redeemed || 0,
-          updated: new Date(),
-        },
-        create: {
-          id: promoCode.id,
-          object: promoCode.object,
-          active: promoCode.active,
-          code: promoCode.code,
-          coupon: couponId,
-          customer: promoCode.customer,
-          expiresAt: promoCode.expires_at ? new Date(promoCode.expires_at * 1000) : null,
-          firstTimeTransaction: promoCode.first_time_transaction,
-          livemode: promoCode.livemode,
-          maxRedemptions: promoCode.max_redemptions || null,
-          metadata: promoCode.metadata || {},
-          restrictions: promoCode.restrictions || {},
-          timesRedeemed: promoCode.times_redeemed || 0,
-          created: new Date(promoCode.created * 1000),
-          updated: new Date(),
-        },
-      });
-      console.log(`  ✅ Promotion code synced: ${promoCode.code} (${promoCode.id})`);
-    }
-
-    hasMore = has_more;
-    startingAfter = data.length > 0 ? data[data.length - 1].id : undefined;
-  }
-}
-
-/**
- * Main entry point: verifies Stripe connection and synchronizes all data.
- */
 async function main() {
   console.log('🔄 Starting Stripe data synchronization...');
   console.log(LOG_SEPARATOR);
@@ -296,25 +167,19 @@ async function main() {
 
     await syncStripeProducts();
     await syncStripePrices();
-    await syncStripeCoupons();
-    await syncStripePromotionCodes();
 
     console.log(LOG_SEPARATOR);
     console.log('🎉 Stripe data synchronization completed successfully!');
 
     // Summary
-    const [productCount, priceCount, couponCount, promoCodeCount] = await Promise.all([
+    const [productCount, priceCount] = await Promise.all([
       prisma.product.count(),
       prisma.price.count(),
-      prisma.coupon.count(),
-      prisma.promotionCode.count(),
     ]);
 
     console.log('\n📊 Database Summary:');
     console.log(`  • Products: ${productCount}`);
     console.log(`  • Prices: ${priceCount}`);
-    console.log(`  • Coupons: ${couponCount}`);
-    console.log(`  • Promotion Codes: ${promoCodeCount}`);
   } catch (error) {
     console.error('❌ Error during synchronization:', error.message);
     console.error('Details:', error);

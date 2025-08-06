@@ -18,7 +18,7 @@ export default async function PlansPage() {
       type: 'recurring', 
     },
     include: {
-      productRelation: true,
+      product: true,
     },
     orderBy: {
       unitAmount: 'asc',

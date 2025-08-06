@@ -9,7 +9,7 @@ export async function GET(
     const price = await prisma.price.findUnique({
       where: { id: params.id },
       include: {
-        productRelation: true,
+        product: true,
       },
     })
 
