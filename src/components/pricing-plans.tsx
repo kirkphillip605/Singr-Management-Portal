@@ -8,7 +8,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { CheckCircle, Star, Loader2, CreditCard } from 'lucide-react'
 import { formatAmountForDisplay } from '@/lib/stripe'
 
-interface Price {
+interface StripePrice {
   id: string
   unitAmount: bigint
   currency: string
@@ -22,14 +22,10 @@ interface Price {
 }
 
 interface PricingPlansProps {
-  prices: Price[]
-  currentSubscription?: {
-    price: string
-    status: string
-  }
+  prices: StripePrice[]
 }
 
-export function PricingPlans({ prices, currentSubscription }: PricingPlansProps) {
+export function PricingPlans({ prices }: PricingPlansProps) {
   const [loadingPriceId, setLoadingPriceId] = useState<string | null>(null)
   const [error, setError] = useState('')
 
@@ -58,19 +54,14 @@ export function PricingPlans({ prices, currentSubscription }: PricingPlansProps)
       const { url } = await response.json()
       window.location.href = url
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'An error occurred')
-      setLoadingPriceId(null)
-    }
-  }
-
-  const getSavingsPercentage = (price: Price) => {
+  const getSavingsPercentage = (price: StripePrice) => {
     if (price.metadata?.savings_percentage) {
       return parseInt(price.metadata.savings_percentage)
     }
     return null
   }
 
-  const getPlanName = (price: Price) => {
+  const getPlanName = (price: StripePrice) => {
     if (price.metadata?.plan_name) {
       switch (price.metadata.plan_name) {
         case 'monthly': return 'Monthly'
@@ -121,7 +112,6 @@ export function PricingPlans({ prices, currentSubscription }: PricingPlansProps)
           const savings = getSavingsPercentage(price)
           const planName = getPlanName(price)
           const isPopular = price.metadata?.plan_name === 'semi-annual'
-          const isCurrent = isCurrentPlan(price.id)
           const isLoading = loadingPriceId === price.id
 
           return (
@@ -129,7 +119,7 @@ export function PricingPlans({ prices, currentSubscription }: PricingPlansProps)
               key={price.id} 
               className={`relative ${
                 isPopular ? 'ring-2 ring-primary transform scale-105' : ''
-              } ${isCurrent ? 'border-green-500' : ''}`}
+              }`}
             >
               {isPopular && (
                 <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
@@ -140,15 +130,6 @@ export function PricingPlans({ prices, currentSubscription }: PricingPlansProps)
                 </div>
               )}
               
-              {isCurrent && (
-                <div className="absolute -top-4 right-4">
-                  <Badge variant="secondary" className="bg-green-100 text-green-700 border-green-300">
-                    <CheckCircle className="h-3 w-3 mr-1" />
-                    Current Plan
-                  </Badge>
-                </div>
-              )}
-
               <CardHeader className="text-center pb-4">
                 <CardTitle className="text-xl">{planName}</CardTitle>
                 <div className="mt-4">
@@ -212,15 +193,13 @@ export function PricingPlans({ prices, currentSubscription }: PricingPlansProps)
                   className="w-full" 
                   variant={isPopular ? "default" : "outline"}
                   onClick={() => handleSubscribe(price.id)}
-                  disabled={isCurrent || isLoading}
+                  disabled={isLoading}
                 >
                   {isLoading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Processing...
                     </>
-                  ) : isCurrent ? (
-                    'Current Plan'
                   ) : (
                     `Choose ${planName}`
                   )}
@@ -233,7 +212,7 @@ export function PricingPlans({ prices, currentSubscription }: PricingPlansProps)
 
       <div className="text-center">
         <p className="text-sm text-muted-foreground">
-          All plans include a 7-day free trial • No setup fees • Cancel anytime
+          All plans include a 7-day free trial • No setup fees • Cancel anytime • Manage subscription in Stripe portal
         </p>
       </div>
     </div>

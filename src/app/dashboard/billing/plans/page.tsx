@@ -12,7 +12,7 @@ export default async function PlansPage() {
   }
 
   // Get all active prices
-  const prices = await prisma.price.findMany({
+  const prices = await prisma.stripePrice.findMany({
     where: {
       active: true,
       type: 'recurring', 
@@ -25,28 +25,6 @@ export default async function PlansPage() {
     },
   })
 
-  // Get user's current subscription
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    include: {
-      customer: {
-        include: {
-          subscriptions: {
-            where: {
-              status: { in: ['active', 'trialing', 'past_due'] }, 
-            },
-            orderBy: {
-              created: 'desc',
-            },
-            take: 1,
-          },
-        },
-      },
-    },
-  })
-
-  const currentSubscription = user?.customer?.subscriptions[0]
-
   return (
     <div className="space-y-6">
       <div className="text-center">
@@ -56,13 +34,7 @@ export default async function PlansPage() {
         </p>
       </div>
 
-      <PricingPlans 
-        prices={prices} 
-        currentSubscription={currentSubscription ? {
-          price: currentSubscription.priceId,
-          status: currentSubscription.status,
-        } : undefined}
-      />
+      <PricingPlans prices={prices} />
     </div>
   )
 }
