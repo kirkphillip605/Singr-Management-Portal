@@ -72,7 +72,6 @@ model User {
   customer      Customer?
   sessions      Session[]
   songDb        SongDb[]
-  subscriptions Subscription[] @relation("UserSubscriptions")
   venues        Venue[]        @relation("UserVenues")
 
   @@index([email], map: "idx_users_email")
@@ -97,11 +96,6 @@ model Customer {
   data                   Json                    @default("{}")
   apiKeys                ApiKey[]
   user                   User                    @relation(fields: [id], references: [id], onDelete: Cascade)
-  invoices               Invoice[]
-  paymentMethods         PaymentMethod[]
-  stripeCheckoutSessions StripeCheckoutSession[]
-  stripePaymentIntents   StripePaymentIntent[]
-  subscriptions          Subscription[]
 
   @@index([stripeCustomerId], map: "idx_customers_stripecustomerid")
   @@map("customers")
