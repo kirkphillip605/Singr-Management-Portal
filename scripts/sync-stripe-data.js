@@ -7,7 +7,7 @@
 
 const Stripe = require('stripe');
 const { PrismaClient } = require('@prisma/client');
-
+const LOG_SEPARATOR = '────────────────────────────────────────────';
 // Validate required environment variables
 function validateEnvironment() {
   const requiredEnvVars = ['STRIPE_SECRET_KEY', 'DATABASE_URL'];
