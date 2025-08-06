@@ -50,7 +50,7 @@ export default async function BillingPage() {
 
   const recentInvoices = user?.customer?.invoices || []
   const paymentMethods = user?.customer?.paymentMethods || []
-  return (
+  
   // Format for compatibility with subscription management component
   const formattedSubscription = activeSubscription ? {
     id: activeSubscription.id,
@@ -63,6 +63,8 @@ export default async function BillingPage() {
     customer: activeSubscription.customer,
     priceId: activeSubscription.priceId,
   } : null
+
+  return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
