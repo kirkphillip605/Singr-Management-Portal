@@ -11,7 +11,8 @@ import { formatAmountForDisplay } from '@/lib/stripe'
 import { SubscriptionManagement } from '@/components/subscription-management'
 
 function extractCardDetails(paymentMethod: any) {
-  const cardData = paymentMethod.card
+  // Try to extract from data field first, then fall back to top-level card field
+  const cardData = paymentMethod.data?.card || paymentMethod.card
   if (!cardData) return null
 
   return {
