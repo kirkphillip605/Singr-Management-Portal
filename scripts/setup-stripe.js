@@ -83,6 +83,77 @@ async function createStripeData() {
     console.log(`Semi-Annual Price ID: ${semiAnnualPrice.id}`)
     console.log(`Annual Price ID: ${annualPrice.id}`)
 
+    // Sync the created data to database
+    console.log('\n🔄 Syncing created data to database...')
+    
+    const { PrismaClient } = require('@prisma/client')
+    const prisma = new PrismaClient()
+    
+    try {
+      // Sync product
+      await prisma.product.upsert({
+        where: { id: product.id },
+        update: {
+          active: product.active,
+          name: product.name,
+          description: product.description,
+          images: product.images || [],
+          metadata: product.metadata || {},
+          updated: new Date(),
+        },
+        create: {
+          id: product.id,
+          object: product.object,
+          active: product.active,
+          name: product.name,
+          description: product.description,
+          images: product.images || [],
+          metadata: product.metadata || {},
+          livemode: product.livemode,
+          created: new Date(product.created * 1000),
+          updated: new Date(),
+        },
+      })
+      
+      // Sync prices
+      for (const price of [monthlyPrice, semiAnnualPrice, annualPrice]) {
+        await prisma.price.upsert({
+          where: { id: price.id },
+          update: {
+            active: price.active,
+            currency: price.currency,
+            nickname: price.nickname,
+            recurring: price.recurring || null,
+            type: price.type,
+            unitAmount: price.unit_amount ? BigInt(price.unit_amount) : null,
+            metadata: price.metadata || {},
+            updated: new Date(),
+          },
+          create: {
+            id: price.id,
+            object: price.object,
+            active: price.active,
+            currency: price.currency,
+            livemode: price.livemode,
+            metadata: price.metadata || {},
+            nickname: price.nickname,
+            product: price.product,
+            recurring: price.recurring || null,
+            type: price.type,
+            unitAmount: price.unit_amount ? BigInt(price.unit_amount) : null,
+            created: new Date(price.created * 1000),
+            updated: new Date(),
+          },
+        })
+      }
+      
+      console.log('✅ Data synced to database successfully!')
+    } catch (syncError) {
+      console.warn('⚠️  Database sync failed:', syncError.message)
+      console.log('Note: This is optional - data will sync via webhooks')
+    } finally {
+      await prisma.$disconnect()
+    }
   } catch (error) {
     console.error('❌ Error creating Stripe data:', error.message)
     process.exit(1)
