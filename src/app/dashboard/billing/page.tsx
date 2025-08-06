@@ -11,6 +11,7 @@ import { CreditCard, FileText, Download, ExternalLink, Loader2, CheckCircle, Ale
 import Link from 'next/link'
 import { formatAmountForDisplay } from '@/lib/stripe'
 import { logger } from '@/lib/logger'
+import { CustomerPortalButton } from '@/components/customer-portal-button'
 
 async function BillingPage() {
   const session = await getServerSession(authOptions)
