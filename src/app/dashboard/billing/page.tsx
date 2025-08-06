@@ -1,16 +1,18 @@
 import { redirect } from 'next/navigation'
-import { getAuthSession } from '@/lib/auth-server'
+import { getServerSession } from 'next-auth/next'
+import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { CreditCard, FileText, AlertTriangle, CheckCircle, Download } from 'lucide-react'
+import { CreditCard, FileText, AlertTriangle, CheckCircle, Download, ExternalLink } from 'lucide-react'
 import Link from 'next/link'
 import { formatAmountForDisplay } from '@/lib/stripe'
+import { SubscriptionManagement } from '@/components/subscription-management'
 
 export default async function BillingPage() {
-  const session = await getAuthSession()
+  const session = await getServerSession(authOptions)
 
   if (!session?.user?.id) {
     redirect('/auth/signin')
@@ -56,6 +58,11 @@ export default async function BillingPage() {
   const recentInvoices = user?.customer?.invoices || []
   const paymentMethods = user?.customer?.paymentMethods || []
 
+  const refreshData = () => {
+    // This would trigger a revalidation in a real app
+    // For now, we'll just redirect to refresh the page
+    window.location.reload()
+  }
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -68,85 +75,10 @@ export default async function BillingPage() {
       </div>
 
       {/* Subscription Status */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CreditCard className="h-5 w-5" />
-            Current Subscription
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {activeSubscription ? (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-semibold">
-                    {activeSubscription.price.product?.name || 'Pro Plan'}
-                  </h3>
-                  <p className="text-muted-foreground">
-                    {formatAmountForDisplay(
-                      Number(activeSubscription.price.unitAmount), 
-                      activeSubscription.price.currency
-                    )} / {activeSubscription.price.interval}
-                  </p>
-                </div>
-                <Badge
-                  variant={
-                    activeSubscription.status === 'active' 
-                      ? 'default' 
-                      : activeSubscription.status === 'trialing'
-                      ? 'secondary'
-                      : 'destructive'
-                  }
-                >
-                  {activeSubscription.status === 'trialing' ? 'Trial' : activeSubscription.status}
-                </Badge>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm font-medium">Current period</p>
-                  <p className="text-sm text-muted-foreground">
-                    {new Date(activeSubscription.currentPeriodStart).toLocaleDateString()} - {' '}
-                    {new Date(activeSubscription.currentPeriodEnd).toLocaleDateString()}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium">Next billing date</p>
-                  <p className="text-sm text-muted-foreground">
-                    {new Date(activeSubscription.currentPeriodEnd).toLocaleDateString()}
-                  </p>
-                </div>
-              </div>
-
-              {activeSubscription.cancelAtPeriodEnd && (
-                <Alert>
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertDescription>
-                    Your subscription will be cancelled at the end of the current billing period on{' '}
-                    {new Date(activeSubscription.currentPeriodEnd).toLocaleDateString()}.
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              <div className="flex gap-2">
-                <Button>Manage Subscription</Button>
-                <Button variant="outline">Change Plan</Button>
-              </div>
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <h3 className="text-lg font-semibold mb-2">No active subscription</h3>
-              <p className="text-muted-foreground mb-4">
-                Choose a plan to get started with OpenKJ Platform
-              </p>
-              <Link href="/dashboard/billing/plans">
-                <Button>Choose a Plan</Button>
-              </Link>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <SubscriptionManagement 
+        subscription={activeSubscription} 
+        onSubscriptionUpdate={refreshData}
+      />
 
       {/* Payment Methods */}
       <Card>
@@ -172,17 +104,26 @@ export default async function BillingPage() {
                       </p>
                     </div>
                   </div>
-                  <Button variant="outline" size="sm">
-                    Remove
-                  </Button>
                 </div>
               ))}
+              <div className="mt-4 pt-4 border-t">
+                <Button variant="outline" asChild>
+                  <Link href="/api/billing/customer-portal">
+                    <ExternalLink className="mr-2 h-4 w-4" />
+                    Manage Payment Methods
+                  </Link>
+                </Button>
+              </div>
             </div>
           ) : (
             <div className="text-center py-8">
               <CreditCard className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <p className="text-muted-foreground mb-4">No payment methods added</p>
-              <Button>Add Payment Method</Button>
+              <Button asChild>
+                <Link href="/api/billing/customer-portal">
+                  Add Payment Method
+                </Link>
+              </Button>
             </div>
           )}
         </CardContent>
@@ -243,6 +184,16 @@ export default async function BillingPage() {
           )}
         </CardContent>
       </Card>
+
+      {!activeSubscription && (
+        <div className="text-center">
+          <Link href="/dashboard/billing/plans">
+            <Button size="lg">
+              Choose a Plan
+            </Button>
+          </Link>
+        </div>
+      )}
     </div>
   )
 }
