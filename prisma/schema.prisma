@@ -365,6 +365,7 @@ model Venue {
   // Relations
   venueRelationships VenueRelationship[]
 
+  @@unique([name, address])
   @@index([address])
   @@index([name])
   @@map("venues")
