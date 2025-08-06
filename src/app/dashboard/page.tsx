@@ -19,11 +19,6 @@ export default async function DashboardPage() {
     include: {
       customer: {
         include: {
-          subscriptions: {
-            orderBy: {
-              created: 'desc',
-            },
-          },
           apiKeys: {
             where: {
               status: 'active',
@@ -50,21 +45,18 @@ export default async function DashboardPage() {
     },
   })
 
-  // Find active subscription
-  const activeSubscription = user?.customer?.subscriptions.find(sub => 
-    sub.status === 'active' || sub.status === 'trialing'
-  )
-
-  // Get product name from price metadata or product lookup
-  let productName = 'Pro Plan'
-  if (activeSubscription?.priceId) {
-    const price = await prisma.price.findUnique({
-      where: { id: activeSubscription.priceId },
-      include: { productRelation: true }
-    }).catch(() => null)
-    
-    if (price?.productRelation?.name) {
-      productName = price.productRelation.name
+  // Get subscription status from Stripe if we have a customer
+  let activeSubscription = null
+  if (user?.customer?.stripeCustomerId) {
+    try {
+      const subsResponse = await stripe.subscriptions.list({
+        customer: user.customer.stripeCustomerId,
+        status: 'active',
+        limit: 1,
+      })
+      activeSubscription = subsResponse.data[0] || null
+    } catch (error) {
+      logger.warn('Failed to fetch subscription status:', error)
     }
   }
 
@@ -143,7 +135,7 @@ export default async function DashboardPage() {
                 <div className="flex justify-between">
                   <span>Plan:</span>
                   <span className="font-medium">
-                    {productName}
+                    Pro Plan
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -157,7 +149,7 @@ export default async function DashboardPage() {
                 <div className="flex justify-between">
                   <span>Next billing:</span>
                   <span className="font-medium">
-                    {new Date(activeSubscription.currentPeriodEnd).toLocaleDateString()}
+                    {new Date(activeSubscription.current_period_end * 1000).toLocaleDateString()}
                   </span>
                 </div>
               </div>
@@ -249,4 +241,3 @@ export default async function DashboardPage() {
       </div>
     </div>
   )
-}
