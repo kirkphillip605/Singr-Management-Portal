@@ -56,7 +56,7 @@ export default function SignInPage() {
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
             <img
-              src="/singr-logo-color.svg"
+              src="/singr-logo-color.png"
               alt="Singr Karaoke"
               className="h-12 w-12"
             />
