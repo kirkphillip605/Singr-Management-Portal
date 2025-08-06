@@ -473,8 +473,8 @@ model StripeCheckoutSession {
   expiresAt     DateTime? @map("expires_at") @db.Timestamptz(6)
   url           String?
   metadata      Json?
-  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdAt     DateTime  @default(now()) @map("createdat") @db.Timestamptz(6)
+  updatedAt     DateTime  @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
 
   // Relations
   customer             Customer              @relation(fields: [customerId], references: [id], onDelete: Cascade)
@@ -493,8 +493,8 @@ model StripePaymentIntent {
   status        String?
   captureMethod String?  @map("capture_method")
   metadata      Json?
-  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdAt     DateTime @default(now()) @map("createdat") @db.Timestamptz(6)
+  updatedAt     DateTime @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
 
   // Relations
   customer Customer               @relation(fields: [customerId], references: [id], onDelete: Cascade)

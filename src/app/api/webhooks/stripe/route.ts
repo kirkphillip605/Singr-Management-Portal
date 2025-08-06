@@ -36,8 +36,29 @@ function rateLimit(ip: string): boolean {
 // Helper to safely convert Unix timestamp to Date
 function safeTimestampToDate(timestamp: number | null | undefined): Date | null {
   if (!timestamp || timestamp === 0) return null
+  
+  // Stripe timestamps are in seconds, JavaScript dates need milliseconds
+  // Also validate that the timestamp is reasonable (not too far in past/future)
+  const currentTime = Date.now() / 1000 // Current time in seconds
+  const oneYearAgo = currentTime - (365 * 24 * 60 * 60) // One year ago in seconds
+  const tenYearsFromNow = currentTime + (10 * 365 * 24 * 60 * 60) // Ten years from now in seconds
+  
+  // Validate timestamp is within reasonable bounds
+  if (timestamp < oneYearAgo || timestamp > tenYearsFromNow) {
+    console.error(`Invalid timestamp: ${timestamp}, current: ${currentTime}`)
+    return null
+  }
+  
   // Unix timestamps are in seconds, JavaScript dates need milliseconds
-  return new Date(timestamp * 1000)
+  const date = new Date(timestamp * 1000)
+  
+  // Validate the resulting date is valid
+  if (isNaN(date.getTime())) {
+    console.error(`Invalid date created from timestamp: ${timestamp}`)
+    return null
+  }
+  
+  return date
 }
 
 // Helper to safely convert BigInt
@@ -322,9 +343,52 @@ export async function POST(request: NextRequest) {
           const currentPeriodStart = safeTimestampToDate(subscription.current_period_start)
           const currentPeriodEnd = safeTimestampToDate(subscription.current_period_end)
 
+          // For incomplete subscriptions, periods might not be set yet
           if (!currentPeriodStart || !currentPeriodEnd) {
-            logger.error(`Invalid subscription periods for ${subscription.id}`)
-            break
+            if (subscription.status === 'incomplete') {
+              // For incomplete subscriptions, use created timestamp as fallback
+              const fallbackDate = safeTimestampToDate(subscription.created) || new Date()
+              logger.warn(`Using fallback dates for incomplete subscription ${subscription.id}`)
+              
+              await prisma.subscription.upsert({
+                where: { id: subscription.id },
+                update: {
+                  status: subscription.status as any,
+                  priceId: subscription.items.data[0]?.price.id || '',
+                  quantity: subscription.items.data[0]?.quantity || 1,
+                  cancelAtPeriodEnd: subscription.cancel_at_period_end,
+                  endedAt: safeTimestampToDate(subscription.ended_at),
+                  cancelAt: safeTimestampToDate(subscription.cancel_at),
+                  canceledAt: safeTimestampToDate(subscription.canceled_at),
+                  trialStart: safeTimestampToDate(subscription.trial_start),
+                  trialEnd: safeTimestampToDate(subscription.trial_end),
+                  pausedAt: subscription.pause_collection?.behavior === 'keep_as_draft' ? new Date() : null,
+                  resumedAt: subscription.pause_collection?.behavior !== 'keep_as_draft' && event.type === 'customer.subscription.resumed' ? new Date() : null,
+                  metadata: subscription.metadata as any,
+                },
+                create: {
+                  id: subscription.id,
+                  userId: customer.id,
+                  status: subscription.status as any,
+                  priceId: subscription.items.data[0]?.price.id || '',
+                  quantity: subscription.items.data[0]?.quantity || 1,
+                  cancelAtPeriodEnd: subscription.cancel_at_period_end,
+                  createdAt: fallbackDate,
+                  currentPeriodStart: fallbackDate,
+                  currentPeriodEnd: new Date(fallbackDate.getTime() + (30 * 24 * 60 * 60 * 1000)), // 30 days from now
+                  endedAt: safeTimestampToDate(subscription.ended_at),
+                  cancelAt: safeTimestampToDate(subscription.cancel_at),
+                  canceledAt: safeTimestampToDate(subscription.canceled_at),
+                  trialStart: safeTimestampToDate(subscription.trial_start),
+                  trialEnd: safeTimestampToDate(subscription.trial_end),
+                  metadata: subscription.metadata as any,
+                },
+              })
+              break
+            } else {
+              logger.error(`Invalid subscription periods for ${subscription.id}: start=${subscription.current_period_start}, end=${subscription.current_period_end}`)
+              break
+            }
           }
 
           await prisma.subscription.upsert({
@@ -467,24 +531,27 @@ export async function POST(request: NextRequest) {
             break
           }
 
+          // Use correct table and column names
+          const paymentIntentData = {
+            id: paymentIntent.id,
+            customerId: customer.id,
+            amount: safeBigInt(paymentIntent.amount),
+            currency: paymentIntent.currency,
+            status: paymentIntent.status,
+            captureMethod: paymentIntent.capture_method,
+            metadata: paymentIntent.metadata as any,
+          }
+
           await prisma.stripePaymentIntent.upsert({
-            where: { id: paymentIntent.id },
+            where: { id: paymentIntentData.id },
             update: {
-              amount: safeBigInt(paymentIntent.amount),
-              currency: paymentIntent.currency,
-              status: paymentIntent.status,
-              captureMethod: paymentIntent.capture_method,
-              metadata: paymentIntent.metadata as any,
+              amount: paymentIntentData.amount,
+              currency: paymentIntentData.currency,
+              status: paymentIntentData.status,
+              captureMethod: paymentIntentData.captureMethod,
+              metadata: paymentIntentData.metadata,
             },
-            create: {
-              id: paymentIntent.id,
-              customerId: customer.id,
-              amount: safeBigInt(paymentIntent.amount),
-              currency: paymentIntent.currency,
-              status: paymentIntent.status,
-              captureMethod: paymentIntent.capture_method,
-              metadata: paymentIntent.metadata as any,
-            },
+            create: paymentIntentData,
           })
           logger.info(`Payment intent ${event.type}: ${paymentIntent.id}`)
           break
@@ -560,25 +627,28 @@ export async function POST(request: NextRequest) {
             break
           }
 
+          // Use the correct table and column names
+          const sessionData = {
+            id: session.id,
+            customerId: customer.id,
+            paymentStatus: session.payment_status,
+            mode: session.mode,
+            amountTotal: safeBigInt(session.amount_total),
+            currency: session.currency || 'usd',
+            expiresAt: safeTimestampToDate(session.expires_at),
+            url: session.url || null,
+            metadata: session.metadata as any,
+          }
+
           await prisma.stripeCheckoutSession.upsert({
-            where: { id: session.id },
+            where: { id: sessionData.id },
             update: {
-              paymentStatus: session.payment_status,
-              amountTotal: safeBigInt(session.amount_total),
-              url: session.url || null,
-              metadata: session.metadata as any,
+              paymentStatus: sessionData.paymentStatus,
+              amountTotal: sessionData.amountTotal,
+              url: sessionData.url,
+              metadata: sessionData.metadata,
             },
-            create: {
-              id: session.id,
-              customerId: customer.id,
-              paymentStatus: session.payment_status,
-              mode: session.mode,
-              amountTotal: safeBigInt(session.amount_total),
-              currency: session.currency || 'usd',
-              expiresAt: safeTimestampToDate(session.expires_at),
-              url: session.url || null,
-              metadata: session.metadata as any,
-            },
+            create: sessionData,
           })
           logger.info(`Checkout session ${event.type}: ${session.id}`)
           break
