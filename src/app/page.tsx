@@ -110,6 +110,7 @@ export default function HomePage() {
                 src="/singr-logo-color.png"
                 alt="Singr Karaoke" 
                 objectFit="contain"
+                layout="fill"
               />
             </div>
             <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
