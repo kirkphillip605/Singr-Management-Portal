@@ -1,4 +1,5 @@
 import { getServerSession } from 'next-auth/next'
+import { headers, cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
@@ -11,7 +12,7 @@ import Link from 'next/link'
 import { ApiKeyActions } from '@/components/api-key-actions'
 
 export default async function ApiKeysPage() {
-  const session = await getServerSession(authOptions)
+  const session = await getServerSession(authOptions, { headers: headers(), cookies: cookies() })
 
   if (!session?.user?.id) {
     redirect('/auth/signin')

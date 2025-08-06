@@ -1,4 +1,5 @@
 import { getServerSession } from 'next-auth/next'
+import { headers, cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
@@ -7,7 +8,7 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 
 export default async function DashboardPage() {
-  const session = await getServerSession(authOptions)
+  const session = await getServerSession(authOptions, { headers: headers(), cookies: cookies() })
 
   if (!session?.user?.id) {
     redirect('/auth/signin')
