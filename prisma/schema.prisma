@@ -50,27 +50,27 @@ enum ApiKeyStatus {
 
 // NextAuth.js tables
 model Account {
-  id                String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId            String  @map("userid") @db.Uuid
-  type              String
-  provider          String
-  providerAccountId String  @map("provideraccountid")
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String? @db.Text
-  session_state     String?
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId             String    @map("userid") @db.Uuid
+  type               String
+  provider           String
+  providerAccountId  String    @map("provideraccountid")
+  refresh_token      String?   @db.Text
+  access_token       String?   @db.Text
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?   @db.Text
+  session_state      String?
   oauth_token_secret String?
-  oauth_token       String?
-  createdAt         DateTime @default(now()) @map("createdat")
-  updatedAt         DateTime @default(now()) @updatedAt @map("updatedat")
+  oauth_token        String?
+  createdAt          DateTime  @default(now()) @map("createdat") @db.Timestamptz(6)
+  updatedAt          DateTime  @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
-  @@index([userId])
+  @@index([userId], map: "idx_accounts_userid")
   @@map("accounts")
 }
 
@@ -78,25 +78,25 @@ model Session {
   id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   sessionToken String   @unique @map("sessiontoken")
   userId       String   @map("userid") @db.Uuid
-  expires      DateTime
-  createdAt    DateTime @default(now()) @map("createdat")
-  updatedAt    DateTime @default(now()) @updatedAt @map("updatedat")
+  expires      DateTime @db.Timestamptz(6)
+  createdAt    DateTime @default(now()) @map("createdat") @db.Timestamptz(6)
+  updatedAt    DateTime @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId])
+  @@index([userId], map: "idx_sessions_userid")
   @@map("sessions")
 }
 
 model VerificationToken {
   identifier String
   token      String   @unique
-  expires    DateTime
-  createdAt  DateTime @default(now()) @map("createdat")
-  updatedAt  DateTime @default(now()) @updatedAt @map("updatedat")
+  expires    DateTime @db.Timestamptz(6)
+  createdAt  DateTime @default(now()) @map("createdat") @db.Timestamptz(6)
+  updatedAt  DateTime @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
 
   @@id([identifier, token])
-  @@index([expires])
+  @@index([expires], map: "idx_verification_tokens_expires")
   @@map("verification_tokens")
 }
 
@@ -105,13 +105,13 @@ model User {
   id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name          String?
   email         String    @unique
-  emailVerified DateTime? @map("emailverified")
+  emailVerified DateTime? @map("emailverified") @db.Timestamptz(6)
   image         String?
   businessName  String?   @map("businessname")
   phoneNumber   String?   @map("phonenumber")
   passwordHash  String?   @map("passwordhash")
-  createdAt     DateTime  @default(now()) @map("createdat")
-  updatedAt     DateTime  @default(now()) @updatedAt @map("updatedat")
+  createdAt     DateTime  @default(now()) @map("createdat") @db.Timestamptz(6)
+  updatedAt     DateTime  @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
 
   // Relations
   accounts           Account[]
@@ -120,7 +120,7 @@ model User {
   venueRelationships VenueRelationship[]
   songDb             SongDb[]
 
-  @@index([email])
+  @@index([email], map: "idx_users_email")
   @@map("users")
 }
 
@@ -128,8 +128,8 @@ model User {
 model Customer {
   id               String @id @db.Uuid
   stripeCustomerId String @unique @map("stripecustomerid")
-  createdAt        DateTime @default(now()) @map("createdat")
-  updatedAt        DateTime @default(now()) @updatedAt @map("updatedat")
+  createdAt        DateTime @default(now()) @map("createdat") @db.Timestamptz(6)
+  updatedAt        DateTime @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
 
   // Relations
   user                     User                       @relation(fields: [id], references: [id], onDelete: Cascade)
@@ -140,7 +140,7 @@ model Customer {
   stripeCheckoutSessions   StripeCheckoutSession[]
   stripePaymentIntents     StripePaymentIntent[]
 
-  @@index([stripeCustomerId])
+  @@index([stripeCustomerId], map: "idx_customers_stripecustomerid")
   @@map("customers")
 }
 
@@ -151,8 +151,8 @@ model Product {
   description String?
   image       String?
   metadata    Json?
-  createdAt   DateTime  @default(now()) @map("createdat")
-  updatedAt   DateTime  @default(now()) @updatedAt @map("updatedat")
+  createdAt   DateTime  @default(now()) @map("createdat") @db.Timestamptz(6)
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
 
   // Relations
   prices Price[]
@@ -172,15 +172,15 @@ model Price {
   intervalCount   Int?             @map("intervalcount")
   trialPeriodDays Int?             @map("trialperioddays")
   metadata        Json?
-  createdAt       DateTime         @default(now()) @map("createdat")
-  updatedAt       DateTime         @default(now()) @updatedAt @map("updatedat")
+  createdAt       DateTime         @default(now()) @map("createdat") @db.Timestamptz(6)
+  updatedAt       DateTime         @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
 
   // Relations
   product       Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
   subscriptions Subscription[]
   invoiceItems  InvoiceItem[]
 
-  @@index([productId])
+  @@index([productId], map: "idx_prices_productid")
   @@map("prices")
 }
 
@@ -193,12 +193,12 @@ model Coupon {
   durationInMonths Int?      @map("durationinmonths")
   maxRedemptions   Int?      @map("maxredemptions")
   percentOff       Float?    @map("percentoff")
-  redeemBy         DateTime? @map("redeemby")
+  redeemBy         DateTime? @map("redeemby") @db.Timestamptz(6)
   timesRedeemed    Int       @default(0) @map("timesredeemed")
   valid            Boolean   @default(true)
   metadata         Json?
-  createdAt        DateTime  @default(now()) @map("createdat")
-  updatedAt        DateTime  @default(now()) @updatedAt @map("updatedat")
+  createdAt        DateTime  @default(now()) @map("createdat") @db.Timestamptz(6)
+  updatedAt        DateTime  @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
 
   // Relations
   promotionCodes PromotionCode[]
@@ -207,21 +207,21 @@ model Coupon {
 }
 
 model PromotionCode {
-  id           String    @id
-  couponId     String    @map("couponid")
-  code         String    @unique
-  active       Boolean
-  maxRedemptions Int?    @map("maxredemptions")
-  timesRedeemed Int      @default(0) @map("timesredeemed")
-  expiresAt    DateTime? @map("expiresat")
-  metadata     Json?
-  createdAt    DateTime  @default(now()) @map("createdat")
-  updatedAt    DateTime  @default(now()) @updatedAt @map("updatedat")
+  id            String    @id
+  couponId      String    @map("couponid")
+  code          String    @unique
+  active        Boolean
+  maxRedemptions Int?     @map("maxredemptions")
+  timesRedeemed Int       @default(0) @map("timesredeemed")
+  expiresAt     DateTime? @map("expiresat") @db.Timestamptz(6)
+  metadata      Json?
+  createdAt     DateTime  @default(now()) @map("createdat") @db.Timestamptz(6)
+  updatedAt     DateTime  @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
 
   // Relations
   coupon Coupon @relation(fields: [couponId], references: [id], onDelete: Cascade)
 
-  @@index([couponId])
+  @@index([couponId], map: "idx_promotion_codes_couponid")
   @@map("promotion_codes")
 }
 
@@ -233,17 +233,17 @@ model Subscription {
   priceId            String             @map("priceid")
   quantity           Int                @default(1)
   cancelAtPeriodEnd  Boolean?           @map("cancelatperiodend")
-  pausedAt           DateTime?          @map("pausedat")
-  resumedAt          DateTime?          @map("resumedat")
-  createdAt          DateTime           @map("createdat")
-  currentPeriodStart DateTime           @map("currentperiodstart")
-  currentPeriodEnd   DateTime           @map("currentperiodend")
-  endedAt            DateTime?          @map("endedat")
-  cancelAt           DateTime?          @map("cancelat")
-  canceledAt         DateTime?          @map("canceledat")
-  trialStart         DateTime?          @map("trialstart")
-  trialEnd           DateTime?          @map("trialend")
-  updatedAt          DateTime           @default(now()) @updatedAt @map("updatedat")
+  pausedAt           DateTime?          @map("pausedat") @db.Timestamptz(6)
+  resumedAt          DateTime?          @map("resumedat") @db.Timestamptz(6)
+  createdAt          DateTime           @map("createdat") @db.Timestamptz(6)
+  currentPeriodStart DateTime           @map("currentperiodstart") @db.Timestamptz(6)
+  currentPeriodEnd   DateTime           @map("currentperiodend") @db.Timestamptz(6)
+  endedAt            DateTime?          @map("endedat") @db.Timestamptz(6)
+  cancelAt           DateTime?          @map("cancelat") @db.Timestamptz(6)
+  canceledAt         DateTime?          @map("canceledat") @db.Timestamptz(6)
+  trialStart         DateTime?          @map("trialstart") @db.Timestamptz(6)
+  trialEnd           DateTime?          @map("trialend") @db.Timestamptz(6)
+  updatedAt          DateTime           @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
 
   // Relations
   customer     Customer      @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -251,8 +251,8 @@ model Subscription {
   invoices     Invoice[]
   invoiceItems InvoiceItem[]
 
-  @@index([userId])
-  @@index([priceId])
+  @@index([userId], map: "idx_subscriptions_userid")
+  @@index([priceId], map: "idx_subscriptions_priceid")
   @@map("subscriptions")
 }
 
@@ -268,20 +268,20 @@ model Invoice {
   currency          String   @db.Char(3)
   invoicePdf        String?  @map("invoicepdf")
   hostedInvoiceUrl  String?  @map("hostedinvoiceurl")
-  periodStart       DateTime @map("periodstart")
-  periodEnd         DateTime @map("periodend")
-  dueDate           DateTime? @map("duedate")
+  periodStart       DateTime @map("periodstart") @db.Timestamptz(6)
+  periodEnd         DateTime @map("periodend") @db.Timestamptz(6)
+  dueDate           DateTime? @map("duedate") @db.Timestamptz(6)
   metadata          Json?
-  createdAt         DateTime @default(now()) @map("createdat")
-  updatedAt         DateTime @default(now()) @updatedAt @map("updatedat")
+  createdAt         DateTime @default(now()) @map("createdat") @db.Timestamptz(6)
+  updatedAt         DateTime @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
 
   // Relations
   customer     Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
   subscription Subscription? @relation(fields: [subscriptionId], references: [id])
   invoiceItems InvoiceItem[]
 
-  @@index([customerId])
-  @@index([stripeCustomerId])
+  @@index([customerId], map: "idx_invoices_customerid")
+  @@index([stripeCustomerId], map: "idx_invoices_stripecustomerid")
   @@map("invoices")
 }
 
@@ -295,17 +295,17 @@ model InvoiceItem {
   amount         BigInt?
   currency       String  @db.Char(3)
   metadata       Json?
-  createdAt      DateTime @default(now()) @map("createdat")
-  updatedAt      DateTime @default(now()) @updatedAt @map("updatedat")
+  createdAt      DateTime @default(now()) @map("createdat") @db.Timestamptz(6)
+  updatedAt      DateTime @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
 
   // Relations
   invoice      Invoice       @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
   price        Price?        @relation(fields: [priceId], references: [id])
   subscription Subscription? @relation(fields: [subscriptionId], references: [id])
 
-  @@index([invoiceId])
-  @@index([priceId])
-  @@index([subscriptionId])
+  @@index([invoiceId], map: "idx_invoice_items_invoiceid")
+  @@index([priceId], map: "idx_invoice_items_priceid")
+  @@index([subscriptionId], map: "idx_invoice_items_subscriptionid")
   @@map("invoice_items")
 }
 
@@ -319,13 +319,13 @@ model PaymentMethod {
   cardExpYear      Int?     @map("cardexpyear")
   billingDetails   Json?    @map("billingdetails")
   metadata         Json?
-  createdAt        DateTime @default(now()) @map("createdat")
-  updatedAt        DateTime @default(now()) @updatedAt @map("updatedat")
+  createdAt        DateTime @default(now()) @map("createdat") @db.Timestamptz(6)
+  updatedAt        DateTime @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
 
   // Relations
   customer Customer @relation(fields: [stripeCustomerId], references: [stripeCustomerId], onDelete: Cascade)
 
-  @@index([stripeCustomerId])
+  @@index([stripeCustomerId], map: "idx_payment_methods_stripecustomerid")
   @@map("payment_methods")
 }
 
@@ -335,39 +335,47 @@ model ApiKey {
   customerId  String       @map("customerid") @db.Uuid
   description String?
   apiKeyHash  String       @map("apikeyhash")
-  createdAt   DateTime     @default(now()) @map("createdat")
-  lastUsedAt  DateTime?    @map("lastusedat")
+  createdAt   DateTime     @default(now()) @map("createdat") @db.Timestamptz(6)
+  lastUsedAt  DateTime?    @map("lastusedat") @db.Timestamptz(6)
   status      ApiKeyStatus @default(active)
-  revokedAt   DateTime?    @map("revokedat")
-  updatedAt   DateTime     @default(now()) @updatedAt @map("updatedat")
+  revokedAt   DateTime?    @map("revokedat") @db.Timestamptz(6)
+  updatedAt   DateTime     @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
 
   // Relations
   customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
 
-  @@index([customerId])
+  @@index([customerId], map: "idx_api_keys_customerid")
   @@map("api_keys")
 }
 
 // Venue Management
 model Venue {
-  id         String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name       String
-  address    String?
-  city       String?
-  state      String?
-  postalCode String? @map("postalcode")
-  country    String?
-  latitude   Float?
-  longitude  Float?
-  createdAt  DateTime @default(now()) @map("createdat")
-  updatedAt  DateTime @default(now()) @updatedAt @map("updatedat")
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  hereplaceid        String?   @unique(map: "idx_venues_hereplaceid")
+  name               String
+  address            String?
+  city               String?
+  state              String?
+  stateCode          String?   @map("statecode") @db.VarChar(5)
+  postalCode         String?   @map("postalcode")
+  country            String?
+  countryCode        String?   @map("countrycode") @db.VarChar(3)
+  phoneNumber        String?   @map("phonenumber") @db.VarChar(20)
+  website            String?
+  latitude           Float?
+  longitude          Float?
+  createdAt          DateTime  @default(now()) @map("createdat") @db.Timestamptz(6)
+  updatedAt          DateTime  @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
 
   // Relations
   venueRelationships VenueRelationship[]
 
   @@unique([name, address])
-  @@index([address])
-  @@index([name])
+  @@index([address], map: "idx_venues_address")
+  @@index([name], map: "idx_venues_name")
+  @@index([city], map: "idx_venues_city")
+  @@index([latitude, longitude], map: "idx_venues_location_brin", type: Brin)
+  @@index([countryCode, stateCode, city], map: "idx_venues_region")
   @@map("venues")
 }
 
@@ -378,8 +386,8 @@ model VenueRelationship {
   displayName       String?  @map("displayname")
   urlName           String   @map("urlname")
   acceptingRequests Boolean  @default(true) @map("acceptingrequests")
-  createdAt         DateTime @default(now()) @map("createdat")
-  updatedAt         DateTime @default(now()) @updatedAt @map("updatedat")
+  createdAt         DateTime @default(now()) @map("createdat") @db.Timestamptz(6)
+  updatedAt         DateTime @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
 
   // Relations
   user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -389,9 +397,9 @@ model VenueRelationship {
 
   @@unique([userId, venueId])
   @@unique([userId, urlName])
-  @@index([userId])
-  @@index([venueId])
-  @@index([userId, urlName])
+  @@index([userId], map: "idx_vr_userid")
+  @@index([venueId], map: "idx_vr_venueid")
+  @@index([userId, urlName], map: "idx_vr_urlname")
   @@map("venue_relationships")
 }
 
@@ -401,8 +409,8 @@ model State {
   systemId            Int     @default(0) @map("system_id")
   accepting           Boolean @default(false)
   serial              Int     @default(1)
-  createdAt           DateTime @default(now()) @map("createdat")
-  updatedAt           DateTime @default(now()) @updatedAt @map("updatedat")
+  createdAt           DateTime @default(now()) @map("createdat") @db.Timestamptz(6)
+  updatedAt           DateTime @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
 
   // Relations
   venueRelationship VenueRelationship @relation(fields: [venueRelationshipId], references: [id], onUpdate: Cascade, onDelete: Cascade)
@@ -420,17 +428,17 @@ model SongDb {
   title              String   @db.VarChar(255)
   combined           String   @db.VarChar(255)
   normalizedCombined String   @map("normalized_combined") @db.VarChar(255)
-  createdAt          DateTime @default(now()) @map("createdat")
-  updatedAt          DateTime @default(now()) @updatedAt @map("updatedat")
+  createdAt          DateTime @default(now()) @map("createdat") @db.Timestamptz(6)
+  updatedAt          DateTime @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
 
   // Relations
   user User @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
 
   @@unique([userId, systemId, combined])
   @@unique([userId, systemId, normalizedCombined])
-  @@index([userId, systemId, artist])
-  @@index([userId, systemId, title])
-  @@index([userId, systemId, normalizedCombined])
+  @@index([userId, systemId, artist], map: "idx_songdb_user_system_artist")
+  @@index([userId, systemId, title], map: "idx_songdb_user_system_title")
+  @@index([userId, systemId, normalizedCombined], map: "idx_songdb_user_system_normcombined")
   @@map("songdb")
 }
 
@@ -442,15 +450,16 @@ model Request {
   artist              String
   title               String
   singer              String?
-  requestTime         DateTime @default(now()) @map("request_time")
+  requestTime         DateTime @default(now()) @map("request_time") @db.Timestamptz(6)
   keyChange           Int      @default(0) @map("key_change")
-  createdAt           DateTime @default(now()) @map("createdat")
-  updatedAt           DateTime @default(now()) @updatedAt @map("updatedat")
+  createdAt           DateTime @default(now()) @map("createdat") @db.Timestamptz(6)
+  updatedAt           DateTime @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
 
   // Relations
   venueRelationship VenueRelationship @relation(fields: [venueRelationshipId], references: [id], onDelete: Cascade)
 
-  @@index([venueRelationshipId, systemId, requestTime])
+  @@unique([venueRelationshipId, systemId, requestId])
+  @@index([venueRelationshipId, systemId, requestTime], map: "idx_requests_vr_sys_time")
   @@map("requests")
 }
 
@@ -459,12 +468,12 @@ model StripeWebhookEvent {
   id           Int       @id @default(autoincrement())
   eventId      String    @unique @map("event_id")
   payload      Json
-  receivedAt   DateTime  @default(now()) @map("received_at")
+  receivedAt   DateTime  @default(now()) @map("received_at") @db.Timestamptz(6)
   processed    Boolean   @default(false)
-  processedAt  DateTime? @map("processed_at")
+  processedAt  DateTime? @map("processed_at") @db.Timestamptz(6)
   errorMessage String?   @map("error_message")
 
-  @@index([receivedAt])
+  @@index([receivedAt], map: "idx_stripe_webhook_events_received_at")
   @@map("stripe_webhook_events")
 }
 
@@ -476,11 +485,11 @@ model StripeCheckoutSession {
   mode          String
   amountTotal   BigInt?   @map("amount_total")
   currency      String    @db.Char(3)
-  expiresAt     DateTime? @map("expires_at")
+  expiresAt     DateTime? @map("expires_at") @db.Timestamptz(6)
   url           String?
   metadata      Json?
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at")
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   // Relations
   customer             Customer              @relation(fields: [customerId], references: [id], onDelete: Cascade)
@@ -491,16 +500,16 @@ model StripeCheckoutSession {
 
 // Stripe Payment Intents
 model StripePaymentIntent {
-  id            String  @id
-  sessionId     String? @map("session_id")
-  customerId    String  @map("customerid") @db.Uuid
+  id            String   @id
+  sessionId     String?  @map("session_id")
+  customerId    String   @map("customerid") @db.Uuid
   amount        BigInt?
-  currency      String  @db.Char(3)
+  currency      String   @db.Char(3)
   status        String?
-  captureMethod String? @map("capture_method")
+  captureMethod String?  @map("capture_method")
   metadata      Json?
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   // Relations
   customer Customer               @relation(fields: [customerId], references: [id], onDelete: Cascade)
