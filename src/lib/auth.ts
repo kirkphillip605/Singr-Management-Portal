@@ -92,19 +92,15 @@ export const authOptions: NextAuthOptions = {
   events: {
     async createUser({ user }) {
       // Create Stripe customer when user is created
-      if (!process.env.STRIPE_SECRET_KEY) {
-        console.warn('STRIPE_SECRET_KEY not found, skipping Stripe customer creation')
-        return
-      }
-
       try {
-        const stripe = await import('stripe').then(m => new m.default(process.env.STRIPE_SECRET_KEY!, {
-          apiVersion: '2024-06-20',
-        }))
+        const { stripe } = await import('@/lib/stripe')
 
         const customer = await stripe.customers.create({
           email: user.email!,
           name: user.name || undefined,
+          metadata: {
+            userId: user.id,
+          },
         })
 
         await prisma.customer.create({
@@ -113,8 +109,10 @@ export const authOptions: NextAuthOptions = {
             stripeCustomerId: customer.id,
           },
         })
+
+        logger.info(`Stripe customer created for user ${user.id}: ${customer.id}`)
       } catch (error) {
-        console.error('Failed to create Stripe customer:', error)
+        logger.error('Failed to create Stripe customer:', error)
       }
     },
   },
