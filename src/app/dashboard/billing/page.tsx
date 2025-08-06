@@ -67,10 +67,10 @@ export default async function BillingPage() {
   const formattedSubscription = activeSubscription ? {
     id: activeSubscription.id,
     status: activeSubscription.status,
-    cancel_at_period_end: activeSubscription.cancelAtPeriodEnd,
-    current_period_start: activeSubscription.currentPeriodStart,
-    current_period_end: activeSubscription.currentPeriodEnd,
-    cancel_at: activeSubscription.cancelAt?.toISOString() || null,
+    cancel_at_period_end: activeSubscription.cancel_at_period_end,
+    current_period_start: activeSubscription.current_period_start,
+    current_period_end: activeSubscription.current_period_end,
+    cancel_at: activeSubscription.cancel_at?.toISOString() || null,
     currency: activeSubscription.currency,
     customer: activeSubscription.customer,
   } : null
