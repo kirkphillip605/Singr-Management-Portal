@@ -5,11 +5,22 @@ import { prisma } from '@/lib/prisma'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { CreditCard, FileText, AlertTriangle, CheckCircle, Download, ExternalLink } from 'lucide-react'
+import { CreditCard, FileText, Download, ExternalLink } from 'lucide-react'
 import Link from 'next/link'
 import { formatAmountForDisplay } from '@/lib/stripe'
 import { SubscriptionManagement } from '@/components/subscription-management'
+
+function extractCardDetails(paymentMethod: any) {
+  const cardData = paymentMethod.card
+  if (!cardData) return null
+
+  return {
+    brand: cardData.brand || 'unknown',
+    last4: cardData.last4 || '****',
+    expMonth: cardData.exp_month || 0,
+    expYear: cardData.exp_year || 0,
+  }
+}
 
 export default async function BillingPage() {
   const session = await getServerSession(authOptions)
@@ -61,7 +72,6 @@ export default async function BillingPage() {
     cancel_at: activeSubscription.cancelAt?.toISOString() || null,
     currency: activeSubscription.currency,
     customer: activeSubscription.customer,
-    priceId: activeSubscription.priceId,
   } : null
 
   return (
@@ -89,21 +99,34 @@ export default async function BillingPage() {
         <CardContent>
           {paymentMethods.length > 0 ? (
             <div className="space-y-3">
-              {paymentMethods.map((pm) => (
-                <div key={pm.id} className="flex items-center justify-between p-3 border rounded-md">
-                  <div className="flex items-center space-x-3">
-                    <CreditCard className="h-5 w-5 text-muted-foreground" />
-                    <div>
-                      <p className="font-medium">
-                        {pm.cardBrand?.toUpperCase()} •••• {pm.cardLast4}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        Expires {pm.cardExpMonth}/{pm.cardExpYear}
-                      </p>
+              {paymentMethods.map((pm) => {
+                const cardDetails = extractCardDetails(pm)
+                return (
+                  <div key={pm.id} className="flex items-center justify-between p-3 border rounded-md">
+                    <div className="flex items-center space-x-3">
+                      <CreditCard className="h-5 w-5 text-muted-foreground" />
+                      <div>
+                        <p className="font-medium">
+                          {cardDetails ? (
+                            <>
+                              {cardDetails.brand.toUpperCase()} •••• {cardDetails.last4}
+                            </>
+                          ) : (
+                            `${pm.type.toUpperCase()} Payment Method`
+                          )}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {cardDetails ? (
+                            `Expires ${cardDetails.expMonth}/${cardDetails.expYear}`
+                          ) : (
+                            `Added ${new Date(pm.created).toLocaleDateString()}`
+                          )}
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
               <div className="mt-4 pt-4 border-t">
                 <Button variant="outline" asChild>
                   <Link href="/api/billing/customer-portal">
@@ -144,7 +167,7 @@ export default async function BillingPage() {
                     <FileText className="h-5 w-5 text-muted-foreground" />
                     <div>
                       <p className="font-medium">
-                        {formatAmountForDisplay(Number(invoice.amount_paid || 0), invoice.currency)}
+                        {formatAmountForDisplay(Number(invoice.amountPaid || 0), invoice.currency)}
                       </p>
                       <p className="text-sm text-muted-foreground">
                         {new Date(invoice.created).toLocaleDateString()} • {invoice.status}
@@ -163,9 +186,9 @@ export default async function BillingPage() {
                     >
                       {invoice.status}
                     </Badge>
-                    {invoice.hosted_invoice_url && (
+                    {invoice.hostedInvoiceUrl && (
                       <Button variant="outline" size="sm" asChild>
-                        <a href={invoice.hosted_invoice_url} target="_blank" rel="noopener noreferrer">
+                        <a href={invoice.hostedInvoiceUrl} target="_blank" rel="noopener noreferrer">
                           <Download className="h-4 w-4" />
                         </a>
                       </Button>

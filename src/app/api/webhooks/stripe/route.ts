@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
 
     // Get request body and signature
     const body = await request.text()
-    const signature = (await request.headers).get('stripe-signature')
+    const signature = request.headers.get('stripe-signature')
 
     if (!signature) {
       logger.error('Missing Stripe signature')
@@ -139,12 +139,6 @@ export async function POST(request: NextRequest) {
               logger.info(`Customer ${event.type}: ${customer.id} linked to user ${user.id}`)
             }
           }
-          break
-        }
-
-        case 'customer.deleted': {
-          const customer = event.data.object as Stripe.Customer
-          logger.info(`Customer deleted in Stripe: ${customer.id}`)
           break
         }
 
@@ -259,8 +253,8 @@ export async function POST(request: NextRequest) {
             break
           }
 
-          // Get the first price ID from subscription items
-          const priceId = subscription.items.data[0]?.price.id || ''
+          // Extract price ID from subscription items
+          const priceId = subscription.items.data[0]?.price.id
 
           await prisma.subscription.upsert({
             where: { id: subscription.id },
@@ -294,18 +288,15 @@ export async function POST(request: NextRequest) {
               pendingSetupIntent: subscription.pending_setup_intent,
               pendingUpdate: subscription.pending_update || null,
               schedule: subscription.schedule,
-              startDate: safeTimestampToDate(subscription.start_date),
+              startDate: safeTimestampToDate(subscription.start_date) || new Date(),
               status: subscription.status,
               testClock: subscription.test_clock,
               transferData: subscription.transfer_data || null,
               trialEnd: safeTimestampToDate(subscription.trial_end),
               trialStart: safeTimestampToDate(subscription.trial_start),
-              currentPeriodEnd: safeTimestampToDate(subscription.current_period_end),
-              currentPeriodStart: safeTimestampToDate(subscription.current_period_start),
+              currentPeriodEnd: safeTimestampToDate(subscription.current_period_end) || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+              currentPeriodStart: safeTimestampToDate(subscription.current_period_start) || new Date(),
               updated: new Date(),
-              // App-specific fields
-              userId: customer.id,
-              priceId,
             },
             create: {
               id: subscription.id,
@@ -338,7 +329,7 @@ export async function POST(request: NextRequest) {
               pendingSetupIntent: subscription.pending_setup_intent,
               pendingUpdate: subscription.pending_update || null,
               schedule: subscription.schedule,
-              startDate: safeTimestampToDate(subscription.start_date),
+              startDate: safeTimestampToDate(subscription.start_date) || new Date(),
               status: subscription.status,
               testClock: subscription.test_clock,
               transferData: subscription.transfer_data || null,
@@ -350,7 +341,6 @@ export async function POST(request: NextRequest) {
               updated: new Date(),
               // App-specific fields
               userId: customer.id,
-              priceId,
             },
           })
           logger.info(`Subscription ${event.type}: ${subscription.id}`)
@@ -377,11 +367,6 @@ export async function POST(request: NextRequest) {
         case 'invoice.paid':
         case 'invoice.payment_failed': {
           const invoice = event.data.object as Stripe.Invoice
-          
-          if (event.type === 'invoice.upcoming') {
-            logger.info(`Upcoming invoice for customer: ${invoice.customer}`)
-            break
-          }
           
           const customer = await prisma.customer.findUnique({
             where: { stripeCustomerId: invoice.customer as string },
@@ -662,7 +647,7 @@ export async function POST(request: NextRequest) {
               transferGroup: paymentIntent.transfer_group,
               created: safeTimestampToDate(paymentIntent.created) || new Date(),
               updated: new Date(),
-              // App-specific fields
+              // App-specific field
               customerId: customer.id,
             },
           })
