@@ -28,19 +28,6 @@ enum PricingInterval {
   @@map("pricinginterval")
 }
 
-enum SubscriptionStatus {
-  trialing
-  active
-  canceled
-  incomplete
-  incomplete_expired
-  past_due
-  unpaid
-  paused
-
-  @@map("subscriptionstatus")
-}
-
 enum ApiKeyStatus {
   active
   revoked
@@ -120,6 +107,7 @@ model User {
   customer Customer?
   songDb   SongDb[]
   venues   Venue[]  @relation("UserVenues")
+  subscriptions Subscription[] @relation("UserSubscriptions")
 
   @@index([email], map: "idx_users_email")
   @@map("users")
@@ -136,198 +124,472 @@ model Customer {
   user                     User                       @relation(fields: [id], references: [id], onDelete: Cascade)
   subscriptions            Subscription[]
   invoices                 Invoice[]
-  apiKeys                  ApiKey[]
   paymentMethods           PaymentMethod[]
   stripeCheckoutSessions   StripeCheckoutSession[]
   stripePaymentIntents     StripePaymentIntent[]
+  apiKeys                  ApiKey[]
 
   @@index([stripeCustomerId], map: "idx_customers_stripecustomerid")
   @@map("customers")
 }
 
 model Product {
-  id          String    @id
-  active      Boolean?
-  name        String?
-  description String?
-  image       String?
-  metadata    Json?
-  createdAt   DateTime  @default(now()) @map("createdat") @db.Timestamptz(6)
-  updatedAt   DateTime  @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
+  id              String    @id
+  object          String?   // "product"
+  active          Boolean   @default(true)
+  name            String?
+  description     String?
+  images          String[]  @default([])
+  metadata        Json      @default("{}")
+  packageDimensions Json?   @map("package_dimensions")
+  shippable       Boolean?
+  statementDescriptor String? @map("statement_descriptor")
+  taxCode         String?   @map("tax_code")
+  unitLabel       String?   @map("unit_label")
+  url             String?
+  created         DateTime  @map("created") @db.Timestamptz(6)
+  updated         DateTime  @default(now()) @map("updated") @db.Timestamptz(6)
 
   // Relations
   prices Price[]
 
+  @@index([active])
   @@map("products")
 }
 
 model Price {
-  id              String           @id
-  productId       String           @map("productid")
-  active          Boolean?
-  description     String?
-  unitAmount      BigInt?          @map("unitamount")
-  currency        String           @db.Char(3)
-  type            PricingType
-  interval        PricingInterval?
-  intervalCount   Int?             @map("intervalcount")
-  trialPeriodDays Int?             @map("trialperioddays")
-  metadata        Json?
-  createdAt       DateTime         @default(now()) @map("createdat") @db.Timestamptz(6)
-  updatedAt       DateTime         @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
+  id                String           @id
+  object            String?          // "price"
+  active            Boolean          @default(true)
+  billingScheme     String?          @map("billing_scheme") // "per_unit" or "tiered"
+  currency          String           @db.Char(3)
+  customUnitAmount  Json?            @map("custom_unit_amount")
+  livemode          Boolean          @default(false)
+  lookupKey         String?          @map("lookup_key")
+  metadata          Json             @default("{}")
+  nickname          String?
+  product           String           // Product ID
+  recurring         Json?            // Recurring object with interval, interval_count, etc.
+  taxBehavior       String?          @map("tax_behavior")
+  tiersMode         String?          @map("tiers_mode")
+  transformQuantity Json?            @map("transform_quantity")
+  type              String           // "one_time" or "recurring"
+  unitAmount        BigInt?          @map("unit_amount")
+  unitAmountDecimal String?          @map("unit_amount_decimal")
+  created           DateTime         @map("created") @db.Timestamptz(6)
+  updated           DateTime         @default(now()) @map("updated") @db.Timestamptz(6)
 
   // Relations
-  product       Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productRelation Product        @relation(fields: [product], references: [id], onDelete: Cascade)
   subscriptions Subscription[]
-  invoiceItems  InvoiceItem[]
 
-  @@index([productId], map: "idx_prices_productid")
+  @@index([product], map: "idx_prices_product")
+  @@index([active])
+  @@index([type])
   @@map("prices")
 }
 
 model Coupon {
-  id               String    @id
-  name             String?
-  amountOff        BigInt?   @map("amountoff")
-  currency         String?   @db.Char(3)
-  duration         String?
-  durationInMonths Int?      @map("durationinmonths")
-  maxRedemptions   Int?      @map("maxredemptions")
-  percentOff       Float?    @map("percentoff")
-  redeemBy         DateTime? @map("redeemby") @db.Timestamptz(6)
-  timesRedeemed    Int       @default(0) @map("timesredeemed")
-  valid            Boolean   @default(true)
-  metadata         Json?
-  createdAt        DateTime  @default(now()) @map("createdat") @db.Timestamptz(6)
-  updatedAt        DateTime  @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
+  id                String    @id
+  object            String?   // "coupon"
+  amountOff         BigInt?   @map("amount_off")
+  appliesTo         Json?     @map("applies_to")
+  currency          String?   @db.Char(3)
+  duration          String    // "forever", "once", "repeating"
+  durationInMonths  Int?      @map("duration_in_months")
+  livemode          Boolean   @default(false)
+  maxRedemptions    Int?      @map("max_redemptions")
+  metadata          Json      @default("{}")
+  name              String?
+  percentOff        Float?    @map("percent_off")
+  redeemBy          DateTime? @map("redeem_by") @db.Timestamptz(6)
+  timesRedeemed     Int       @default(0) @map("times_redeemed")
+  valid             Boolean   @default(true)
+  created           DateTime  @map("created") @db.Timestamptz(6)
+  updated           DateTime  @default(now()) @map("updated") @db.Timestamptz(6)
 
   // Relations
   promotionCodes PromotionCode[]
 
+  @@index([valid])
+  @@index([duration])
   @@map("coupons")
 }
 
 model PromotionCode {
-  id            String    @id
-  couponId      String    @map("couponid")
-  code          String    @unique
-  active        Boolean
-  maxRedemptions Int?     @map("maxredemptions")
-  timesRedeemed Int       @default(0) @map("timesredeemed")
-  expiresAt     DateTime? @map("expiresat") @db.Timestamptz(6)
-  metadata      Json?
-  createdAt     DateTime  @default(now()) @map("createdat") @db.Timestamptz(6)
-  updatedAt     DateTime  @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
+  id             String    @id
+  object         String?   // "promotion_code"
+  active         Boolean   @default(true)
+  code           String    @unique
+  coupon         String    // Coupon ID
+  customer       String?   // Customer ID if restricted
+  expiresAt      DateTime? @map("expires_at") @db.Timestamptz(6)
+  firstTimeTransaction Boolean @default(false) @map("first_time_transaction")
+  livemode       Boolean   @default(false)
+  maxRedemptions Int?      @map("max_redemptions")
+  metadata       Json      @default("{}")
+  restrictions   Json      @default("{}")
+  timesRedeemed  Int       @default(0) @map("times_redeemed")
+  created        DateTime  @map("created") @db.Timestamptz(6)
+  updated        DateTime  @default(now()) @map("updated") @db.Timestamptz(6)
 
   // Relations
-  coupon Coupon @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  couponRelation Coupon @relation(fields: [coupon], references: [id], onDelete: Cascade)
 
-  @@index([couponId], map: "idx_promotion_codes_couponid")
+  @@index([coupon], map: "idx_promotion_codes_coupon")
+  @@index([active])
+  @@index([code])
   @@map("promotion_codes")
 }
 
 model Subscription {
-  id                 String             @id
-  userId             String             @map("userid") @db.Uuid
-  status             SubscriptionStatus?
-  metadata           Json?
-  priceId            String             @map("priceid")
-  quantity           Int                @default(1)
-  cancelAtPeriodEnd  Boolean?           @map("cancelatperiodend")
-  pausedAt           DateTime?          @map("pausedat") @db.Timestamptz(6)
-  resumedAt          DateTime?          @map("resumedat") @db.Timestamptz(6)
-  createdAt          DateTime           @map("createdat") @db.Timestamptz(6)
-  currentPeriodStart DateTime           @map("currentperiodstart") @db.Timestamptz(6)
-  currentPeriodEnd   DateTime           @map("currentperiodend") @db.Timestamptz(6)
-  endedAt            DateTime?          @map("endedat") @db.Timestamptz(6)
-  cancelAt           DateTime?          @map("cancelat") @db.Timestamptz(6)
-  canceledAt         DateTime?          @map("canceledat") @db.Timestamptz(6)
-  trialStart         DateTime?          @map("trialstart") @db.Timestamptz(6)
-  trialEnd           DateTime?          @map("trialend") @db.Timestamptz(6)
-  updatedAt          DateTime           @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
+  id                    String    @id
+  object                String?   // "subscription"
+  applicationFeePercent Float?    @map("application_fee_percent")
+  automaticTax          Json      @default("{}") @map("automatic_tax")
+  billingCycleAnchor    DateTime? @map("billing_cycle_anchor") @db.Timestamptz(6)
+  billingThresholds     Json?     @map("billing_thresholds")
+  cancelAt              DateTime? @map("cancel_at") @db.Timestamptz(6)
+  cancelAtPeriodEnd     Boolean   @default(false) @map("cancel_at_period_end")
+  canceledAt            DateTime? @map("canceled_at") @db.Timestamptz(6)
+  collectionMethod      String?   @map("collection_method") // "charge_automatically", "send_invoice"
+  currency              String    @db.Char(3)
+  customer              String    // Customer ID
+  daysUntilDue          Int?      @map("days_until_due")
+  defaultPaymentMethod  String?   @map("default_payment_method")
+  defaultSource         String?   @map("default_source")
+  defaultTaxRates       Json      @default("[]") @map("default_tax_rates")
+  description           String?
+  discount              Json?
+  endedAt               DateTime? @map("ended_at") @db.Timestamptz(6)
+  items                 Json      @default("{}")  // subscription items
+  latestInvoice         String?   @map("latest_invoice")
+  livemode              Boolean   @default(false)
+  metadata              Json      @default("{}")
+  nextPendingInvoiceItemInvoice DateTime? @map("next_pending_invoice_item_invoice") @db.Timestamptz(6)
+  pauseCollection       Json?     @map("pause_collection")
+  paymentSettings       Json      @default("{}") @map("payment_settings")
+  pendingInvoiceItemInterval Json? @map("pending_invoice_item_interval")
+  pendingSetupIntent    String?   @map("pending_setup_intent")
+  pendingUpdate         Json?     @map("pending_update")
+  schedule              String?   // Schedule ID if subscription is managed by schedule
+  startDate             DateTime  @map("start_date") @db.Timestamptz(6)
+  status                String    // "incomplete", "incomplete_expired", "trialing", "active", "past_due", "canceled", "unpaid", "paused"
+  testClock             String?   @map("test_clock")
+  transferData          Json?     @map("transfer_data")
+  trialEnd              DateTime? @map("trial_end") @db.Timestamptz(6)
+  trialStart            DateTime? @map("trial_start") @db.Timestamptz(6)
+  currentPeriodEnd      DateTime  @map("current_period_end") @db.Timestamptz(6)
+  currentPeriodStart    DateTime  @map("current_period_start") @db.Timestamptz(6)
+  created               DateTime  @map("created") @db.Timestamptz(6)
+  updated               DateTime  @default(now()) @map("updated") @db.Timestamptz(6)
+  
+  // App-specific field for easy customer lookup
+  userId                String    @map("userid") @db.Uuid
 
   // Relations
-  customer     Customer      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  price        Price         @relation(fields: [priceId], references: [id])
+  user         User          @relation("UserSubscriptions", fields: [userId], references: [id], onDelete: Cascade)
+  customerRelation Customer  @relation(fields: [customer], references: [stripeCustomerId], onDelete: Cascade)
   invoices     Invoice[]
-  invoiceItems InvoiceItem[]
 
   @@index([userId], map: "idx_subscriptions_userid")
-  @@index([priceId], map: "idx_subscriptions_priceid")
+  @@index([customer], map: "idx_subscriptions_customer")
+  @@index([status], map: "idx_subscriptions_status")
   @@map("subscriptions")
 }
 
 model Invoice {
-  id                String   @id
-  customerId        String   @map("customerid") @db.Uuid
-  stripeCustomerId  String   @map("stripecustomerid")
-  subscriptionId    String?  @map("subscriptionid")
-  status            String
-  amountDue         BigInt?  @map("amountdue")
-  amountPaid        BigInt?  @map("amountpaid")
-  amountRemaining   BigInt?  @map("amountremaining")
-  currency          String   @db.Char(3)
-  invoicePdf        String?  @map("invoicepdf")
-  hostedInvoiceUrl  String?  @map("hostedinvoiceurl")
-  periodStart       DateTime @map("periodstart") @db.Timestamptz(6)
-  periodEnd         DateTime @map("periodend") @db.Timestamptz(6)
-  dueDate           DateTime? @map("duedate") @db.Timestamptz(6)
-  metadata          Json?
-  createdAt         DateTime @default(now()) @map("createdat") @db.Timestamptz(6)
-  updatedAt         DateTime @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
+  id                          String    @id
+  object                      String?   // "invoice"
+  accountCountry              String?   @map("account_country")
+  accountName                 String?   @map("account_name")
+  accountTaxIds               Json?     @map("account_tax_ids")
+  amountDue                   BigInt    @map("amount_due")
+  amountPaid                  BigInt    @map("amount_paid")
+  amountRemaining             BigInt    @map("amount_remaining")
+  amountShipping              BigInt    @default(0) @map("amount_shipping")
+  application                 String?   
+  applicationFeeAmount        BigInt?   @map("application_fee_amount")
+  attemptCount                Int       @default(0) @map("attempt_count")
+  attempted                   Boolean   @default(false)
+  autoAdvance                 Boolean   @default(true) @map("auto_advance")
+  automaticTax                Json      @default("{}") @map("automatic_tax")
+  billingReason               String?   @map("billing_reason")
+  charge                      String?   // Charge ID
+  collectionMethod            String    @map("collection_method") // "charge_automatically" or "send_invoice"
+  currency                    String    @db.Char(3)
+  customFields                Json?     @map("custom_fields")
+  customer                    String    // Customer ID
+  customerAddress             Json?     @map("customer_address")
+  customerEmail               String?   @map("customer_email")
+  customerName                String?   @map("customer_name")
+  customerPhone               String?   @map("customer_phone")
+  customerShipping            Json?     @map("customer_shipping")
+  customerTaxExempt           String?   @map("customer_tax_exempt")
+  customerTaxIds              Json?     @map("customer_tax_ids")
+  defaultPaymentMethod        String?   @map("default_payment_method")
+  defaultSource               String?   @map("default_source")
+  defaultTaxRates             Json      @default("[]") @map("default_tax_rates")
+  description                 String?   
+  discount                    Json?
+  discounts                   Json      @default("[]")
+  dueDate                     DateTime? @map("due_date") @db.Timestamptz(6)
+  effectiveAt                 DateTime? @map("effective_at") @db.Timestamptz(6)
+  endingBalance               BigInt?   @map("ending_balance")
+  footer                      String?
+  fromInvoice                 Json?     @map("from_invoice")
+  hostedInvoiceUrl            String?   @map("hosted_invoice_url")
+  invoicePdf                  String?   @map("invoice_pdf")
+  lastFinalizationError       Json?     @map("last_finalization_error")
+  latestRevision              String?   @map("latest_revision")
+  lines                       Json      @default("{}")
+  livemode                    Boolean   @default(false)
+  metadata                    Json      @default("{}")
+  nextPaymentAttempt          DateTime? @map("next_payment_attempt") @db.Timestamptz(6)
+  number                      String?   // Invoice number
+  onBehalfOf                  String?   @map("on_behalf_of")
+  paid                        Boolean   @default(false)
+  paidOutOfBand               Boolean   @default(false) @map("paid_out_of_band")
+  paymentIntent               String?   @map("payment_intent")
+  paymentSettings             Json      @default("{}") @map("payment_settings")
+  periodEnd                   DateTime  @map("period_end") @db.Timestamptz(6)
+  periodStart                 DateTime  @map("period_start") @db.Timestamptz(6)
+  postPaymentCreditNotesAmount BigInt   @default(0) @map("post_payment_credit_notes_amount")
+  prePaymentCreditNotesAmount BigInt    @default(0) @map("pre_payment_credit_notes_amount")
+  quote                       String?   // Quote ID
+  receiptNumber               String?   @map("receipt_number")
+  renderingOptions            Json?     @map("rendering_options")
+  shippingCost                Json?     @map("shipping_cost")
+  shippingDetails             Json?     @map("shipping_details")
+  startingBalance             BigInt    @default(0) @map("starting_balance")
+  statementDescriptor         String?   @map("statement_descriptor")
+  status                      String    // "draft", "open", "paid", "uncollectible", "void"
+  statusTransitions           Json      @default("{}") @map("status_transitions")
+  subscription                String?   // Subscription ID
+  subscriptionDetails         Json?     @map("subscription_details")
+  subtotal                    BigInt
+  subtotalExcludingTax        BigInt?   @map("subtotal_excluding_tax")
+  tax                         BigInt?
+  testClock                   String?   @map("test_clock")
+  total                       BigInt
+  totalDiscountAmounts        Json      @default("[]") @map("total_discount_amounts")
+  totalExcludingTax           BigInt?   @map("total_excluding_tax")
+  totalTaxAmounts             Json      @default("[]") @map("total_tax_amounts")
+  transferData                Json?     @map("transfer_data")
+  webhooksDeliveredAt         DateTime? @map("webhooks_delivered_at") @db.Timestamptz(6)
+  created                     DateTime  @map("created") @db.Timestamptz(6)
+  updated                     DateTime  @default(now()) @map("updated") @db.Timestamptz(6)
+  
+  // App-specific field for easy customer lookup
+  customerId                  String    @map("customerid") @db.Uuid
 
   // Relations
-  customer     Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  subscription Subscription? @relation(fields: [subscriptionId], references: [id])
-  invoiceItems InvoiceItem[]
+  customerRelation Customer       @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  subscriptionRelation Subscription? @relation(fields: [subscription], references: [id], onDelete: SetNull)
 
   @@index([customerId], map: "idx_invoices_customerid")
-  @@index([stripeCustomerId], map: "idx_invoices_stripecustomerid")
+  @@index([customer], map: "idx_invoices_customer")
+  @@index([subscription], map: "idx_invoices_subscription")
+  @@index([status], map: "idx_invoices_status")
   @@map("invoices")
 }
 
-model InvoiceItem {
-  id             String  @id
-  invoiceId      String  @map("invoiceid")
-  priceId        String? @map("priceid")
-  subscriptionId String? @map("subscriptionid")
-  quantity       Int?
-  description    String?
-  amount         BigInt?
-  currency       String  @db.Char(3)
-  metadata       Json?
-  createdAt      DateTime @default(now()) @map("createdat") @db.Timestamptz(6)
-  updatedAt      DateTime @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
+model PaymentMethod {
+  id              String   @id
+  object          String?  // "payment_method"
+  acssDebit       Json?    @map("acss_debit")
+  affirm          Json?    
+  afterpayClearpay Json?   @map("afterpay_clearpay")
+  alipay          Json?    
+  auBecsDebit     Json?    @map("au_becs_debit")
+  bacsDebit       Json?    @map("bacs_debit")
+  bancontact      Json?    
+  billingDetails  Json     @default("{}") @map("billing_details")
+  blik            Json?    
+  boleto          Json?    
+  card            Json?    
+  cardPresent     Json?    @map("card_present")
+  cashapp         Json?    
+  customer        String?  // Customer ID
+  customerBalance Json?    @map("customer_balance")
+  eps             Json?    
+  fpx             Json?    
+  giropay         Json?    
+  grabpay         Json?    
+  ideal           Json?    
+  interacPresent  Json?    @map("interac_present")
+  klarna          Json?    
+  konbini         Json?    
+  link            Json?    
+  livemode        Boolean  @default(false)
+  metadata        Json     @default("{}")
+  oxxo            Json?    
+  p24             Json?    
+  paynow          Json?    
+  paypal          Json?    
+  pix             Json?    
+  promptpay       Json?    
+  radarOptions    Json?    @map("radar_options")
+  revolutPay      Json?    @map("revolut_pay")
+  sepaDebit       Json?    @map("sepa_debit")
+  sofort          Json?    
+  swish           Json?    
+  type            String   
+  usBankAccount   Json?    @map("us_bank_account")
+  wechatPay       Json?    @map("wechat_pay")
+  zip             Json?    
+  created         DateTime @map("created") @db.Timestamptz(6)
+  updated         DateTime @default(now()) @map("updated") @db.Timestamptz(6)
 
   // Relations
-  invoice      Invoice       @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-  price        Price?        @relation(fields: [priceId], references: [id])
-  subscription Subscription? @relation(fields: [subscriptionId], references: [id])
+  customerRelation Customer? @relation(fields: [customer], references: [stripeCustomerId], onDelete: Cascade)
 
-  @@index([invoiceId], map: "idx_invoice_items_invoiceid")
-  @@index([priceId], map: "idx_invoice_items_priceid")
-  @@index([subscriptionId], map: "idx_invoice_items_subscriptionid")
-  @@map("invoice_items")
+  @@index([customer], map: "idx_payment_methods_customer")
+  @@index([type], map: "idx_payment_methods_type")
+  @@map("payment_methods")
 }
 
-model PaymentMethod {
-  id               String   @id
-  stripeCustomerId String   @map("stripecustomerid")
-  type             String
-  cardBrand        String?  @map("cardbrand")
-  cardLast4        String?  @map("cardlast4")
-  cardExpMonth     Int?     @map("cardexpmonth")
-  cardExpYear      Int?     @map("cardexpyear")
-  billingDetails   Json?    @map("billingdetails")
-  metadata         Json?
-  createdAt        DateTime @default(now()) @map("createdat") @db.Timestamptz(6)
-  updatedAt        DateTime @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
+// Stripe Webhook Events (audit)
+model StripeWebhookEvent {
+  id           Int       @id @default(autoincrement())
+  eventId      String    @unique @map("event_id")
+  eventType    String    @map("event_type")
+  payload      Json
+  livemode     Boolean   @default(false)
+  apiVersion   String?   @map("api_version")
+  receivedAt   DateTime  @default(now()) @map("received_at") @db.Timestamptz(6)
+  processed    Boolean   @default(false)
+  processedAt  DateTime? @map("processed_at") @db.Timestamptz(6)
+  errorMessage String?   @map("error_message")
+
+  @@index([eventType], map: "idx_stripe_webhook_events_type")
+  @@index([processed], map: "idx_stripe_webhook_events_processed")
+  @@index([receivedAt], map: "idx_stripe_webhook_events_received_at")
+  @@map("stripe_webhook_events")
+}
+
+// Stripe Checkout Sessions
+model StripeCheckoutSession {
+  id                    String    @id
+  object                String?   // "checkout.session"
+  afterExpiration       Json?     @map("after_expiration")
+  allowPromotionCodes   Boolean?  @map("allow_promotion_codes")
+  amountSubtotal        BigInt?   @map("amount_subtotal")
+  amountTotal           BigInt?   @map("amount_total")
+  automaticTax          Json      @default("{}") @map("automatic_tax")
+  billingAddressCollection String? @map("billing_address_collection")
+  cancelUrl             String?   @map("cancel_url")
+  clientReferenceId     String?   @map("client_reference_id")
+  consent               Json?     
+  consentCollection     Json?     @map("consent_collection")
+  currency              String?   @db.Char(3)
+  currencyConversion    Json?     @map("currency_conversion")
+  customFields          Json      @default("[]") @map("custom_fields")
+  customText            Json      @default("{}") @map("custom_text")
+  customer              String?   // Customer ID
+  customerCreation      String?   @map("customer_creation")
+  customerDetails       Json?     @map("customer_details")
+  customerEmail         String?   @map("customer_email")
+  expiresAt             DateTime? @map("expires_at") @db.Timestamptz(6)
+  invoice               String?   // Invoice ID
+  invoiceCreation       Json?     @map("invoice_creation")
+  livemode              Boolean   @default(false)
+  locale                String?   
+  metadata              Json      @default("{}")
+  mode                  String    // "payment", "setup", "subscription"
+  paymentIntent         String?   @map("payment_intent")
+  paymentLink           String?   @map("payment_link")
+  paymentMethodCollection String? @map("payment_method_collection")
+  paymentMethodConfigurationDetails Json? @map("payment_method_configuration_details")
+  paymentMethodOptions  Json      @default("{}") @map("payment_method_options")
+  paymentMethodTypes    Json      @default("[]") @map("payment_method_types")
+  paymentStatus         String?   @map("payment_status") // "paid", "unpaid", "no_payment_required"
+  phoneNumberCollection Json?     @map("phone_number_collection")
+  recoveredFrom         String?   @map("recovered_from")
+  setupIntent           String?   @map("setup_intent")
+  shippingAddressCollection Json? @map("shipping_address_collection")
+  shippingCost          Json?     @map("shipping_cost")
+  shippingDetails       Json?     @map("shipping_details")
+  shippingOptions       Json      @default("[]") @map("shipping_options")
+  status                String?   // "open", "complete", "expired"
+  submitType            String?   @map("submit_type")
+  subscription          String?   // Subscription ID
+  successUrl            String?   @map("success_url")
+  totalDetails          Json?     @map("total_details")
+  uiMode                String?   @map("ui_mode")
+  url                   String?   
+  created               DateTime  @map("created") @db.Timestamptz(6)
+  updated               DateTime  @default(now()) @map("updated") @db.Timestamptz(6)
+  
+  // App-specific field for easy customer lookup
+  customerId            String?   @map("customerid") @db.Uuid
 
   // Relations
-  customer Customer @relation(fields: [stripeCustomerId], references: [stripeCustomerId], onDelete: Cascade)
+  customerRelation     Customer?             @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  stripePaymentIntents StripePaymentIntent[]
 
-  @@index([stripeCustomerId], map: "idx_payment_methods_stripecustomerid")
-  @@map("payment_methods")
+  @@index([customer], map: "idx_checkout_sessions_customer")
+  @@index([status], map: "idx_checkout_sessions_status")
+  @@index([mode], map: "idx_checkout_sessions_mode")
+  @@map("stripe_checkout_sessions")
+}
+
+// Stripe Payment Intents
+model StripePaymentIntent {
+  id                              String    @id
+  object                          String?   // "payment_intent"
+  amount                          BigInt    
+  amountCapturable                BigInt    @default(0) @map("amount_capturable")
+  amountDetails                   Json?     @map("amount_details")
+  amountReceived                  BigInt    @default(0) @map("amount_received")
+  application                     String?   
+  applicationFeeAmount            BigInt?   @map("application_fee_amount")
+  automaticPaymentMethods         Json?     @map("automatic_payment_methods")
+  canceledAt                      DateTime? @map("canceled_at") @db.Timestamptz(6)
+  cancellationReason              String?   @map("cancellation_reason")
+  captureMethod                   String    @map("capture_method") // "automatic", "automatic_async", "manual"
+  charges                         Json      @default("{}")
+  clientSecret                    String?   @map("client_secret")
+  confirmationMethod              String    @map("confirmation_method") // "automatic", "manual"
+  currency                        String    @db.Char(3)
+  customer                        String?   // Customer ID
+  description                     String?   
+  invoice                         String?   // Invoice ID
+  lastPaymentError                Json?     @map("last_payment_error")
+  latestCharge                    String?   @map("latest_charge")
+  livemode                        Boolean   @default(false)
+  metadata                        Json      @default("{}")
+  nextAction                      Json?     @map("next_action")
+  onBehalfOf                      String?   @map("on_behalf_of")
+  paymentMethod                   String?   @map("payment_method")
+  paymentMethodConfigurationDetails Json?  @map("payment_method_configuration_details")
+  paymentMethodOptions            Json      @default("{}") @map("payment_method_options")
+  paymentMethodTypes              Json      @default("[]") @map("payment_method_types")
+  processing                      Json?     
+  receiptEmail                    String?   @map("receipt_email")
+  review                          String?   
+  setupFutureUsage                String?   @map("setup_future_usage")
+  shipping                        Json?     
+  statementDescriptor             String?   @map("statement_descriptor")
+  statementDescriptorSuffix       String?   @map("statement_descriptor_suffix")
+  status                          String    // "requires_payment_method", "requires_confirmation", "requires_action", "processing", "requires_capture", "canceled", "succeeded"
+  transferData                    Json?     @map("transfer_data")
+  transferGroup                   String?   @map("transfer_group")
+  created                         DateTime  @map("created") @db.Timestamptz(6)
+  updated                         DateTime  @default(now()) @map("updated") @db.Timestamptz(6)
+  
+  // App-specific fields
+  sessionId                       String?   @map("session_id")
+  customerId                      String?   @map("customerid") @db.Uuid
+
+  // Relations
+  customerRelation Customer?               @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  session  StripeCheckoutSession? @relation(fields: [sessionId], references: [id])
+
+  @@index([customer], map: "idx_payment_intents_customer")
+  @@index([status], map: "idx_payment_intents_status")
+  @@index([sessionId], map: "idx_payment_intents_session")
+  @@map("stripe_payment_intents")
 }
 
 // API Keys for OpenKJ Integration
@@ -446,59 +708,4 @@ model Request {
 
   @@index([venueId, systemId, requestTime], map: "idx_requests_vr_sys_time")
   @@map("requests")
-}
-
-// Stripe Webhook Events (audit)
-model StripeWebhookEvent {
-  id           Int       @id @default(autoincrement())
-  eventId      String    @unique @map("event_id")
-  payload      Json
-  receivedAt   DateTime  @default(now()) @map("received_at") @db.Timestamptz(6)
-  processed    Boolean   @default(false)
-  processedAt  DateTime? @map("processed_at") @db.Timestamptz(6)
-  errorMessage String?   @map("error_message")
-
-  @@index([receivedAt], map: "idx_stripe_webhook_events_received_at")
-  @@map("stripe_webhook_events")
-}
-
-// Stripe Checkout Sessions
-model StripeCheckoutSession {
-  id            String    @id
-  customerId    String    @map("customerid") @db.Uuid
-  paymentStatus String    @map("payment_status")
-  mode          String
-  amountTotal   BigInt?   @map("amount_total")
-  currency      String    @db.Char(3)
-  expiresAt     DateTime? @map("expires_at") @db.Timestamptz(6)
-  url           String?
-  metadata      Json?
-  createdAt     DateTime  @default(now()) @map("createdat") @db.Timestamptz(6)
-  updatedAt     DateTime  @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
-
-  // Relations
-  customer             Customer              @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  stripePaymentIntents StripePaymentIntent[]
-
-  @@map("stripe_checkout_sessions")
-}
-
-// Stripe Payment Intents
-model StripePaymentIntent {
-  id            String   @id
-  sessionId     String?  @map("session_id")
-  customerId    String   @map("customerid") @db.Uuid
-  amount        BigInt?
-  currency      String   @db.Char(3)
-  status        String?
-  captureMethod String?  @map("capture_method")
-  metadata      Json?
-  createdAt     DateTime @default(now()) @map("createdat") @db.Timestamptz(6)
-  updatedAt     DateTime @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
-
-  // Relations
-  customer Customer               @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  session  StripeCheckoutSession? @relation(fields: [sessionId], references: [id])
-
-  @@map("stripe_payment_intents")
 }
