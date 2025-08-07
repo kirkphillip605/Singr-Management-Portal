@@ -77,6 +77,7 @@ export default function SignUpPage() {
               className="h-16 w-auto"
             />
           </div>
+          <hr />
           <CardTitle className="text-2xl">Create Account</CardTitle>
           <CardDescription>
             Get started with Singr Karaoke Connect
