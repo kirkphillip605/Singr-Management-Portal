@@ -28,6 +28,7 @@ function extractCustomerId(customer: string | Stripe.Customer | null): string | 
   return typeof customer === 'string' ? customer : customer.id
 }
 
+// Helper to update API keys and venues based on subscription status
 async function updateApiKeysAndVenues(customerId: string, suspend: boolean) {
   try {
     const customer = await prisma.customer.findUnique({
@@ -145,7 +146,7 @@ export async function POST(request: NextRequest) {
 
     try {
       switch (event.type) {
-        // Product events - essential for plan selection
+        // Product events
         case 'product.created':
         case 'product.updated': {
           const product = event.data.object as Stripe.Product
@@ -193,23 +194,7 @@ export async function POST(request: NextRequest) {
           break
         }
 
-        case 'product.deleted': {
-          const product = event.data.object as Stripe.Product
-          
-          await prisma.stripeProduct.updateMany({
-            where: { id: product.id },
-            data: {
-              active: false,
-              data: product as any,
-              updated: new Date(),
-            },
-          })
-          
-          logger.info(`Product deleted: ${product.id}`)
-          break
-        }
-
-        // Price events - essential for plan selection
+        // Price events
         case 'price.created':
         case 'price.updated': {
           const price = event.data.object as Stripe.Price
@@ -246,7 +231,7 @@ export async function POST(request: NextRequest) {
               lookupKey: price.lookup_key,
               metadata: price.metadata as any,
               nickname: price.nickname,
-              product: extractCustomerId(price.product) || '',
+              product: typeof price.product === 'string' ? price.product : price.product.id,
               recurring: price.recurring as any,
               taxBehavior: price.tax_behavior,
               tiersMode: price.tiers_mode,
@@ -264,23 +249,7 @@ export async function POST(request: NextRequest) {
           break
         }
 
-        case 'price.deleted': {
-          const price = event.data.object as Stripe.Price
-          
-          await prisma.stripePrice.updateMany({
-            where: { id: price.id },
-            data: {
-              active: false,
-              data: price as any,
-              updated: new Date(),
-            },
-          })
-          
-          logger.info(`Price deleted: ${price.id}`)
-          break
-        }
-
-        // Customer events - essential for linking to our users
+        // Customer events
         case 'customer.created':
         case 'customer.updated': {
           const customer = event.data.object as Stripe.Customer
@@ -302,7 +271,7 @@ export async function POST(request: NextRequest) {
               updatedAt: new Date(),
             },
             create: {
-              id: crypto.randomUUID(), // We need a UUID for our user relationship
+              id: crypto.randomUUID(),
               stripeCustomerId: customer.id,
               email: customer.email,
               name: customer.name,
@@ -324,27 +293,150 @@ export async function POST(request: NextRequest) {
           break
         }
 
-        case 'customer.deleted': {
-          const customer = event.data.object as Stripe.Customer
-          
-          await prisma.customer.updateMany({
-            where: { stripeCustomerId: customer.id },
-            data: {
-              data: customer as any,
-              updatedAt: new Date(),
-            },
-          })
-          
-          logger.info(`Customer deleted: ${customer.id}`)
+        // Checkout session events
+        case 'checkout.session.completed': {
+          const session = event.data.object as Stripe.Checkout.Session
+          const customerId = extractCustomerId(session.customer)
+
+          if (customerId) {
+            try {
+              const customer = await prisma.customer.findUnique({
+                where: { stripeCustomerId: customerId },
+              })
+
+              if (customer) {
+                await prisma.stripeCheckoutSession.upsert({
+                  where: { id: session.id },
+                  update: {
+                    paymentStatus: session.payment_status,
+                    completedAt: new Date(),
+                    metadata: session.metadata as any,
+                  },
+                  create: {
+                    id: session.id,
+                    customerId: customer.id,
+                    paymentStatus: session.payment_status,
+                    mode: session.mode!,
+                    amountTotal: session.amount_total ? BigInt(session.amount_total) : null,
+                    currency: session.currency || 'usd',
+                    created: new Date(session.created * 1000),
+                    expiresAt: session.expires_at ? new Date(session.expires_at * 1000) : null,
+                    url: session.url,
+                    metadata: session.metadata as any,
+                    completedAt: new Date(),
+                  },
+                })
+
+                // If checkout was successful and it's a subscription, reactivate access
+                if (session.payment_status === 'paid' && session.mode === 'subscription') {
+                  await updateApiKeysAndVenues(customerId, false)
+                }
+              }
+            } catch (error) {
+              logger.error('Error processing completed checkout session:', error)
+            }
+          }
+
+          logger.info(`Checkout session completed: ${session.id}`)
           break
         }
 
-        // Subscription events - critical for access control
+        case 'checkout.session.expired': {
+          const session = event.data.object as Stripe.Checkout.Session
+          const customerId = extractCustomerId(session.customer)
+
+          if (customerId) {
+            try {
+              const customer = await prisma.customer.findUnique({
+                where: { stripeCustomerId: customerId },
+              })
+
+              if (customer) {
+                await prisma.stripeCheckoutSession.updateMany({
+                  where: { id: session.id },
+                  data: {
+                    paymentStatus: 'expired',
+                    metadata: session.metadata as any,
+                  },
+                })
+              }
+            } catch (error) {
+              logger.error('Error processing expired checkout session:', error)
+            }
+          }
+
+          logger.info(`Checkout session expired: ${session.id}`)
+          break
+        }
+
+        case 'checkout.session.async_payment_succeeded': {
+          const session = event.data.object as Stripe.Checkout.Session
+          const customerId = extractCustomerId(session.customer)
+
+          if (customerId) {
+            try {
+              const customer = await prisma.customer.findUnique({
+                where: { stripeCustomerId: customerId },
+              })
+
+              if (customer) {
+                await prisma.stripeCheckoutSession.updateMany({
+                  where: { id: session.id },
+                  data: {
+                    paymentStatus: session.payment_status,
+                    completedAt: new Date(),
+                    metadata: session.metadata as any,
+                  },
+                })
+
+                // Reactivate access on successful payment
+                await updateApiKeysAndVenues(customerId, false)
+              }
+            } catch (error) {
+              logger.error('Error processing async payment succeeded:', error)
+            }
+          }
+
+          logger.info(`Checkout session async payment succeeded: ${session.id}`)
+          break
+        }
+
+        case 'checkout.session.async_payment_failed': {
+          const session = event.data.object as Stripe.Checkout.Session
+          const customerId = extractCustomerId(session.customer)
+
+          if (customerId) {
+            try {
+              const customer = await prisma.customer.findUnique({
+                where: { stripeCustomerId: customerId },
+              })
+
+              if (customer) {
+                await prisma.stripeCheckoutSession.updateMany({
+                  where: { id: session.id },
+                  data: {
+                    paymentStatus: session.payment_status,
+                    metadata: session.metadata as any,
+                  },
+                })
+
+                // Suspend access on failed payment
+                await updateApiKeysAndVenues(customerId, true)
+              }
+            } catch (error) {
+              logger.error('Error processing async payment failed:', error)
+            }
+          }
+
+          logger.info(`Checkout session async payment failed: ${session.id}`)
+          break
+        }
+
+        // Subscription events
         case 'customer.subscription.created': {
           const subscription = event.data.object as Stripe.Subscription
           const customerId = extractCustomerId(subscription.customer)
           
-          // Store subscription in database
           if (customerId) {
             try {
               const customer = await prisma.customer.findUnique({
@@ -385,14 +477,15 @@ export async function POST(request: NextRequest) {
                     livemode: subscription.livemode,
                   },
                 })
+
+                // Activate access for active/trialing subscriptions
+                if (['active', 'trialing'].includes(subscription.status)) {
+                  await updateApiKeysAndVenues(customerId, false)
+                }
               }
             } catch (error) {
               logger.error('Error storing subscription:', error)
             }
-          }
-          
-          if (customerId && (subscription.status === 'active' || subscription.status === 'trialing')) {
-            await updateApiKeysAndVenues(customerId, false) // Reactivate
           }
           
           logger.info(`Subscription created: ${subscription.id} (${subscription.status})`)
@@ -403,7 +496,6 @@ export async function POST(request: NextRequest) {
           const subscription = event.data.object as Stripe.Subscription
           const customerId = extractCustomerId(subscription.customer)
           
-          // Update subscription in database
           if (customerId) {
             try {
               const customer = await prisma.customer.findUnique({
@@ -444,15 +536,14 @@ export async function POST(request: NextRequest) {
                     livemode: subscription.livemode,
                   },
                 })
+
+                // Update access based on subscription status
+                const shouldSuspend = !['active', 'trialing'].includes(subscription.status)
+                await updateApiKeysAndVenues(customerId, shouldSuspend)
               }
             } catch (error) {
               logger.error('Error updating subscription:', error)
             }
-          }
-          
-          if (customerId) {
-            const shouldSuspend = !['active', 'trialing'].includes(subscription.status)
-            await updateApiKeysAndVenues(customerId, shouldSuspend)
           }
           
           logger.info(`Subscription updated: ${subscription.id} (${subscription.status})`)
@@ -463,7 +554,6 @@ export async function POST(request: NextRequest) {
           const subscription = event.data.object as Stripe.Subscription
           const customerId = extractCustomerId(subscription.customer)
           
-          // Mark subscription as deleted in database
           if (customerId) {
             try {
               await prisma.subscription.updateMany({
@@ -475,19 +565,73 @@ export async function POST(request: NextRequest) {
                   updated: new Date(),
                 },
               })
+
+              // Suspend access when subscription is deleted
+              await updateApiKeysAndVenues(customerId, true)
             } catch (error) {
               logger.error('Error marking subscription as deleted:', error)
             }
-          }
-          
-          if (customerId) {
-            await updateApiKeysAndVenues(customerId, true) // Suspend
           }
           
           logger.info(`Subscription deleted: ${subscription.id}`)
           break
         }
 
+        case 'customer.subscription.paused': {
+          const subscription = event.data.object as Stripe.Subscription
+          const customerId = extractCustomerId(subscription.customer)
+          
+          if (customerId) {
+            try {
+              await prisma.subscription.updateMany({
+                where: { id: subscription.id },
+                data: {
+                  status: 'paused',
+                  data: subscription as any,
+                  updated: new Date(),
+                },
+              })
+
+              // Suspend access when subscription is paused
+              await updateApiKeysAndVenues(customerId, true)
+            } catch (error) {
+              logger.error('Error updating paused subscription:', error)
+            }
+          }
+          
+          logger.info(`Subscription paused: ${subscription.id}`)
+          break
+        }
+
+        case 'customer.subscription.resumed': {
+          const subscription = event.data.object as Stripe.Subscription
+          const customerId = extractCustomerId(subscription.customer)
+          
+          if (customerId) {
+            try {
+              await prisma.subscription.updateMany({
+                where: { id: subscription.id },
+                data: {
+                  status: subscription.status,
+                  data: subscription as any,
+                  updated: new Date(),
+                },
+              })
+
+              // Reactivate access when subscription is resumed
+              if (['active', 'trialing'].includes(subscription.status)) {
+                await updateApiKeysAndVenues(customerId, false)
+              }
+            } catch (error) {
+              logger.error('Error updating resumed subscription:', error)
+            }
+          }
+          
+          logger.info(`Subscription resumed: ${subscription.id} (${subscription.status})`)
+          break
+        }
+
+        // Invoice events
         case 'invoice.payment_failed': {
           const invoice = event.data.object as Stripe.Invoice
           const customerId = extractCustomerId(invoice.customer)
@@ -497,7 +641,7 @@ export async function POST(request: NextRequest) {
             await updateApiKeysAndVenues(customerId, true)
           }
           
-          logger.info(`Payment failed: ${invoice.id} for customer ${customerId}`)
+          logger.info(`Invoice payment failed: ${invoice.id} for customer ${customerId}`)
           break
         }
 
@@ -510,7 +654,7 @@ export async function POST(request: NextRequest) {
             await updateApiKeysAndVenues(customerId, false)
           }
           
-          logger.info(`Payment succeeded: ${invoice.id} for customer ${customerId}`)
+          logger.info(`Invoice payment succeeded: ${invoice.id} for customer ${customerId}`)
           break
         }
 
