@@ -209,11 +209,8 @@ async function verifyActiveSubscription(stripeCustomerId: string): Promise<boole
 function findVenue(venues: any[], venueId?: number) {
   if (!venueId) return null
   
-  // In the old system, venue_id was an integer
-  // We need to find the venue that matches
-  return venues.find(v => 
-    v.name === venueId.toString() || v.id === venueId.toString()
-  ) || venues[0] // Fallback to first venue
+  // Find venue by OpenKJ venue ID
+  return venues.find(v => v.openKjVenueId === venueId)
 }
 
 export async function POST(request: NextRequest) {
@@ -430,8 +427,8 @@ export async function POST(request: NextRequest) {
       }
 
       case 'getVenues': {
-        const venuesFormatted = venues.map((venue, index) => ({
-          venue_id: index + 1, // Use index as ID for compatibility
+        const venuesFormatted = venues.map((venue) => ({
+          venue_id: venue.openKjVenueId,
           name: venue.name,
           url_name: venue.urlName,
           accepting: venue.acceptingRequests,
