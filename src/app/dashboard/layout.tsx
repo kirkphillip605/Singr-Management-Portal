@@ -23,11 +23,11 @@ export default async function DashboardLayout({
           <div className="flex items-center justify-between">
             <Link href="/dashboard" className="flex items-center space-x-2">
               <img
-                src="/singr-logo-color.png"
+                src="/singr-icon.png"
                 alt="Singr Karaoke"
                 className="h-10 w-auto"
               />
-              <span className="text-xl font-bold"> | KJ Dashboard</span>
+              <span className="text-xl font-bold">Singr Karaoke Connect</span>
             </Link>
             
             <DashboardHeader userEmail={session.user?.email} />
