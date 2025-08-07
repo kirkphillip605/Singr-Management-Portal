@@ -74,7 +74,7 @@ export default function SignUpPage() {
             <img
               src="/singr-logo-color.png"
               alt="Singr Karaoke"
-              className="h-12 w-12"
+              className="h-16 w-auto"
             />
           </div>
           <CardTitle className="text-2xl">Create Account</CardTitle>
