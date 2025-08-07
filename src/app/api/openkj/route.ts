@@ -129,7 +129,7 @@ async function authenticateApiKey(apiKey: string) {
           logger.warn(`API access denied - revoked key ${key.id}`)
           return {
             error: true,
-            errorString: 'The API key provided is permanently revoked and is no longer valid. Create a new key by visiting https://billing.singrkaraoke.com/dashboard/api-keys'
+            errorString: 'The API key provided is permanently revoked and is no longer valid. Create a new key by visiting <a href="https://billing.singrkaraoke.com/dashboard/api-keys">Dashboard</a>'
           }
         }
         
