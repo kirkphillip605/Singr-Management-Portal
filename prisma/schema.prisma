@@ -238,6 +238,7 @@ model ApiKey {
 model Venue {
   id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId            String    @map("userid") @db.Uuid
+  openKjVenueId     Int       @map("openkj_venue_id")
   urlName           String    @map("urlname")
   acceptingRequests Boolean   @default(true) @map("acceptingrequests")
   hereplaceid       String?   @unique(map: "idx_venues_hereplaceid")
@@ -261,8 +262,10 @@ model Venue {
 
   @@unique([userId, name, address])
   @@unique([userId, urlName])
+  @@unique([userId, openKjVenueId])
   @@index([userId], map: "idx_venues_userid")
   @@index([userId, urlName], map: "idx_venues_user_urlname")
+  @@index([userId, openKjVenueId], map: "idx_venues_user_openkj_id")
   @@index([address], map: "idx_venues_address")
   @@index([name], map: "idx_venues_name")
   @@index([city], map: "idx_venues_city")
