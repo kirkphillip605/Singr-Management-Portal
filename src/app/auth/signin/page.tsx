@@ -58,9 +58,7 @@ export default function SignInPage() {
             <img
               src="/singr-icon.png"
               alt="Singr Karaoke"
-              height={48}                                    
-              width={Math.round((48 * 822) / 259)}           
-              className="object-contain"
+              className="h-12 w-12"
             />
           </div>
           <CardTitle className="text-2xl">Sign In</CardTitle>
