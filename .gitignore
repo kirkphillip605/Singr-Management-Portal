@@ -3,3 +3,4 @@
 /config/ssl/
 .env
 /.next/
+.env.sentry-build-plugin
