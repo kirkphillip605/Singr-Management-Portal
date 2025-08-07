@@ -228,7 +228,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         command,
         error: true,
-        errorString: 'Invalid API key'
+        errorString: 'API Key is either revoked, invalid, or '
       })
     }
 
