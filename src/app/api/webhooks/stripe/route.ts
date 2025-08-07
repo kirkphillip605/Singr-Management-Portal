@@ -28,6 +28,18 @@ function extractCustomerId(customer: string | Stripe.Customer | null): string | 
   return typeof customer === 'string' ? customer : customer.id
 }
 
+// Helper to safely extract subscription periods from Stripe subscription object
+function extractSubscriptionPeriods(subscription: Stripe.Subscription) {
+  return {
+    currentPeriodStart: safeTimestampToDate(subscription.current_period_start),
+    currentPeriodEnd: safeTimestampToDate(subscription.current_period_end),
+    trialStart: safeTimestampToDate(subscription.trial_start),
+    trialEnd: safeTimestampToDate(subscription.trial_end),
+    created: safeTimestampToDate(subscription.created),
+    cancelAt: safeTimestampToDate(subscription.cancel_at),
+    canceledAt: safeTimestampToDate(subscription.canceled_at),
+  }
+}
 // Helper to update API keys and venues based on subscription status
 async function updateApiKeysAndVenues(customerId: string, suspend: boolean) {
   try {
@@ -444,17 +456,19 @@ export async function POST(request: NextRequest) {
               })
               
               if (customer) {
+                const periods = extractSubscriptionPeriods(subscription)
+                
                 await prisma.subscription.upsert({
                   where: { id: subscription.id },
                   update: {
                     status: subscription.status,
-                    currentPeriodStart: new Date(subscription.current_period_start * 1000),
-                    currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+                    currentPeriodStart: periods.currentPeriodStart!,
+                    currentPeriodEnd: periods.currentPeriodEnd!,
                     cancelAtPeriodEnd: subscription.cancel_at_period_end,
-                    cancelAt: subscription.cancel_at ? new Date(subscription.cancel_at * 1000) : null,
-                    canceledAt: subscription.canceled_at ? new Date(subscription.canceled_at * 1000) : null,
-                    trialStart: subscription.trial_start ? new Date(subscription.trial_start * 1000) : null,
-                    trialEnd: subscription.trial_end ? new Date(subscription.trial_end * 1000) : null,
+                    cancelAt: periods.cancelAt,
+                    canceledAt: periods.canceledAt,
+                    trialStart: periods.trialStart,
+                    trialEnd: periods.trialEnd,
                     metadata: subscription.metadata as any,
                     data: subscription as any,
                     updated: new Date(),
@@ -464,15 +478,15 @@ export async function POST(request: NextRequest) {
                     object: subscription.object,
                     userId: customer.id,
                     status: subscription.status,
-                    currentPeriodStart: new Date(subscription.current_period_start * 1000),
-                    currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+                    currentPeriodStart: periods.currentPeriodStart!,
+                    currentPeriodEnd: periods.currentPeriodEnd!,
                     cancelAtPeriodEnd: subscription.cancel_at_period_end,
-                    cancelAt: subscription.cancel_at ? new Date(subscription.cancel_at * 1000) : null,
-                    canceledAt: subscription.canceled_at ? new Date(subscription.canceled_at * 1000) : null,
-                    trialStart: subscription.trial_start ? new Date(subscription.trial_start * 1000) : null,
-                    trialEnd: subscription.trial_end ? new Date(subscription.trial_end * 1000) : null,
+                    cancelAt: periods.cancelAt,
+                    canceledAt: periods.canceledAt,
+                    trialStart: periods.trialStart,
+                    trialEnd: periods.trialEnd,
                     metadata: subscription.metadata as any,
-                    created: new Date(subscription.created * 1000),
+                    created: periods.created!,
                     data: subscription as any,
                     livemode: subscription.livemode,
                   },
@@ -503,17 +517,19 @@ export async function POST(request: NextRequest) {
               })
               
               if (customer) {
+                const periods = extractSubscriptionPeriods(subscription)
+                
                 await prisma.subscription.upsert({
                   where: { id: subscription.id },
                   update: {
                     status: subscription.status,
-                    currentPeriodStart: new Date(subscription.current_period_start * 1000),
-                    currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+                    currentPeriodStart: periods.currentPeriodStart!,
+                    currentPeriodEnd: periods.currentPeriodEnd!,
                     cancelAtPeriodEnd: subscription.cancel_at_period_end,
-                    cancelAt: subscription.cancel_at ? new Date(subscription.cancel_at * 1000) : null,
-                    canceledAt: subscription.canceled_at ? new Date(subscription.canceled_at * 1000) : null,
-                    trialStart: subscription.trial_start ? new Date(subscription.trial_start * 1000) : null,
-                    trialEnd: subscription.trial_end ? new Date(subscription.trial_end * 1000) : null,
+                    cancelAt: periods.cancelAt,
+                    canceledAt: periods.canceledAt,
+                    trialStart: periods.trialStart,
+                    trialEnd: periods.trialEnd,
                     metadata: subscription.metadata as any,
                     data: subscription as any,
                     updated: new Date(),
@@ -523,15 +539,15 @@ export async function POST(request: NextRequest) {
                     object: subscription.object,
                     userId: customer.id,
                     status: subscription.status,
-                    currentPeriodStart: new Date(subscription.current_period_start * 1000),
-                    currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+                    currentPeriodStart: periods.currentPeriodStart!,
+                    currentPeriodEnd: periods.currentPeriodEnd!,
                     cancelAtPeriodEnd: subscription.cancel_at_period_end,
-                    cancelAt: subscription.cancel_at ? new Date(subscription.cancel_at * 1000) : null,
-                    canceledAt: subscription.canceled_at ? new Date(subscription.canceled_at * 1000) : null,
-                    trialStart: subscription.trial_start ? new Date(subscription.trial_start * 1000) : null,
-                    trialEnd: subscription.trial_end ? new Date(subscription.trial_end * 1000) : null,
+                    cancelAt: periods.cancelAt,
+                    canceledAt: periods.canceledAt,
+                    trialStart: periods.trialStart,
+                    trialEnd: periods.trialEnd,
                     metadata: subscription.metadata as any,
-                    created: new Date(subscription.created * 1000),
+                    created: periods.created!,
                     data: subscription as any,
                     livemode: subscription.livemode,
                   },

@@ -130,8 +130,9 @@ async function BillingPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-lg font-semibold">Singr Karaoke Connect</h3>
-                  <p className="text-muted-foreground">
-                    Status: <Badge variant={
+                  <div className="flex items-center space-x-2 text-muted-foreground">
+                    <span>Status:</span>
+                    <Badge variant={
                       activeSubscription.status === 'active' 
                         ? 'default' 
                         : activeSubscription.status === 'trialing'
@@ -140,7 +141,7 @@ async function BillingPage() {
                     }>
                       {activeSubscription.status === 'trialing' ? 'Trial' : activeSubscription.status}
                     </Badge>
-                  </p>
+                  </div>
                 </div>
               </div>
 
@@ -202,7 +203,7 @@ async function BillingPage() {
                 <div key={pm.id} className="flex items-center space-x-3 p-3 border rounded-md">
                   <CreditCard className="h-5 w-5 text-muted-foreground" />
                   <div>
-                    <p className="font-medium">
+                    <div className="font-medium">
                       {pm.card ? (
                         <>
                           {pm.card.brand.toUpperCase()} •••• {pm.card.last4}
@@ -210,14 +211,14 @@ async function BillingPage() {
                       ) : (
                         `${pm.type.toUpperCase()} Payment Method`
                       )}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
+                    </div>
+                    <div className="text-sm text-muted-foreground">
                       {pm.card ? (
                         `Expires ${pm.card.exp_month}/${pm.card.exp_year}`
                       ) : (
                         `Added ${new Date(pm.created * 1000).toLocaleDateString()}`
                       )}
-                    </p>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -243,12 +244,12 @@ async function BillingPage() {
                   <div className="flex items-center space-x-3">
                     <FileText className="h-5 w-5 text-muted-foreground" />
                     <div>
-                      <p className="font-medium">
+                      <div className="font-medium">
                         {formatAmountForDisplay(invoice.amount_paid || 0, invoice.currency)}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
+                      </div>
+                      <div className="text-sm text-muted-foreground">
                         {new Date(invoice.created * 1000).toLocaleDateString()} • {invoice.status}
-                      </p>
+                      </div>
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
