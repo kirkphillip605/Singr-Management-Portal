@@ -238,7 +238,7 @@ model ApiKey {
 model Venue {
   id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId            String    @map("userid") @db.Uuid
-  openKjVenueId     Int       @map("openkj_venue_id")
+  openKjVenueId     Int       @default(autoincrement()) @map("openkj_venue_id")
   urlName           String    @map("urlname")
   acceptingRequests Boolean   @default(true) @map("acceptingrequests")
   hereplaceid       String?   @unique(map: "idx_venues_hereplaceid")
