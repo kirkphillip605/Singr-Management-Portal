@@ -83,11 +83,11 @@ export default function HomePage() {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
               <img
-                src="/singr-icon.png"
+                src="/singr-logo-color.png"
                 alt="Singr Karaoke"
-                className="h-8 w-8"
+                className="h-8 w-auto"
               />
-              <span className="ml-2 text-xl font-bold text-gray-900">Singr Karaoke Connect</span>
+              <span className="ml-2 text-xl font-bold text-gray-900">Karaoke Connect</span>
             </div>
             <div className="flex items-center space-x-4">
               <Link href="/auth/signin">
@@ -109,8 +109,7 @@ export default function HomePage() {
               <img 
                 src="/singr-logo-color.png"
                 alt="Singr Karaoke" 
-                objectFit="contain"
-                layout="fill"
+                className="h-24 w-auto"
               />
             </div>
             <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
