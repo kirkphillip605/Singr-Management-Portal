@@ -83,7 +83,7 @@ export default function HomePage() {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
               <img
-                src="/singr-icon.png"
+                src="/singr-logo-color.png"
                 alt="Singr Karaoke"
                 className="h-10 w-auto"
               />
