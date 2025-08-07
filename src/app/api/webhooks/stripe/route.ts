@@ -30,9 +30,20 @@ function extractCustomerId(customer: string | Stripe.Customer | null): string | 
 
 // Helper to safely extract subscription periods from Stripe subscription object
 function extractSubscriptionPeriods(subscription: Stripe.Subscription) {
+  // For trial subscriptions, current_period_start/end might not be set
+  // Use trial dates or creation date as fallbacks
+  const currentPeriodStart = safeTimestampToDate(subscription.current_period_start) || 
+                            safeTimestampToDate(subscription.trial_start) ||
+                            safeTimestampToDate(subscription.created) ||
+                            new Date()
+                            
+  const currentPeriodEnd = safeTimestampToDate(subscription.current_period_end) || 
+                          safeTimestampToDate(subscription.trial_end) ||
+                          new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days from now as fallback
+
   return {
-    currentPeriodStart: safeTimestampToDate(subscription.current_period_start),
-    currentPeriodEnd: safeTimestampToDate(subscription.current_period_end),
+    currentPeriodStart,
+    currentPeriodEnd,
     trialStart: safeTimestampToDate(subscription.trial_start),
     trialEnd: safeTimestampToDate(subscription.trial_end),
     created: safeTimestampToDate(subscription.created),
