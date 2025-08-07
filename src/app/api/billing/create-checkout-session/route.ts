@@ -41,8 +41,8 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    // Create checkout session
-    const checkoutSession = await stripe.checkout.sessions.create({
+    // Create checkout session parameters
+    const checkoutParams: any = {
       customer: customer.stripeCustomerId,
       mode: 'subscription',
       payment_method_types: ['card'],
@@ -52,14 +52,8 @@ export async function POST(request: NextRequest) {
           quantity: 1,
         },
       ],
-      ...(couponId && { discounts: [{ coupon: couponId }] }),
-      success_url: successUrl || `${process.env.NEXTAUTH_URL}/dashboard/billing?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: cancelUrl || `${process.env.NEXTAUTH_URL}/dashboard/billing`,
-      subscription_data: existingSubscription ? {
-        metadata: {
-          upgrade_from: existingSubscription.id,
-        },
-      } : undefined,
+      success_url: successUrl || `${process.env.NEXTAUTH_URL}/dashboard/billing?session_id={CHECKOUT_SESSION_ID}&success=true`,
+      cancel_url: cancelUrl || `${process.env.NEXTAUTH_URL}/dashboard/billing/plans`,
       allow_promotion_codes: true,
       billing_address_collection: 'auto',
       customer_update: {
@@ -69,23 +63,47 @@ export async function POST(request: NextRequest) {
       metadata: {
         userId: session.user.id,
       },
-    })
+      subscription_data: {
+        metadata: {
+          userId: session.user.id,
+        },
+        trial_period_days: 7, // 7-day free trial
+      },
+    }
+
+    // Add coupon if provided
+    if (couponId) {
+      checkoutParams.discounts = [{ coupon: couponId }]
+    }
+
+    // If user has existing subscription, handle as upgrade/downgrade
+    if (existingSubscription) {
+      checkoutParams.subscription_data.metadata.upgrade_from = existingSubscription.id
+    }
+
+    // Create checkout session
+    const checkoutSession = await stripe.checkout.sessions.create(checkoutParams)
 
     // Store checkout session in database
-    await prisma.stripeCheckoutSession.create({
-      data: {
-        id: checkoutSession.id,
-        customerId: session.user.id,
-        paymentStatus: checkoutSession.payment_status,
-        mode: checkoutSession.mode,
-        amountTotal: checkoutSession.amount_total ? BigInt(checkoutSession.amount_total) : null,
-        currency: checkoutSession.currency || 'usd',
-        created: new Date(checkoutSession.created * 1000),
-        expiresAt: checkoutSession.expires_at ? new Date(checkoutSession.expires_at * 1000) : null,
-        url: checkoutSession.url,
-        metadata: checkoutSession.metadata as any,
-      },
-    })
+    try {
+      await prisma.stripeCheckoutSession.create({
+        data: {
+          id: checkoutSession.id,
+          customerId: session.user.id,
+          paymentStatus: checkoutSession.payment_status,
+          mode: checkoutSession.mode!,
+          amountTotal: checkoutSession.amount_total ? BigInt(checkoutSession.amount_total) : null,
+          currency: checkoutSession.currency || 'usd',
+          created: new Date(checkoutSession.created * 1000),
+          expiresAt: checkoutSession.expires_at ? new Date(checkoutSession.expires_at * 1000) : null,
+          url: checkoutSession.url,
+          metadata: (checkoutSession.metadata || {}) as any,
+        },
+      })
+    } catch (dbError) {
+      logger.warn('Failed to store checkout session in database:', dbError)
+      // Continue even if database storage fails
+    }
 
     logger.info(`Checkout session created for user ${session.user.id}: ${checkoutSession.id}`)
 

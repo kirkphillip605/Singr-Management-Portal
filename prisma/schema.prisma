@@ -72,6 +72,7 @@ model User {
   customer      Customer?
   sessions      Session[]
   songDb        SongDb[]
+  subscriptions Subscription[]
   venues        Venue[]        @relation("UserVenues")
 
   @@index([email], map: "idx_users_email")
@@ -95,6 +96,7 @@ model Customer {
   livemode               Boolean                 @default(false)
   data                   Json                    @default("{}")
   apiKeys                ApiKey[]
+  checkoutSessions       StripeCheckoutSession[]
   user                   User                    @relation(fields: [id], references: [id], onDelete: Cascade)
 
   @@index([stripeCustomerId], map: "idx_customers_stripecustomerid")
@@ -173,6 +175,48 @@ model StripeWebhookEvent {
   @@index([processed], map: "idx_stripe_webhook_events_processed")
   @@index([receivedAt], map: "idx_stripe_webhook_events_received_at")
   @@map("stripe_webhook_events")
+}
+
+model Subscription {
+  id                    String    @id
+  object                String?
+  userId                String    @map("user_id") @db.Uuid
+  status                String
+  currentPeriodStart    DateTime  @map("current_period_start") @db.Timestamptz(6)
+  currentPeriodEnd      DateTime  @map("current_period_end") @db.Timestamptz(6)
+  cancelAtPeriodEnd     Boolean   @map("cancel_at_period_end") @default(false)
+  cancelAt              DateTime? @map("cancel_at") @db.Timestamptz(6)
+  canceledAt            DateTime? @map("canceled_at") @db.Timestamptz(6)
+  trialStart            DateTime? @map("trial_start") @db.Timestamptz(6)
+  trialEnd              DateTime? @map("trial_end") @db.Timestamptz(6)
+  metadata              Json      @default("{}")
+  created               DateTime  @map("created") @db.Timestamptz(6)
+  updated               DateTime  @default(now()) @map("updated") @db.Timestamptz(6)
+  livemode              Boolean   @default(false)
+  data                  Json      @default("{}")
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId], map: "idx_subscriptions_user_id")
+  @@index([status], map: "idx_subscriptions_status")
+  @@map("subscriptions")
+}
+
+model StripeCheckoutSession {
+  id            String    @id
+  customerId    String    @map("customer_id") @db.Uuid
+  paymentStatus String    @map("payment_status")
+  mode          String
+  amountTotal   BigInt?   @map("amount_total")
+  currency      String
+  created       DateTime  @db.Timestamptz(6)
+  expiresAt     DateTime? @map("expires_at") @db.Timestamptz(6)
+  url           String?
+  metadata      Json      @default("{}")
+  completedAt   DateTime? @map("completed_at") @db.Timestamptz(6)
+  customer      Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId], map: "idx_checkout_sessions_customer_id")
+  @@map("stripe_checkout_sessions")
 }
 
 model ApiKey {

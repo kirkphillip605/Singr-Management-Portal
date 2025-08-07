@@ -68,6 +68,20 @@ async function BillingPage() {
     }
   }
 
+  // Get subscription data from our database first
+  let dbSubscription = null
+  if (user.customer) {
+    dbSubscription = await prisma.subscription.findFirst({
+      where: {
+        userId: user.id,
+        status: { in: ['active', 'trialing'] },
+      },
+      orderBy: {
+        created: 'desc',
+      },
+    })
+  }
+
   const activeSubscription = subscriptions.find(
     sub => sub.status === 'active' || sub.status === 'trialing'
   )

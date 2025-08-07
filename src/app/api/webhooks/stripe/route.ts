@@ -344,6 +344,53 @@ export async function POST(request: NextRequest) {
           const subscription = event.data.object as Stripe.Subscription
           const customerId = extractCustomerId(subscription.customer)
           
+          // Store subscription in database
+          if (customerId) {
+            try {
+              const customer = await prisma.customer.findUnique({
+                where: { stripeCustomerId: customerId },
+              })
+              
+              if (customer) {
+                await prisma.subscription.upsert({
+                  where: { id: subscription.id },
+                  update: {
+                    status: subscription.status,
+                    currentPeriodStart: new Date(subscription.current_period_start * 1000),
+                    currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+                    cancelAtPeriodEnd: subscription.cancel_at_period_end,
+                    cancelAt: subscription.cancel_at ? new Date(subscription.cancel_at * 1000) : null,
+                    canceledAt: subscription.canceled_at ? new Date(subscription.canceled_at * 1000) : null,
+                    trialStart: subscription.trial_start ? new Date(subscription.trial_start * 1000) : null,
+                    trialEnd: subscription.trial_end ? new Date(subscription.trial_end * 1000) : null,
+                    metadata: subscription.metadata as any,
+                    data: subscription as any,
+                    updated: new Date(),
+                  },
+                  create: {
+                    id: subscription.id,
+                    object: subscription.object,
+                    userId: customer.id,
+                    status: subscription.status,
+                    currentPeriodStart: new Date(subscription.current_period_start * 1000),
+                    currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+                    cancelAtPeriodEnd: subscription.cancel_at_period_end,
+                    cancelAt: subscription.cancel_at ? new Date(subscription.cancel_at * 1000) : null,
+                    canceledAt: subscription.canceled_at ? new Date(subscription.canceled_at * 1000) : null,
+                    trialStart: subscription.trial_start ? new Date(subscription.trial_start * 1000) : null,
+                    trialEnd: subscription.trial_end ? new Date(subscription.trial_end * 1000) : null,
+                    metadata: subscription.metadata as any,
+                    created: new Date(subscription.created * 1000),
+                    data: subscription as any,
+                    livemode: subscription.livemode,
+                  },
+                })
+              }
+            } catch (error) {
+              logger.error('Error storing subscription:', error)
+            }
+          }
+          
           if (customerId && (subscription.status === 'active' || subscription.status === 'trialing')) {
             await updateApiKeysAndVenues(customerId, false) // Reactivate
           }
@@ -355,6 +402,53 @@ export async function POST(request: NextRequest) {
         case 'customer.subscription.updated': {
           const subscription = event.data.object as Stripe.Subscription
           const customerId = extractCustomerId(subscription.customer)
+          
+          // Update subscription in database
+          if (customerId) {
+            try {
+              const customer = await prisma.customer.findUnique({
+                where: { stripeCustomerId: customerId },
+              })
+              
+              if (customer) {
+                await prisma.subscription.upsert({
+                  where: { id: subscription.id },
+                  update: {
+                    status: subscription.status,
+                    currentPeriodStart: new Date(subscription.current_period_start * 1000),
+                    currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+                    cancelAtPeriodEnd: subscription.cancel_at_period_end,
+                    cancelAt: subscription.cancel_at ? new Date(subscription.cancel_at * 1000) : null,
+                    canceledAt: subscription.canceled_at ? new Date(subscription.canceled_at * 1000) : null,
+                    trialStart: subscription.trial_start ? new Date(subscription.trial_start * 1000) : null,
+                    trialEnd: subscription.trial_end ? new Date(subscription.trial_end * 1000) : null,
+                    metadata: subscription.metadata as any,
+                    data: subscription as any,
+                    updated: new Date(),
+                  },
+                  create: {
+                    id: subscription.id,
+                    object: subscription.object,
+                    userId: customer.id,
+                    status: subscription.status,
+                    currentPeriodStart: new Date(subscription.current_period_start * 1000),
+                    currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+                    cancelAtPeriodEnd: subscription.cancel_at_period_end,
+                    cancelAt: subscription.cancel_at ? new Date(subscription.cancel_at * 1000) : null,
+                    canceledAt: subscription.canceled_at ? new Date(subscription.canceled_at * 1000) : null,
+                    trialStart: subscription.trial_start ? new Date(subscription.trial_start * 1000) : null,
+                    trialEnd: subscription.trial_end ? new Date(subscription.trial_end * 1000) : null,
+                    metadata: subscription.metadata as any,
+                    created: new Date(subscription.created * 1000),
+                    data: subscription as any,
+                    livemode: subscription.livemode,
+                  },
+                })
+              }
+            } catch (error) {
+              logger.error('Error updating subscription:', error)
+            }
+          }
           
           if (customerId) {
             const shouldSuspend = !['active', 'trialing'].includes(subscription.status)
@@ -368,6 +462,23 @@ export async function POST(request: NextRequest) {
         case 'customer.subscription.deleted': {
           const subscription = event.data.object as Stripe.Subscription
           const customerId = extractCustomerId(subscription.customer)
+          
+          // Mark subscription as deleted in database
+          if (customerId) {
+            try {
+              await prisma.subscription.updateMany({
+                where: { id: subscription.id },
+                data: {
+                  status: 'canceled',
+                  canceledAt: new Date(),
+                  data: subscription as any,
+                  updated: new Date(),
+                },
+              })
+            } catch (error) {
+              logger.error('Error marking subscription as deleted:', error)
+            }
+          }
           
           if (customerId) {
             await updateApiKeysAndVenues(customerId, true) // Suspend
