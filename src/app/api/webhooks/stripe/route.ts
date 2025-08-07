@@ -476,7 +476,6 @@ export async function POST(request: NextRequest) {
                   create: {
                     id: subscription.id,
                     object: subscription.object,
-                    userId: customer.id,
                     status: subscription.status,
                     currentPeriodStart: periods.currentPeriodStart!,
                     currentPeriodEnd: periods.currentPeriodEnd!,
@@ -489,6 +488,11 @@ export async function POST(request: NextRequest) {
                     created: periods.created!,
                     data: subscription as any,
                     livemode: subscription.livemode,
+                    user: {
+                      connect: {
+                        id: customer.id
+                      }
+                    }
                   },
                 })
 
@@ -537,7 +541,6 @@ export async function POST(request: NextRequest) {
                   create: {
                     id: subscription.id,
                     object: subscription.object,
-                    userId: customer.id,
                     status: subscription.status,
                     currentPeriodStart: periods.currentPeriodStart!,
                     currentPeriodEnd: periods.currentPeriodEnd!,
@@ -550,6 +553,11 @@ export async function POST(request: NextRequest) {
                     created: periods.created!,
                     data: subscription as any,
                     livemode: subscription.livemode,
+                    user: {
+                      connect: {
+                        id: customer.id
+                      }
+                    }
                   },
                 })
 
