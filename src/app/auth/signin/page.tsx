@@ -56,7 +56,7 @@ export default function SignInPage() {
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
             <img
-              src="/singr-logo-color.png"
+              src="/singr-icon.png"
               alt="Singr Karaoke"
               height={48}                                    
               width={Math.round((48 * 822) / 259)}           
