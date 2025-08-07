@@ -27,7 +27,7 @@ export default async function DashboardLayout({
                 alt="Singr Karaoke"
                 className="h-10 w-auto"
               />
-              <span className="text-xl font-bold"></span>
+              <span className="text-xl font-bold"> | KJ Dashboard</span>
             </Link>
             
             <DashboardHeader userEmail={session.user?.email} />
