@@ -58,7 +58,7 @@ export default function SignInPage() {
             <img
               src="/singr-logo-color.png"
               alt="Singr Karaoke"
-              className="h-14 w-auto"
+              className="h-18 w-auto"
             />
           </div>
           <CardTitle className="text-2xl">Sign In</CardTitle>
