@@ -1,7 +1,9 @@
 'use client'
+'use client'
 
+import { useEffect } from 'react'
 import { useState } from 'react'
-import { signIn, getSession } from 'next-auth/react'
+import { signIn, getSession, useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -10,11 +12,20 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
 export default function SignInPage() {
+  const { data: session, status } = useSession()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (status === 'loading') return // Still loading
+    if (session) {
+      router.push('/dashboard')
+    }
+  }, [session, status, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -49,6 +60,18 @@ export default function SignInPage() {
   }
 
   const isGoogleOAuthEnabled = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID && process.env.NEXT_PUBLIC_GOOGLE_CLIENT_SECRET
+
+  // Show loading state while checking session
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">

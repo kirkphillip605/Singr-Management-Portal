@@ -2,9 +2,11 @@ import { redirect } from 'next/navigation'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { stripe } from '@/lib/stripe'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { VenueToggle } from '@/components/venue-toggle'
 import { Plus, MapPin, Users, Clock } from 'lucide-react'
 import Link from 'next/link'
 
@@ -18,7 +20,6 @@ export default async function VenuesPage() {
   const venues = await prisma.venue.findMany({
     where: { userId: session.user.id },
     include: {
-      states: true,
       requests: {
         take: 5,
         orderBy: {
@@ -32,6 +33,36 @@ export default async function VenuesPage() {
       },
     },
   })
+
+  // Check subscription status
+  let hasActiveSubscription = false
+  const customer = await prisma.customer.findUnique({
+    where: { id: session.user.id },
+  })
+
+  if (customer?.stripeCustomerId) {
+    try {
+      const subscriptions = await stripe.subscriptions.list({
+        customer: customer.stripeCustomerId,
+        status: 'active',
+        limit: 1,
+      })
+
+      if (subscriptions.data.length === 0) {
+        // Check for trialing subscriptions
+        const trialingSubscriptions = await stripe.subscriptions.list({
+          customer: customer.stripeCustomerId,
+          status: 'trialing',
+          limit: 1,
+        })
+        hasActiveSubscription = trialingSubscriptions.data.length > 0
+      } else {
+        hasActiveSubscription = true
+      }
+    } catch (error) {
+      console.warn('Failed to check subscription status:', error)
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -75,11 +106,11 @@ export default async function VenuesPage() {
                   <CardTitle className="text-lg">
                     {venue.name}
                   </CardTitle>
-                  <Badge
-                    variant={venue.acceptingRequests ? "default" : "secondary"}
-                  >
-                    {venue.acceptingRequests ? "Accepting" : "Paused"}
-                  </Badge>
+                  <VenueToggle
+                    venueId={venue.id}
+                    initialAccepting={venue.acceptingRequests}
+                    hasActiveSubscription={hasActiveSubscription}
+                  />
                 </div>
                 <CardDescription>
                   {venue.address && (

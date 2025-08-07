@@ -96,13 +96,6 @@ async function authenticateApiKey(apiKey: string) {
   try {
     // Find all active API keys (we'll check hash against each)
     const apiKeys = await prisma.apiKey.findMany({
-      where: {
-        status: 'active',
-        OR: [
-          { revokedAt: null },
-          { revokedAt: { gt: new Date() } }
-        ]
-      },
       include: {
         customer: {
           include: {
@@ -123,12 +116,40 @@ async function authenticateApiKey(apiKey: string) {
     for (const key of apiKeys) {
       const isValid = await bcrypt.compare(apiKey, key.apiKeyHash)
       if (isValid) {
+        // Check API key status
+        if (key.status === 'suspended') {
+          logger.warn(`API access denied - suspended key ${key.id}`)
+          return {
+            error: true,
+            errorString: 'The API key provided is SUSPENDED. Visit https://billing.singrkaraoke.com/dashboard/billing for more details'
+          }
+        }
+        
+        if (key.status === 'revoked') {
+          logger.warn(`API access denied - revoked key ${key.id}`)
+          return {
+            error: true,
+            errorString: 'The API key provided is permanently revoked and is no longer valid. Create a new key by visiting https://billing.singrkaraoke.com/dashboard/api-keys'
+          }
+        }
+        
+        if (key.status !== 'active') {
+          logger.warn(`API access denied - invalid status ${key.status} for key ${key.id}`)
+          return {
+            error: true,
+            errorString: 'The API key provided is not currently active'
+          }
+        }
+
         // Check if customer has active subscription
         const hasActiveSubscription = await verifyActiveSubscription(key.customer.stripeCustomerId)
         
         if (!hasActiveSubscription) {
           logger.warn(`API access denied - no active subscription for customer ${key.customer.id}`)
-          return null
+          return {
+            error: true,
+            errorString: 'The API key provided is SUSPENDED. Visit https://billing.singrkaraoke.com/dashboard/billing for more details'
+          }
         }
 
         // Update last used timestamp
@@ -149,7 +170,10 @@ async function authenticateApiKey(apiKey: string) {
     return null
   } catch (error) {
     logger.error('API key authentication error:', error)
-    return null
+    return {
+      error: true,
+      errorString: 'Authentication service temporarily unavailable'
+    }
   }
 }
 
@@ -224,11 +248,11 @@ export async function POST(request: NextRequest) {
 
     // Authenticate API key
     const auth = await authenticateApiKey(body.api_key)
-    if (!auth) {
+    if (!auth || auth.error) {
       return NextResponse.json({
         command,
         error: true,
-        errorString: 'API Key is either revoked, invalid, or '
+        errorString: auth?.errorString || 'Invalid API key or access denied'
       })
     }
 

@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Plus, Key, Clock, AlertTriangle, Copy, Eye, EyeOff } from 'lucide-react'
+import { Plus, Key, Clock, AlertTriangle } from 'lucide-react'
 import Link from 'next/link'
 import { ApiKeyActions } from '@/components/api-key-actions'
 
@@ -112,6 +112,17 @@ export default async function ApiKeysPage() {
                     <code className="text-sm bg-muted px-2 py-1 rounded">
                       {apiKey.id.substring(0, 8)}...{apiKey.id.substring(apiKey.id.length - 8)}
                     </code>
+                    <Badge
+                      variant={
+                        apiKey.status === 'active' 
+                          ? 'default' 
+                          : apiKey.status === 'suspended'
+                          ? 'secondary'
+                          : 'destructive'
+                      }
+                    >
+                      {apiKey.status}
+                    </Badge>
                   </div>
                   <ApiKeyActions apiKey={apiKey} />
                 </div>

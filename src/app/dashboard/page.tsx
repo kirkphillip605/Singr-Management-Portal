@@ -5,8 +5,12 @@ import { prisma } from '@/lib/prisma'
 import { stripe } from '@/lib/stripe'
 import { logger } from '@/lib/logger'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import Link from 'next/link'
+import { Badge } from '@/components/ui/badge'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
+import Link from 'next/link'
+import { formatAmountForDisplay } from '@/lib/format-currency'
+import { CreditCard, AlertTriangle, CheckCircle, Clock, Key, MapPin, Music } from 'lucide-react'
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions)
@@ -49,14 +53,51 @@ export default async function DashboardPage() {
 
   // Get subscription status from Stripe if we have a customer
   let activeSubscription = null
+  let nextInvoice = null
+  let subscriptionDetails = null
+
   if (user?.customer?.stripeCustomerId) {
     try {
+      // Get active subscriptions
       const subsResponse = await stripe.subscriptions.list({
         customer: user.customer.stripeCustomerId,
-        status: 'active',
-        limit: 1,
+        status: 'all',
+        limit: 10,
       })
-      activeSubscription = subsResponse.data[0] || null
+      
+      activeSubscription = subsResponse.data.find(
+        sub => sub.status === 'active' || sub.status === 'trialing'
+      )
+
+      if (activeSubscription) {
+        // Get upcoming invoice for payment details
+        try {
+          const upcomingInvoice = await stripe.invoices.retrieveUpcoming({
+            customer: user.customer.stripeCustomerId,
+            subscription: activeSubscription.id,
+          })
+          nextInvoice = upcomingInvoice
+        } catch (error) {
+          // No upcoming invoice or error - that's okay
+          logger.warn('No upcoming invoice found:', error)
+        }
+
+        // Get subscription details
+        subscriptionDetails = {
+          id: activeSubscription.id,
+          status: activeSubscription.status,
+          currentPeriodStart: new Date(activeSubscription.current_period_start * 1000),
+          currentPeriodEnd: new Date(activeSubscription.current_period_end * 1000),
+          trialStart: activeSubscription.trial_start ? new Date(activeSubscription.trial_start * 1000) : null,
+          trialEnd: activeSubscription.trial_end ? new Date(activeSubscription.trial_end * 1000) : null,
+          cancelAtPeriodEnd: activeSubscription.cancel_at_period_end,
+          priceId: activeSubscription.items.data[0]?.price.id,
+          priceAmount: activeSubscription.items.data[0]?.price.unit_amount,
+          currency: activeSubscription.items.data[0]?.price.currency || 'usd',
+          interval: activeSubscription.items.data[0]?.price.recurring?.interval,
+          intervalCount: activeSubscription.items.data[0]?.price.recurring?.interval_count || 1,
+        }
+      }
     } catch (error) {
       logger.warn('Failed to fetch subscription status:', error)
     }
@@ -74,6 +115,16 @@ export default async function DashboardPage() {
     },
   })
 
+  const getPlanDisplayName = () => {
+    if (!subscriptionDetails) return 'No Plan'
+    
+    const { interval, intervalCount } = subscriptionDetails
+    if (interval === 'month' && intervalCount === 1) return 'Monthly Plan'
+    if (interval === 'month' && intervalCount === 6) return 'Semi-Annual Plan'
+    if (interval === 'year') return 'Annual Plan'
+    return 'Singr Pro Plan'
+  }
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
@@ -87,7 +138,10 @@ export default async function DashboardPage() {
       <div className="grid md:grid-cols-4 gap-6 mb-8">
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Venues</CardTitle>
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <MapPin className="h-4 w-4" />
+              Venues
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{user?.venues.length || 0}</div>
@@ -96,7 +150,10 @@ export default async function DashboardPage() {
 
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Total Songs</CardTitle>
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Music className="h-4 w-4" />
+              Total Songs
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalSongs}</div>
@@ -105,7 +162,10 @@ export default async function DashboardPage() {
 
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Total Requests</CardTitle>
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              Total Requests
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalRequests}</div>
@@ -114,7 +174,10 @@ export default async function DashboardPage() {
 
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">API Keys</CardTitle>
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Key className="h-4 w-4" />
+              API Keys
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{user?.customer?.apiKeys.length || 0}</div>
@@ -126,40 +189,110 @@ export default async function DashboardPage() {
         {/* Subscription Status */}
         <Card>
           <CardHeader>
-            <CardTitle>Subscription Status</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <CreditCard className="h-5 w-5" />
+              Subscription Status
+            </CardTitle>
             <CardDescription>
               Your current plan and billing information
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {activeSubscription ? (
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span>Plan:</span>
-                  <span className="font-medium">
-                    Pro Plan
-                  </span>
+            {subscriptionDetails ? (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Plan:</span>
+                  <span className="font-semibold">{getPlanDisplayName()}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span>Status:</span>
-                  <span className={`font-medium capitalize ${
-                    activeSubscription.status === 'active' ? 'text-green-600' : 'text-yellow-600'
-                  }`}>
-                    {activeSubscription.status}
-                  </span>
+                
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Status:</span>
+                  <div className="flex items-center gap-2">
+                    {subscriptionDetails.status === 'active' && (
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                    )}
+                    {subscriptionDetails.status === 'trialing' && (
+                      <Clock className="h-4 w-4 text-blue-600" />
+                    )}
+                    <Badge
+                      variant={
+                        subscriptionDetails.status === 'active' 
+                          ? 'default' 
+                          : subscriptionDetails.status === 'trialing'
+                          ? 'secondary'
+                          : 'destructive'
+                      }
+                    >
+                      {subscriptionDetails.status === 'trialing' ? 'Free Trial' : subscriptionDetails.status}
+                    </Badge>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span>Next billing:</span>
-                  <span className="font-medium">
-                    {new Date(activeSubscription.current_period_end * 1000).toLocaleDateString()}
-                  </span>
-                </div>
+
+                {subscriptionDetails.status === 'trialing' && subscriptionDetails.trialEnd && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Trial ends:</span>
+                    <span className="font-medium">
+                      {subscriptionDetails.trialEnd.toLocaleDateString()}
+                    </span>
+                  </div>
+                )}
+
+                {subscriptionDetails.status === 'active' && (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Current period:</span>
+                      <span className="text-sm">
+                        {subscriptionDetails.currentPeriodStart.toLocaleDateString()} - {subscriptionDetails.currentPeriodEnd.toLocaleDateString()}
+                      </span>
+                    </div>
+
+                    {nextInvoice && (
+                      <>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium">Next payment:</span>
+                          <span className="font-medium">
+                            {formatAmountForDisplay(nextInvoice.amount_due || 0, nextInvoice.currency)}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium">Payment date:</span>
+                          <span className="font-medium">
+                            {new Date((nextInvoice.next_payment_attempt || nextInvoice.period_end) * 1000).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </>
+                    )}
+                  </>
+                )}
+
+                {subscriptionDetails.cancelAtPeriodEnd && (
+                  <Alert>
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription>
+                      Your subscription will cancel on {subscriptionDetails.currentPeriodEnd.toLocaleDateString()}
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                <Link href="/dashboard/billing">
+                  <Button variant="outline" className="w-full">
+                    Manage Billing
+                  </Button>
+                </Link>
               </div>
             ) : (
-              <div className="text-center py-4">
-                <p className="text-muted-foreground mb-4">No active subscription</p>
+              <div className="text-center py-6">
+                <div className="mb-4">
+                  <AlertTriangle className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
+                  <h3 className="font-semibold text-lg">No Active Subscription</h3>
+                  <p className="text-muted-foreground text-sm">
+                    Choose a plan to access all features
+                  </p>
+                </div>
                 <Link href="/dashboard/billing/plans">
-                  <Button>Choose a Plan</Button>
+                  <Button className="w-full">
+                    Choose a Plan
+                  </Button>
                 </Link>
               </div>
             )}
@@ -210,6 +343,7 @@ export default async function DashboardPage() {
           <Link href="/dashboard/venues">
             <Card className="hover:shadow-md transition-shadow cursor-pointer">
               <CardContent className="p-6 text-center">
+                <MapPin className="h-8 w-8 text-primary mx-auto mb-2" />
                 <h3 className="font-medium">Manage Venues</h3>
                 <p className="text-sm text-muted-foreground mt-1">
                   Add or configure your karaoke venues
@@ -221,6 +355,7 @@ export default async function DashboardPage() {
           <Link href="/dashboard/api-keys">
             <Card className="hover:shadow-md transition-shadow cursor-pointer">
               <CardContent className="p-6 text-center">
+                <Key className="h-8 w-8 text-primary mx-auto mb-2" />
                 <h3 className="font-medium">API Keys</h3>
                 <p className="text-sm text-muted-foreground mt-1">
                   Manage OpenKJ integration keys
@@ -232,6 +367,7 @@ export default async function DashboardPage() {
           <Link href="/dashboard/billing">
             <Card className="hover:shadow-md transition-shadow cursor-pointer">
               <CardContent className="p-6 text-center">
+                <CreditCard className="h-8 w-8 text-primary mx-auto mb-2" />
                 <h3 className="font-medium">Billing</h3>
                 <p className="text-sm text-muted-foreground mt-1">
                   View invoices and manage subscription

@@ -1,11 +1,16 @@
 'use client'
 
+'use client'
+
+import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { CheckCircle, Shield, Users, Smartphone, Zap, MapPin, Search, Heart, Bell, Clock, MessageSquare, DollarSign, Star } from 'lucide-react'
 
 export default function HomePage() {
+  const { data: session } = useSession()
+  
   const features = [
     {
       icon: Zap,
@@ -90,12 +95,20 @@ export default function HomePage() {
               <span className="ml-2 text-xl font-bold text-gray-900">Singr Karaoke Connect</span>
             </div>
             <div className="flex items-center space-x-4">
-              <Link href="/auth/signin">
-                <Button variant="ghost" className="hover:bg-primary/10">Sign In</Button>
-              </Link>
-              <Link href="/auth/signup">
-                <Button className="bg-primary hover:bg-primary/90">Get Started</Button>
-              </Link>
+              {session ? (
+                <Link href="/dashboard">
+                  <Button className="bg-primary hover:bg-primary/90">Dashboard</Button>
+                </Link>
+              ) : (
+                <>
+                  <Link href="/auth/signin">
+                    <Button variant="ghost" className="hover:bg-primary/10">Sign In</Button>
+                  </Link>
+                  <Link href="/auth/signup">
+                    <Button className="bg-primary hover:bg-primary/90">Get Started</Button>
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -121,14 +134,25 @@ export default function HomePage() {
               Streamline song requests, engage your audience, and take your karaoke nights to the next level.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/auth/signup">
-                <Button 
-                  size="lg" 
-                  className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-lg px-8 py-3"
-                >
-                  Start Free Trial
-                </Button>
-              </Link>
+              {session ? (
+                <Link href="/dashboard">
+                  <Button 
+                    size="lg" 
+                    className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-lg px-8 py-3"
+                  >
+                    Go to Dashboard
+                  </Button>
+                </Link>
+              ) : (
+                <Link href="/auth/signup">
+                  <Button 
+                    size="lg" 
+                    className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-lg px-8 py-3"
+                  >
+                    Start Free Trial
+                  </Button>
+                </Link>
+              )}
               <Button 
                 variant="outline" 
                 size="lg" 
@@ -316,14 +340,25 @@ export default function HomePage() {
           </div>
 
           <div className="text-center mt-12">
-            <Link href="/auth/signup">
-              <Button 
-                size="lg" 
-                className="bg-primary hover:bg-primary/90 text-lg px-8 py-3"
-              >
-                Start Your Free Trial Today
-              </Button>
-            </Link>
+            {session ? (
+              <Link href="/dashboard/settings">
+                <Button 
+                  size="lg" 
+                  className="bg-primary hover:bg-primary/90 text-lg px-8 py-3"
+                >
+                  Manage System Settings
+                </Button>
+              </Link>
+            ) : (
+              <Link href="/auth/signup">
+                <Button 
+                  size="lg" 
+                  className="bg-primary hover:bg-primary/90 text-lg px-8 py-3"
+                >
+                  Start Your Free Trial Today
+                </Button>
+              </Link>
+            )}
             <p className="text-sm text-gray-500 mt-3">
               No credit card required • Cancel anytime • Setup support included
             </p>
@@ -341,20 +376,34 @@ export default function HomePage() {
             Join venues across the country who are already using Singr Karaoke Connect to create amazing karaoke experiences.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/auth/signup">
-              <Button 
-                size="lg" 
-                variant="secondary" 
-                className="w-full sm:w-auto text-lg px-8 py-3"
-              >
-                Start Free Trial
-              </Button>
-            </Link>
-            <Link href="/auth/signin">
-              <Button size="lg" variant="outline" className="w-full sm:w-auto text-lg px-8 py-3 border-white text-primary hover:bg-white hover:text-primary">
-                Sign In
-              </Button>
-            </Link>
+            {session ? (
+              <Link href="/dashboard">
+                <Button 
+                  size="lg" 
+                  variant="secondary" 
+                  className="w-full sm:w-auto text-lg px-8 py-3"
+                >
+                  Manage Settings
+                </Button>
+              </Link>
+            ) : (
+              <>
+                <Link href="/auth/signup">
+                  <Button 
+                    size="lg" 
+                    variant="secondary" 
+                    className="w-full sm:w-auto text-lg px-8 py-3"
+                  >
+                    Start Free Trial
+                  </Button>
+                </Link>
+                <Link href="/auth/signin">
+                  <Button size="lg" variant="outline" className="w-full sm:w-auto text-lg px-8 py-3 border-white text-primary hover:bg-white hover:text-primary">
+                    Sign In
+                  </Button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </section>
