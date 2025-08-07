@@ -61,6 +61,7 @@ export default function SignInPage() {
               className="h-18 w-auto"
             />
           </div>
+          <hr />
           <CardTitle className="text-2xl">Sign In</CardTitle>
           <CardDescription>
             Welcome back to Singr Karaoke Connect
