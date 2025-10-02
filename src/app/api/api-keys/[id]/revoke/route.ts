@@ -1,28 +1,42 @@
-import { NextRequest, NextResponse } from 'next/server'
+
+import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 
+/**
+ * POST /api/api-keys/[id]/revoke
+ * Revokes an active API key owned by the authenticated user.
+ *
+ * Notes:
+ * - First argument must be the standard Web Request, not NextRequest.
+ * - Second argument is the route context: { params: { id: string } }
+ */
 export async function POST(
-  request: NextRequest,
+  _request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
     const session = await getServerSession(authOptions)
-    
+
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Find the API key and verify ownership
+    // Basic guard to avoid empty/invalid ids reaching DB
+    const id = params.id?.trim()
+    if (!id) {
+      return NextResponse.json({ error: 'Invalid API key id' }, { status: 400 })
+    }
+
+    // Verify ownership and current status
     const apiKey = await prisma.apiKey.findFirst({
       where: {
-        id: params.id,
-        customer: {
-          id: session.user.id,
-        },
+        id,
+        customer: { id: session.user.id },
       },
+      select: { id: true, status: true },
     })
 
     if (!apiKey) {
@@ -30,20 +44,19 @@ export async function POST(
     }
 
     if (apiKey.status !== 'active') {
-      return NextResponse.json({ error: 'API key is already revoked' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'API key is already revoked' },
+        { status: 400 }
+      )
     }
 
-    // Revoke the API key
+    // Revoke
     await prisma.apiKey.update({
-      where: { id: params.id },
-      data: {
-        status: 'revoked',
-        revokedAt: new Date(),
-      },
+      where: { id },
+      data: { status: 'revoked', revokedAt: new Date() },
     })
 
-    logger.info(`API key ${params.id} revoked by user ${session.user.id}`)
-
+    logger.info(`API key ${id} revoked by user ${session.user.id}`)
     return NextResponse.json({ success: true })
   } catch (error) {
     logger.error('Error revoking API key:', error)

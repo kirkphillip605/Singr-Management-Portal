@@ -40,6 +40,7 @@ async function main() {
       country: 'US',
       latitude: 34.0522,
       longitude: -118.2437,
+      urlName: 'singing-spot',
     },
   })
 
@@ -53,6 +54,7 @@ async function main() {
       country: 'US',
       latitude: 36.1627,
       longitude: -86.7816,
+      urlName: 'singing-spot',
     },
   })
 
