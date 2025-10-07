@@ -16,33 +16,88 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import {
-  CreditCard,
-  FileText,
-  Download,
-  AlertTriangle,
-} from 'lucide-react';
+import { CreditCard, FileText, Download, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { formatAmountForDisplay } from '@/lib/format-currency';
 import { logger } from '@/lib/logger';
 import { CustomerPortalButton } from '@/components/customer-portal-button';
 
-/**
- * Safely format a Stripe UNIX-seconds timestamp or a JS/ISO date to a locale date.
- */
+/** Robust date formatter covering Stripe UNIX seconds, JS Date, or ISO strings. */
 function formatMaybeUnix(value: number | string | Date | null | undefined): string {
   if (value == null) return '—';
-  // Stripe returns UNIX seconds (number). Prisma returns Date objects.
   if (typeof value === 'number') {
     const d = new Date(value * 1000);
-    return isNaN(d.valueOf()) ? '—' : d.toLocaleDateString();
+    return Number.isNaN(d.valueOf()) ? '—' : d.toLocaleDateString();
   }
   if (value instanceof Date) {
-    return isNaN(value.valueOf()) ? '—' : value.toLocaleDateString();
+    return Number.isNaN(value.valueOf()) ? '—' : value.toLocaleDateString();
   }
-  // string (ISO)
   const d = new Date(value);
-  return isNaN(d.valueOf()) ? '—' : d.toLocaleDateString();
+  return Number.isNaN(d.valueOf()) ? '—' : d.toLocaleDateString();
+}
+
+/**
+ * Extract a period {start,end} from:
+ *  - Stripe subscription (UNIX seconds)
+ *  - DB subscription (Date objects via Prisma)
+ *  - DB subscription.data JSON (Stripe payload mirror) as last-resort fallback
+ */
+function extractPeriodFromStripeSub(s: any): { start?: number; end?: number } {
+  if (!s) return {};
+  const start = typeof s.current_period_start === 'number' ? s.current_period_start : undefined;
+  const end = typeof s.current_period_end === 'number' ? s.current_period_end : undefined;
+  return { start, end };
+}
+
+function extractPeriodFromDbSub(db: any): { start?: Date | number | string; end?: Date | number | string } {
+  if (!db) return {};
+  // Preferred: native mapped fields (Date objects via Prisma)
+  if (db.currentPeriodStart || db.currentPeriodEnd) {
+    return { start: db.currentPeriodStart, end: db.currentPeriodEnd };
+  }
+
+  // Fallback: parse db.data JSON if present (as in your sample row)
+  try {
+    const payload = typeof db.data === 'string' ? JSON.parse(db.data) : db.data;
+    const start =
+      typeof payload?.current_period_start === 'number'
+        ? payload.current_period_start
+        : typeof payload?.start_date === 'number'
+        ? payload.start_date
+        : undefined;
+
+    const end =
+      typeof payload?.current_period_end === 'number'
+        ? payload.current_period_end
+        : undefined;
+
+    return { start, end };
+  } catch {
+    return {};
+  }
+}
+
+function extractTrialFromStripeSub(s: any): { trialStart?: number; trialEnd?: number } {
+  if (!s) return {};
+  const trialStart = typeof s.trial_start === 'number' ? s.trial_start : undefined;
+  const trialEnd = typeof s.trial_end === 'number' ? s.trial_end : undefined;
+  return { trialStart, trialEnd };
+}
+
+function extractTrialFromDbSub(db: any): { trialStart?: Date | number | string; trialEnd?: Date | number | string } {
+  if (!db) return {};
+  // Preferred: mapped fields
+  if (db.trialStart || db.trialEnd) return { trialStart: db.trialStart, trialEnd: db.trialEnd };
+
+  // Fallback: parse JSON payload
+  try {
+    const payload = typeof db.data === 'string' ? JSON.parse(db.data) : db.data;
+    const trialStart = typeof payload?.trial_start === 'number' ? payload.trial_start : undefined;
+    const trialEnd = typeof payload?.trial_end === 'number' ? payload.trial_end : undefined;
+    return { trialStart, trialEnd };
+  } catch {
+    return {};
+  }
 }
 
 async function BillingPage() {
@@ -53,23 +108,20 @@ async function BillingPage() {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    include: {
-      customer: true,
-    },
+    include: { customer: true },
   });
 
   if (!user) {
     redirect('/auth/signin');
   }
 
-  // Live data from Stripe (if we have a linked customer)
+  // Live Stripe data
   let subscriptions: any[] = [];
   let paymentMethods: any[] = [];
   let invoices: any[] = [];
 
   if (user.customer?.stripeCustomerId) {
     try {
-      // Subscriptions (active/trialing preferred; but fetch all for completeness)
       const subsResponse = await stripe.subscriptions.list({
         customer: user.customer.stripeCustomerId,
         status: 'all',
@@ -77,14 +129,12 @@ async function BillingPage() {
       });
       subscriptions = subsResponse.data ?? [];
 
-      // Payment methods
       const pmResponse = await stripe.paymentMethods.list({
         customer: user.customer.stripeCustomerId,
         limit: 10,
       });
       paymentMethods = pmResponse.data ?? [];
 
-      // Recent invoices
       const invoiceResponse = await stripe.invoices.list({
         customer: user.customer.stripeCustomerId,
         limit: 10,
@@ -92,54 +142,63 @@ async function BillingPage() {
       invoices = invoiceResponse.data ?? [];
     } catch (error) {
       logger.error('Error fetching Stripe data:', error);
-      // continue with DB fallback below
     }
   }
 
-  // DB fallback for subscription (in case Stripe call failed or is delayed)
+  // DB fallback subscription (most recent active/trialing)
   const dbSubscription = await prisma.subscription.findFirst({
-    where: {
-      userId: user.id,
-      status: { in: ['active', 'trialing'] },
-    },
+    where: { userId: user.id, status: { in: ['active', 'trialing'] } },
     orderBy: { created: 'desc' },
   });
 
-  // Prefer live Stripe subscription if available; otherwise fall back to DB.
+  // Prefer live Stripe subscription if available
   const activeStripeSub = subscriptions.find(
-    (s) => s?.status === 'active' || s?.status === 'trialing',
+    (s) => s?.status === 'active' || s?.status === 'trialing'
   );
 
-  // Normalize a view model so the rest of the UI can use consistent keys.
+  // Build normalized view model
   type NormalizedSub = {
     source: 'stripe' | 'db';
     status: string;
-    currentPeriodStart?: number | Date | string | null;
-    currentPeriodEnd?: number | Date | string | null;
-    cancelAtPeriodEnd?: boolean;
+    cancelAtPeriodEnd: boolean;
+    periodStart?: number | Date | string;
+    periodEnd?: number | Date | string;
+    trialStart?: number | Date | string;
+    trialEnd?: number | Date | string;
   };
 
   let normalizedSub: NormalizedSub | null = null;
 
   if (activeStripeSub) {
-    // Stripe returns UNIX seconds for period fields
+    const { start, end } = extractPeriodFromStripeSub(activeStripeSub);
+    const { trialStart, trialEnd } = extractTrialFromStripeSub(activeStripeSub);
     normalizedSub = {
       source: 'stripe',
       status: activeStripeSub.status,
-      currentPeriodStart: activeStripeSub.current_period_start,
-      currentPeriodEnd: activeStripeSub.current_period_end,
       cancelAtPeriodEnd: !!activeStripeSub.cancel_at_period_end,
+      periodStart: start,
+      periodEnd: end,
+      trialStart,
+      trialEnd,
     };
   } else if (dbSubscription) {
-    // Prisma returns Date objects (camelCased by Prisma schema)
+    const { start, end } = extractPeriodFromDbSub(dbSubscription);
+    const { trialStart, trialEnd } = extractTrialFromDbSub(dbSubscription);
     normalizedSub = {
       source: 'db',
       status: dbSubscription.status,
-      currentPeriodStart: dbSubscription.currentPeriodStart,
-      currentPeriodEnd: dbSubscription.currentPeriodEnd,
-      cancelAtPeriodEnd: dbSubscription.cancelAtPeriodEnd ?? false,
+      cancelAtPeriodEnd: !!dbSubscription.cancelAtPeriodEnd,
+      periodStart: start,
+      periodEnd: end,
+      trialStart,
+      trialEnd,
     };
   }
+
+  // Detect if current period is actually a trial window
+  const isTrial =
+    normalizedSub?.status === 'trialing' ||
+    (normalizedSub?.trialStart != null && normalizedSub?.trialEnd != null);
 
   return (
     <div className="space-y-6">
@@ -182,23 +241,35 @@ async function BillingPage() {
                     >
                       {normalizedSub.status === 'trialing' ? 'Trial' : normalizedSub.status}
                     </Badge>
+                    {normalizedSub.source === 'db' ? (
+                      <span className="text-xs">(from DB)</span>
+                    ) : (
+                      <span className="text-xs">(live)</span>
+                    )}
                   </div>
                 </div>
               </div>
 
+              {/* Period / Trial windows */}
               <div className="text-sm space-y-2">
+                {isTrial && (
+                  <div className="flex justify-between">
+                    <span>Trial period:</span>
+                    <span>
+                      {formatMaybeUnix(normalizedSub.trialStart)} — {formatMaybeUnix(normalizedSub.trialEnd)}
+                    </span>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <span>Current period:</span>
                   <span>
-                    {formatMaybeUnix(normalizedSub.currentPeriodStart)} —{' '}
-                    {formatMaybeUnix(normalizedSub.currentPeriodEnd)}
+                    {formatMaybeUnix(normalizedSub.periodStart)} — {formatMaybeUnix(normalizedSub.periodEnd)}
                   </span>
                 </div>
-
                 {normalizedSub.cancelAtPeriodEnd && (
                   <div className="flex justify-between">
                     <span>Cancels on:</span>
-                    <span>{formatMaybeUnix(normalizedSub.currentPeriodEnd)}</span>
+                    <span>{formatMaybeUnix(normalizedSub.periodEnd)}</span>
                   </div>
                 )}
               </div>
@@ -208,7 +279,7 @@ async function BillingPage() {
                   <AlertTriangle className="h-4 w-4" />
                   <AlertDescription>
                     Your subscription will be cancelled at the end of the current billing period on{' '}
-                    {formatMaybeUnix(normalizedSub.currentPeriodEnd)}.
+                    {formatMaybeUnix(normalizedSub.periodEnd)}.
                   </AlertDescription>
                 </Alert>
               )}
