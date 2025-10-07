@@ -1,45 +1,55 @@
-import { redirect } from 'next/navigation'
-import { getAuthSession } from '@/lib/auth-server'
-import { prisma } from '@/lib/prisma'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Separator } from '@/components/ui/separator'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Switch } from '@/components/ui/switch'
-import { User, Bell, Shield, CreditCard, Palette, AlertTriangle } from 'lucide-react'
+// FILE: src/app/dashboard/settings/page.tsx
+export const runtime = 'nodejs';
+
+import { redirect } from 'next/navigation';
+import { getAuthSession } from '@/lib/auth-server';
+import { prisma } from '@/lib/prisma';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
+import { User, Bell, Shield, CreditCard, Palette } from 'lucide-react';
 
 export default async function SettingsPage() {
-  const session = await getAuthSession()
+  const session = await getAuthSession();
 
   if (!session?.user?.id) {
-    redirect('/auth/signin')
+    redirect('/auth/signin');
   }
 
+  // IMPORTANT:
+  // - subscriptions belong to the User (Subscription.userId), not Customer
+  // - include subscriptions at the top level under user
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
     include: {
-      customer: {
-        include: {
-          subscriptions: {
-            orderBy: {
-              created: 'desc',
-            },
-          },
-        },
+      customer: true,
+      subscriptions: {
+        orderBy: { created: 'desc' },
       },
+      // If you later add relations like apiKeys or checkoutSessions on User,
+      // you can include them here as well.
     },
-  })
+  });
 
   if (!user) {
-    redirect('/auth/signin')
+    redirect('/auth/signin');
   }
 
-  const activeSubscription = user.customer?.subscriptions.find(
-    sub => sub.status === 'active' || sub.status === 'trialing'
-  )
+  const activeSubscription = user.subscriptions.find(
+    (sub) => sub.status === 'active' || sub.status === 'trialing'
+  );
 
   return (
     <div className="space-y-6">
@@ -94,12 +104,7 @@ export default async function SettingsPage() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    defaultValue={user.email}
-                    disabled
-                  />
+                  <Input id="email" type="email" defaultValue={user.email} disabled />
                   <p className="text-xs text-muted-foreground">
                     Email cannot be changed. Contact support if needed.
                   </p>
@@ -204,29 +209,17 @@ export default async function SettingsPage() {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="currentPassword">Current Password</Label>
-                <Input
-                  id="currentPassword"
-                  type="password"
-                  placeholder="Enter your current password"
-                />
+                <Input id="currentPassword" type="password" placeholder="Enter your current password" />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="newPassword">New Password</Label>
-                <Input
-                  id="newPassword"
-                  type="password"
-                  placeholder="Enter your new password"
-                />
+                <Input id="newPassword" type="password" placeholder="Enter your new password" />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="confirmPassword">Confirm New Password</Label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  placeholder="Confirm your new password"
-                />
+                <Input id="confirmPassword" type="password" placeholder="Confirm your new password" />
               </div>
 
               <Separator />
@@ -269,19 +262,18 @@ export default async function SettingsPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="font-semibold">Pro Plan</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Active Subscription
-                      </p>
+                      <p className="text-sm text-muted-foreground">Active Subscription</p>
                     </div>
-                    <Badge
-                      variant={activeSubscription.status === 'active' ? 'default' : 'secondary'}
-                    >
+                    <Badge variant={activeSubscription.status === 'active' ? 'default' : 'secondary'}>
                       {activeSubscription.status}
                     </Badge>
                   </div>
 
                   <div className="text-sm">
-                    <p>Next billing date: {new Date(activeSubscription.current_period_end).toLocaleDateString()}</p>
+                    <p>
+                      Next billing date:{' '}
+                      {new Date(activeSubscription.currentPeriodEnd).toLocaleDateString()}
+                    </p>
                   </div>
 
                   <div className="flex gap-2">
@@ -319,5 +311,5 @@ export default async function SettingsPage() {
         </TabsContent>
       </Tabs>
     </div>
-  )
+  );
 }
