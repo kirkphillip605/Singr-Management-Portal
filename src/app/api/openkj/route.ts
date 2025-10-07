@@ -288,7 +288,6 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({
             command,
             error: true,
-a
             errorString: 'venue_id is required',
           })
         }
