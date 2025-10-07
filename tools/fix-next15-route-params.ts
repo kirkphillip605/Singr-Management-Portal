@@ -1,27 +1,4 @@
 // tools/fix-next15-route-params.ts
-/**
- * Codemod: Next.js 15 route handlers — Promise-typed `params` + `runtime = 'nodejs'`
- *
- * What it does:
- *  - Finds `src/app/**/route.{ts,tsx,js,jsx}` files
- *  - Ensures: `export const runtime = 'nodejs'`
- *  - For exported handlers (GET/POST/PATCH/PUT/DELETE/OPTIONS/HEAD):
- *      * If the 2nd parameter destructures `{ params }`, change its type to Promise<...>
- *        - Preserves inner `{ id: string }` etc when present, wrapping it with Promise<>
- *        - If untyped, adds `: { params: Promise<Record<string, string>> }`
- *      * Inserts `const paramsResolved = await params;` at top of the function body
- *      * Rewrites `params.` member access to `paramsResolved.` inside that function
- *
- * Safety:
- *  - Skips if already Promise-typed or if the function lacks destructured `{ params }`
- *  - Avoids clobbering existing local `paramsResolved` by auto-choosing a unique suffix
- *  - Has a `--dry` mode (default) to preview changes; use `--write` to apply
- *
- * Usage:
- *   npx ts-node --compiler-options '{"module":"CommonJS"}' tools/fix-next15-route-params.ts --dry
- *   npx ts-node --compiler-options '{"module":"CommonJS"}' tools/fix-next15-route-params.ts --write
- */
-
 import path from 'node:path'
 import fs from 'node:fs'
 import { Project, Node, SyntaxKind, SourceFile, FunctionDeclaration, VariableStatement, ArrowFunction, ParameterDeclaration, BindingElement, TypeNode, ObjectBindingPattern, PropertyAccessExpression, Identifier } from 'ts-morph'
