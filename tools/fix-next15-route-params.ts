@@ -4,7 +4,7 @@ import fs from 'node:fs'
 import {
   Project, Node, SyntaxKind, SourceFile, FunctionDeclaration,
   VariableStatement, ArrowFunction, ParameterDeclaration,
-  BindingElement, TypeNode, PropertyAccessExpression, Identifier
+  BindingElement, TypeNode, PropertyAccessExpression, Identifier, IndentationText, NewLineKind, QuoteKind
 } from 'ts-morph'
 
 const HTTP_METHODS = new Set(['GET','POST','PUT','PATCH','DELETE','OPTIONS','HEAD'])
