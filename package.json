@@ -14,7 +14,9 @@
     "db:seed": "tsx prisma/seed.ts",
     "stripe:sync": "node scripts/sync-stripe-data.js",
     "stripe:setup": "node scripts/setup-stripe.js",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "codemod:next15-params:dry": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' tools/fix-next15-route-params.ts --dry",
+    "codemod:next15-params": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' tools/fix-next15-route-params.ts --write",
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.4.2",
