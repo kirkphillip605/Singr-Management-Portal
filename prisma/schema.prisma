@@ -9,9 +9,11 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-/* ===========================
-   Core auth/session
-   =========================== */
+/**
+ * ===========================
+ * Core auth/session
+ * ===========================
+ */
 
 model VerificationToken {
   identifier String
@@ -26,16 +28,18 @@ model VerificationToken {
 }
 
 model User {
-  id            String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id            String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name          String?
-  email         String         @unique
-  emailVerified DateTime?      @map("emailverified") @db.Timestamptz(6)
+  email         String      @unique
+  emailVerified DateTime?   @map("emailverified") @db.Timestamptz(6)
   image         String?
-  businessName  String?        @map("businessname")
-  phoneNumber   String?        @map("phonenumber")
-  passwordHash  String?        @map("passwordhash")
-  createdAt     DateTime       @default(now()) @map("createdat") @db.Timestamptz(6)
-  updatedAt     DateTime       @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
+  businessName  String?     @map("businessname")
+  phoneNumber   String?     @map("phonenumber")
+  passwordHash  String?     @map("passwordhash")
+  accountType   String      @default("customer") @map("accounttype")
+  adminLevel    AdminLevel? @map("admin_level")
+  createdAt     DateTime    @default(now()) @map("createdat") @db.Timestamptz(6)
+  updatedAt     DateTime    @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
 
   accounts      Account[]
   customer      Customer?
@@ -94,21 +98,11 @@ enum AdminLevel {
   @@map("admin_level")
 }
 
-model AdminUser {
-  id           String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name         String
-  email        String      @unique
-  passwordHash String      @map("passwordhash")
-  createdAt    DateTime    @default(now()) @map("createdat") @db.Timestamptz(6)
-  updatedAt    DateTime    @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
-  adminLevel   AdminLevel  @default(support) @map("admin_level")
-
-  @@map("admin_users")
-}
-
-/* ===========================
-   Billing/Stripe
-   =========================== */
+/**
+ * ===========================
+ * Billing/Stripe
+ * ===========================
+ */
 
 model Customer {
   id               String   @id @db.Uuid
@@ -162,27 +156,27 @@ model StripeProduct {
 }
 
 model StripePrice {
-  id                String        @id
+  id                String   @id
   object            String?
-  active            Boolean       @default(true)
-  billingScheme     String?       @map("billing_scheme")
-  currency          String        @db.Char(3)
-  customUnitAmount  Json?         @map("custom_unit_amount")
-  livemode          Boolean       @default(false)
-  lookupKey         String?       @map("lookup_key")
-  metadata          Json          @default("{}")
+  active            Boolean  @default(true)
+  billingScheme     String?  @map("billing_scheme")
+  currency          String   @db.Char(3)
+  customUnitAmount  Json?    @map("custom_unit_amount")
+  livemode          Boolean  @default(false)
+  lookupKey         String?  @map("lookup_key")
+  metadata          Json     @default("{}")
   nickname          String?
   product           String
   recurring         Json?
-  taxBehavior       String?       @map("tax_behavior")
-  tiersMode         String?       @map("tiers_mode")
-  transformQuantity Json?         @map("transform_quantity")
+  taxBehavior       String?  @map("tax_behavior")
+  tiersMode         String?  @map("tiers_mode")
+  transformQuantity Json?    @map("transform_quantity")
   type              String
-  unitAmount        BigInt?       @map("unit_amount")
-  unitAmountDecimal String?       @map("unit_amount_decimal")
-  created           DateTime      @db.Timestamptz(6)
-  updated           DateTime      @default(now()) @db.Timestamptz(6)
-  data              Json          @default("{}")
+  unitAmount        BigInt?  @map("unit_amount")
+  unitAmountDecimal String?  @map("unit_amount_decimal")
+  created           DateTime @db.Timestamptz(6)
+  updated           DateTime @default(now()) @db.Timestamptz(6)
+  data              Json     @default("{}")
 
   productRelation StripeProduct @relation(fields: [product], references: [id], onDelete: Cascade)
 
@@ -213,22 +207,22 @@ model StripeWebhookEvent {
 }
 
 model Subscription {
-  id                 String   @id
+  id                 String    @id
   object             String?
-  userId             String   @map("user_id") @db.Uuid
+  userId             String    @map("user_id") @db.Uuid
   status             String
-  currentPeriodStart DateTime @map("current_period_start") @db.Timestamptz(6)
-  currentPeriodEnd   DateTime @map("current_period_end") @db.Timestamptz(6)
-  cancelAtPeriodEnd  Boolean  @map("cancel_at_period_end") @default(false)
+  currentPeriodStart DateTime  @map("current_period_start") @db.Timestamptz(6)
+  currentPeriodEnd   DateTime  @map("current_period_end") @db.Timestamptz(6)
+  cancelAtPeriodEnd  Boolean   @default(false) @map("cancel_at_period_end")
   cancelAt           DateTime? @map("cancel_at") @db.Timestamptz(6)
   canceledAt         DateTime? @map("canceled_at") @db.Timestamptz(6)
   trialStart         DateTime? @map("trial_start") @db.Timestamptz(6)
   trialEnd           DateTime? @map("trial_end") @db.Timestamptz(6)
-  metadata           Json     @default("{}")
-  created            DateTime @db.Timestamptz(6)
-  updated            DateTime @default(now()) @db.Timestamptz(6)
-  livemode           Boolean  @default(false)
-  data               Json     @default("{}")
+  metadata           Json      @default("{}")
+  created            DateTime  @db.Timestamptz(6)
+  updated            DateTime  @default(now()) @db.Timestamptz(6)
+  livemode           Boolean   @default(false)
+  data               Json      @default("{}")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -273,31 +267,33 @@ model ApiKey {
   @@map("api_keys")
 }
 
-/* ===========================
-   Venues, state, requests, music catalog
-   =========================== */
+/**
+ * ===========================
+ * Venues, state, requests, music catalog
+ * ===========================
+ */
 
 model Venue {
-  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId            String    @map("userid") @db.Uuid
-  openKjVenueId     Int       @default(autoincrement()) @map("openkj_venue_id")
-  urlName           String    @map("urlname")
-  acceptingRequests Boolean   @default(true) @map("acceptingrequests")
-  hereplaceid       String?   @unique(map: "idx_venues_hereplaceid")
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId            String   @map("userid") @db.Uuid
+  openKjVenueId     Int      @default(autoincrement()) @map("openkj_venue_id")
+  urlName           String   @map("urlname")
+  acceptingRequests Boolean  @default(true) @map("acceptingrequests")
+  hereplaceid       String?  @unique(map: "idx_venues_hereplaceid")
   name              String
   address           String?
   city              String?
   state             String?
-  stateCode         String?   @map("statecode") @db.VarChar(5)
-  postalCode        String?   @map("postalcode")
+  stateCode         String?  @map("statecode") @db.VarChar(5)
+  postalCode        String?  @map("postalcode")
   country           String?
-  countryCode       String?   @map("countrycode") @db.VarChar(3)
-  phoneNumber       String?   @map("phonenumber") @db.VarChar(20)
+  countryCode       String?  @map("countrycode") @db.VarChar(3)
+  phoneNumber       String?  @map("phonenumber") @db.VarChar(20)
   website           String?
   latitude          Float?
   longitude         Float?
-  createdAt         DateTime  @default(now()) @map("createdat") @db.Timestamptz(6)
-  updatedAt         DateTime  @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
+  createdAt         DateTime @default(now()) @map("createdat") @db.Timestamptz(6)
+  updatedAt         DateTime @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
 
   // relations
   requests Request[]
@@ -305,8 +301,8 @@ model Venue {
   user     User      @relation("UserVenues", fields: [userId], references: [id], onDelete: Cascade)
 
   // back-relations from singer_* tables
-  singerFavoriteVenues  SingerFavoriteVenue[]  @relation("VenueSingerFavoriteVenues")
-  singerRequestHistory  SingerRequestHistory[] @relation("VenueSingerRequestHistory")
+  singerFavoriteVenues SingerFavoriteVenue[]  @relation("VenueSingerFavoriteVenues")
+  singerRequestHistory SingerRequestHistory[] @relation("VenueSingerRequestHistory")
 
   @@unique([userId, name, address], map: "venues_userid_name_address_key")
   @@unique([userId, urlName], map: "venues_userid_urlname_key")
@@ -368,21 +364,23 @@ model Request {
   createdAt DateTime @default(now()) @map("createdat") @db.Timestamptz(6)
   processed Boolean  @default(false)
   singerId  String?  @map("singer_id") @db.Uuid
-  
+
   /// Legacy alias field for backward compatibility.
   /// DB computes this from createdAt (GENERATED ALWAYS ... STORED).
   /// We mark it as dbgenerated so Prisma doesn't try to set it on writes.
-  requestTime DateTime @map("request_time") @default(dbgenerated()) @db.Timestamptz(6)
-  
-  venue  Venue       @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  requestTime DateTime @default(dbgenerated()) @map("request_time") @db.Timestamptz(6)
+
+  venue      Venue       @relation(fields: [venueId], references: [id], onDelete: Cascade)
   singerUser SingerUser? @relation(fields: [singerId], references: [id], onDelete: Cascade)
 
   @@map("requests")
 }
 
-/* ===========================
-   Singer tables
-   =========================== */
+/**
+ * ===========================
+ * Singer tables
+ * ===========================
+ */
 
 model SingerUser {
   id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
@@ -396,7 +394,7 @@ model SingerUser {
   favoriteSongs  SingerFavoriteSong[]
   favoriteVenues SingerFavoriteVenue[]
   requestHistory SingerRequestHistory[]
-  requests        Request[]
+  requests       Request[]
 
   @@map("singer_users")
 }
@@ -409,9 +407,9 @@ model SingerFavoriteSong {
   keyChange Int     @default(0) @map("key_change")
 
   singer SingerUser @relation(fields: [singerId], references: [id], onDelete: Cascade)
+  // SQL unique index exists (expression on lower()) but cannot be represented here.
 
   @@map("singer_favorite_songs")
-  // SQL unique index exists (expression on lower()) but cannot be represented here.
 }
 
 model SingerRequestHistory {
@@ -423,19 +421,19 @@ model SingerRequestHistory {
   keyChange   Int      @default(0) @map("key_change")
   requestedAt DateTime @default(now()) @map("requestedat") @db.Timestamptz(6)
 
-  songFingerprint String @map("song_fingerprint") @default(dbgenerated()) @db.Text
+  songFingerprint String @default(dbgenerated()) @map("song_fingerprint") @db.Text
 
   singer SingerUser @relation(fields: [singerId], references: [id], onDelete: Cascade)
   venue  Venue      @relation("VenueSingerRequestHistory", fields: [venueId], references: [id], onDelete: Cascade)
+  // Note: DB indexes exist; not all can be modeled (e.g., BRIN).
 
   @@map("singer_request_history")
-  // Note: DB indexes exist; not all can be modeled (e.g., BRIN).
 }
 
 model SingerFavoriteVenue {
-  singerId String   @map("singer_id") @db.Uuid
-  venueId  String   @map("venue_id")  @db.Uuid
-  createdAt DateTime @default(now())  @map("createdat") @db.Timestamptz(6)
+  singerId  String   @map("singer_id") @db.Uuid
+  venueId   String   @map("venue_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("createdat") @db.Timestamptz(6)
 
   singer SingerUser @relation(fields: [singerId], references: [id], onDelete: Cascade)
   venue  Venue      @relation("VenueSingerFavoriteVenues", fields: [venueId], references: [id], onDelete: Cascade)
@@ -444,9 +442,11 @@ model SingerFavoriteVenue {
   @@map("singer_favorite_venues")
 }
 
-/* ===========================
-   Enums
-   =========================== */
+/**
+ * ===========================
+ * Enums
+ * ===========================
+ */
 
 enum PricingType {
   one_time

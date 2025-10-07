@@ -44,52 +44,40 @@ export const authOptions: NextAuthOptions = {
               name: true,
               passwordHash: true,
               image: true,
+              accountType: true,
+              adminLevel: true,
             },
           })
 
-          if (user?.passwordHash) {
-            const isValidPassword = await bcrypt.compare(password, user.passwordHash)
+          if (!user?.passwordHash) {
+            return null
+          }
 
-            if (!isValidPassword) {
-              return null
-            }
+          const isValidPassword = await bcrypt.compare(password, user.passwordHash)
 
+          if (!isValidPassword) {
+            return null
+          }
+
+          const accountType = (user.accountType as 'customer' | 'admin' | null) ?? 'customer'
+
+          if (accountType === 'admin') {
             return {
               id: user.id,
               email: user.email,
               name: user.name,
               image: user.image,
-              accountType: 'customer' as const,
+              accountType: 'admin' as const,
+              adminLevel: (user.adminLevel as 'support' | 'super_admin' | null) ?? 'support',
             }
           }
 
-          const adminUser = await prisma.adminUser.findUnique({
-            where: { email },
-            select: {
-              id: true,
-              email: true,
-              name: true,
-              passwordHash: true,
-              adminLevel: true,
-            },
-          })
-
-          if (!adminUser?.passwordHash) {
-            return null
-          }
-
-          const isValidAdminPassword = await bcrypt.compare(password, adminUser.passwordHash)
-
-          if (!isValidAdminPassword) {
-            return null
-          }
-
           return {
-            id: adminUser.id,
-            email: adminUser.email,
-            name: adminUser.name,
-            accountType: 'admin' as const,
-            adminLevel: adminUser.adminLevel,
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            image: user.image,
+            accountType: 'customer' as const,
           }
         } catch {
           return null
