@@ -4,6 +4,9 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { stripe } from '@/lib/stripe'
 import { logger } from '@/lib/logger'
+export const runtime = 'nodejs'
+
+
 
 export async function POST(request: NextRequest) {
   try {

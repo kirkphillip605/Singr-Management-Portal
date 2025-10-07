@@ -5,6 +5,9 @@ import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
 import { logger } from '@/lib/logger'
 import { z } from 'zod'
+export const runtime = 'nodejs'
+
+
 
 /**
  * In production, prefer Redis or a distributed token bucket.

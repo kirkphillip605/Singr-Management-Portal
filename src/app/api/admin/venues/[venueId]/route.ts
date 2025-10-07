@@ -3,6 +3,9 @@ import { getAdminSession, assertAdminLevel } from '@/lib/admin-auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import { logger } from '@/lib/logger'
+export const runtime = 'nodejs'
+
+
 
 const updateVenueSchema = z.object({
   name: z.string().optional(),
@@ -18,15 +21,17 @@ const updateVenueSchema = z.object({
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { venueId: string } }
+  { params }: { params: Promise<{ venueId: string }> }
 ) {
+  const paramsResolved = await paramsResolved
+
   const session = await getAdminSession()
 
   if (!assertAdminLevel(session, 'super_admin')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const { venueId } = params
+  const { venueId } = paramsResolved
 
   try {
     const existingVenue = await prisma.venue.findUnique({
@@ -113,15 +118,17 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { venueId: string } }
+  { params }: { params: Promise<{ venueId: string }> }
 ) {
+  const paramsResolved = await paramsResolved
+
   const session = await getAdminSession()
 
   if (!assertAdminLevel(session, 'super_admin')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const { venueId } = params
+  const { venueId } = paramsResolved
 
   try {
     const venue = await prisma.venue.findUnique({

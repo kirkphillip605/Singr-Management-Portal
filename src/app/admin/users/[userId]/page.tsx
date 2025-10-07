@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { formatDistanceToNow } from 'date-fns'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { PageProps } from 'next';
 
 interface AdminUserPageProps {
   params: { userId: string }
@@ -29,10 +30,12 @@ type ActivityItem = {
   timestamp: Date
 }
 
-export default async function AdminUserPage({ params }: AdminUserPageProps) {
+export default async function AdminUserPage(props: PageProps<'/admin/users/[userId]'>) {
+  const paramsResolved = await props.params
+
   const session = await requireAdminSession()
   const adminLevel = session.user?.adminLevel ?? 'support'
-  const { userId } = params
+  const { userId } = paramsResolved
 
   const [user, venues, recentRequests, recentSongs] = await Promise.all([
     prisma.user.findUnique({

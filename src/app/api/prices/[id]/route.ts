@@ -1,13 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+export const runtime = 'nodejs'
+
+
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const paramsResolved = await paramsResolved
+
   try {
     const price = await prisma.price.findUnique({
-      where: { id: params.id },
+      where: { id: paramsResolved.id },
       include: {
         product: true,
       },

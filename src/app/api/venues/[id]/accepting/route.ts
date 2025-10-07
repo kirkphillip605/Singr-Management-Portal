@@ -4,6 +4,9 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { stripe } from '@/lib/stripe'
 import { z } from 'zod'
+export const runtime = 'nodejs'
+
+
 
 const updateAcceptingSchema = z.object({
   accepting: z.boolean(),
@@ -35,8 +38,10 @@ async function hasActiveSubscription(stripeCustomerId: string): Promise<boolean>
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const paramsResolved = await paramsResolved
+
   try {
     const session = await getServerSession(authOptions)
     
@@ -50,7 +55,7 @@ export async function PATCH(
     // Find the venue and verify ownership
     const venue = await prisma.venue.findFirst({
       where: {
-        id: params.id,
+        id: paramsResolved.id,
         userId: session.user.id,
       },
       include: {
@@ -79,14 +84,14 @@ export async function PATCH(
 
     // Update venue accepting status
     await prisma.venue.update({
-      where: { id: params.id },
+      where: { id: paramsResolved.id },
       data: { acceptingRequests: accepting },
     })
 
     // Update venue state
     await prisma.state.updateMany({
       where: {
-        venueId: params.id,
+        venueId: paramsResolved.id,
       },
       data: {
         accepting,

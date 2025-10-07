@@ -5,6 +5,9 @@ import { prisma } from '@/lib/prisma'
 import { stripe } from '@/lib/stripe'
 import { logger } from '@/lib/logger'
 import { z } from 'zod'
+export const runtime = 'nodejs'
+
+
 
 const reactivateSchema = z.object({
   subscriptionId: z.string().min(1, 'Subscription ID is required'),

@@ -5,11 +5,16 @@ import { prisma } from '@/lib/prisma'
 import { generateApiKey } from '@/lib/utils'
 import bcrypt from 'bcryptjs'
 import { logger } from '@/lib/logger'
+export const runtime = 'nodejs'
+
+
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const paramsResolved = await paramsResolved
+
   try {
     const session = await getServerSession(authOptions)
     
@@ -20,7 +25,7 @@ export async function POST(
     // Find the API key and verify ownership
     const apiKey = await prisma.apiKey.findFirst({
       where: {
-        id: params.id,
+        id: paramsResolved.id,
         customer: {
           id: session.user.id,
         },
@@ -41,7 +46,7 @@ export async function POST(
 
     // Update the API key with new hash
     const updatedApiKey = await prisma.apiKey.update({
-      where: { id: params.id },
+      where: { id: paramsResolved.id },
       data: {
         apiKeyHash: newApiKeyHash,
         status: 'active', // Ensure it's active after rolling
@@ -49,7 +54,7 @@ export async function POST(
       },
     })
 
-    logger.info(`API key ${params.id} rolled by user ${session.user.id}`)
+    logger.info(`API key ${paramsResolved.id} rolled by user ${session.user.id}`)
 
     return NextResponse.json({
       id: updatedApiKey.id,

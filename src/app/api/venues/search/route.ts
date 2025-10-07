@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { z } from 'zod'
+export const runtime = 'nodejs'
+
+
 
 const searchSchema = z.object({
   query: z.string().min(1, 'Search query is required'),

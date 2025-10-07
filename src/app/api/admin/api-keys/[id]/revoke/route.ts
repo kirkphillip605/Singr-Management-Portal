@@ -2,18 +2,23 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getAdminSession, assertAdminLevel } from '@/lib/admin-auth'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
+export const runtime = 'nodejs'
+
+
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const paramsResolved = await paramsResolved
+
   const session = await getAdminSession()
 
   if (!assertAdminLevel(session, 'super_admin')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const { id } = params
+  const { id } = paramsResolved
 
   try {
     const apiKey = await prisma.apiKey.findUnique({

@@ -8,12 +8,11 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { MapPin, Calendar, ExternalLink } from 'lucide-react'
 import Link from 'next/link'
+import { PageProps } from 'next';
 
-export default async function VenueManagePage({
-  params,
-}: {
-  params: { id: string }
-}) {
+export default async function VenueManagePage(props: PageProps<'/dashboard/venues/[id]'>) {
+  const paramsResolved = await props.params
+
   const session = await getServerSession(authOptions)
 
   if (!session?.user?.id) {
@@ -22,7 +21,7 @@ export default async function VenueManagePage({
 
   const venue = await prisma.venue.findFirst({
     where: {
-      id: params.id,
+      id: paramsResolved.id,
       userId: session.user.id,
     },
     include: {

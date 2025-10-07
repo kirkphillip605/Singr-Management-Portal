@@ -3,6 +3,9 @@ import { getAdminSession, assertAdminLevel } from '@/lib/admin-auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import { logger } from '@/lib/logger'
+export const runtime = 'nodejs'
+
+
 
 const updateUserSchema = z.object({
   name: z.string().optional().nullable(),
@@ -12,15 +15,17 @@ const updateUserSchema = z.object({
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { userId: string } }
+  { params }: { params: Promise<{ userId: string }> }
 ) {
+  const paramsResolved = await paramsResolved
+
   const session = await getAdminSession()
 
   if (!assertAdminLevel(session, 'super_admin')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const { userId } = params
+  const { userId } = paramsResolved
 
   try {
     const body = await request.json()

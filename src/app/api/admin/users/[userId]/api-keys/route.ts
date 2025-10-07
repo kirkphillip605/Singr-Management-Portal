@@ -5,6 +5,9 @@ import { generateApiKey } from '@/lib/utils'
 import bcrypt from 'bcryptjs'
 import { logger } from '@/lib/logger'
 import { z } from 'zod'
+export const runtime = 'nodejs'
+
+
 
 const createApiKeySchema = z.object({
   description: z.string().min(1, 'Description is required'),
@@ -12,15 +15,17 @@ const createApiKeySchema = z.object({
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { userId: string } }
+  { params }: { params: Promise<{ userId: string }> }
 ) {
+  const paramsResolved = await paramsResolved
+
   const session = await getAdminSession()
 
   if (!assertAdminLevel(session)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { userId } = params
+  const { userId } = paramsResolved
 
   try {
     const body = await request.json()

@@ -5,6 +5,9 @@ import { prisma } from '@/lib/prisma'
 import { stripe } from '@/lib/stripe'
 import { logger } from '@/lib/logger'
 import { z } from 'zod'
+export const runtime = 'nodejs'
+
+
 
 const checkoutSchema = z.object({
   priceId: z.string().min(1, 'Price ID is required'),

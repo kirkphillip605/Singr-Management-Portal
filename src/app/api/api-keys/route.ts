@@ -6,6 +6,9 @@ import { generateApiKey } from '@/lib/utils'
 import bcrypt from 'bcryptjs'
 import { logger } from '@/lib/logger'
 import { z } from 'zod'
+export const runtime = 'nodejs'
+
+
 
 const createApiKeySchema = z.object({
   description: z.string().min(1, 'Description is required'),

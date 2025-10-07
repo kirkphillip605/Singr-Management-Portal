@@ -3,6 +3,9 @@ import { getAdminSession, assertAdminLevel } from '@/lib/admin-auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import { logger } from '@/lib/logger'
+export const runtime = 'nodejs'
+
+
 
 const createVenueSchema = z.object({
   name: z.string().min(1, 'Venue name is required'),
@@ -50,15 +53,17 @@ async function geocodeAddress(address: string) {
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { userId: string } }
+  { params }: { params: Promise<{ userId: string }> }
 ) {
+  const paramsResolved = await paramsResolved
+
   const session = await getAdminSession()
 
   if (!assertAdminLevel(session)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { userId } = params
+  const { userId } = paramsResolved
 
   try {
     const body = await request.json()

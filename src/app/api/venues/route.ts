@@ -3,6 +3,9 @@ import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
+export const runtime = 'nodejs'
+
+
 
 const createVenueSchema = z.object({
   name: z.string().min(1, 'Venue name is required'),

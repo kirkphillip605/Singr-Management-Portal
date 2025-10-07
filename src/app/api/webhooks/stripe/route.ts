@@ -3,6 +3,9 @@ import { stripe } from '@/lib/stripe'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import Stripe from 'stripe'
+export const runtime = 'nodejs'
+
+
 
 // Helper to safely convert Unix timestamp to Date
 function safeTimestampToDate(timestamp: number | null | undefined): Date | null {

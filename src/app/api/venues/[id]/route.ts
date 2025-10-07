@@ -3,6 +3,9 @@ import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
+export const runtime = 'nodejs'
+
+
 
 const updateVenueSchema = z.object({
   displayName: z.string().optional(),
@@ -16,8 +19,10 @@ const updateVenueSchema = z.object({
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const paramsResolved = await paramsResolved
+
   try {
     const session = await getServerSession(authOptions)
     
@@ -31,7 +36,7 @@ export async function PATCH(
     // Find the venue and verify ownership
     const venue = await prisma.venue.findFirst({
       where: {
-        id: params.id,
+        id: paramsResolved.id,
         userId: session.user.id,
       },
     })
@@ -42,7 +47,7 @@ export async function PATCH(
 
     // Update venue
     const updatedVenue = await prisma.venue.update({
-      where: { id: params.id },
+      where: { id: paramsResolved.id },
       data: {
         address: validatedData.address || null,
         city: validatedData.city || null,
