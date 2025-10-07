@@ -7,7 +7,11 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { stripe } from '@/lib/stripe';
 import {
-  Card, CardContent, CardDescription, CardHeader, CardTitle,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -18,8 +22,8 @@ import { formatAmountForDisplay } from '@/lib/format-currency';
 import { logger } from '@/lib/logger';
 import { CustomerPortalButton } from '@/components/customer-portal-button';
 
-// ✅ NEW: import shared helpers for plan label if you like
-import { planLabelFromSubscription } from '@/lib/subscription-normalize'
+// ✅ Use shared helper to derive a friendly plan name from a live Stripe subscription
+import { planLabelFromSubscription } from '@/lib/subscription-normalize';
 
 /** Format UNIX seconds, Date, or ISO string to a locale date. */
 function fmtDate(value: number | string | Date | null | undefined): string {
@@ -155,6 +159,7 @@ async function BillingPage() {
         customer: user.customer.stripeCustomerId,
         status: 'all',
         limit: 10,
+        // expand price so we can build a good "Plan" label
         expand: ['data.items.data.price'],
       });
       subscriptions = subs.data ?? [];
@@ -183,7 +188,8 @@ async function BillingPage() {
 
   // Prefer live subscription if present
   const live = subscriptions.find((s) => s?.status === 'active' || s?.status === 'trialing');
-  const planLabel = planLabelFromSubscription(live
+  const planLabel = planLabelFromSubscription(live);
+
   type Normalized = {
     source: 'stripe' | 'db';
     status: string;
@@ -266,20 +272,24 @@ async function BillingPage() {
                     >
                       {sub.status === 'trialing' ? 'Trial' : sub.status}
                     </Badge>
-                    <span className="text-xs">({sub.source === 'stripe' ? 'live' : 'from DB'})</span>
+                    <span className="text-xs">
+                      ({sub.source === 'stripe' ? 'live' : 'from DB'})
+                    </span>
                   </div>
                 </div>
               </div>
 
+              {/* Plan label (mirrors dashboard) */}
               <div className="flex items-center justify-between text-sm">
                 <span className="font-medium">Plan:</span>
                 <span className="font-semibold">
                   {planLabel ??
-                    // fallback based on normalized dates/status if no live sub is available
-                    (sub.status === 'active' || sub.status === 'trialing' ? 'Singr Pro Plan' : 'No Plan')}
+                    (sub.status === 'active' || sub.status === 'trialing'
+                      ? 'Singr Pro Plan'
+                      : 'No Plan')}
                 </span>
               </div>
-              
+
               <div className="text-sm space-y-2">
                 {isTrial && (
                   <div className="flex justify-between">
@@ -338,7 +348,10 @@ async function BillingPage() {
           <CardContent>
             <div className="space-y-3">
               {paymentMethods.slice(0, 3).map((pm: any) => (
-                <div key={pm.id} className="flex items-center space-x-3 p-3 border rounded-md">
+                <div
+                  key={pm.id}
+                  className="flex items-center space-x-3 p-3 border rounded-md"
+                >
                   <CreditCard className="h-5 w-5 text-muted-foreground" />
                   <div>
                     <div className="font-medium">
@@ -374,7 +387,10 @@ async function BillingPage() {
           <CardContent>
             <div className="space-y-3">
               {invoices.slice(0, 5).map((invoice: any) => (
-                <div key={invoice.id} className="flex items-center justify-between p-3 border rounded-md">
+                <div
+                  key={invoice.id}
+                  className="flex items-center justify-between p-3 border rounded-md"
+                >
                   <div className="flex items-center space-x-3">
                     <FileText className="h-5 w-5 text-muted-foreground" />
                     <div>
@@ -400,7 +416,11 @@ async function BillingPage() {
                     </Badge>
                     {invoice.hosted_invoice_url && (
                       <Button variant="outline" size="sm" asChild>
-                        <a href={invoice.hosted_invoice_url} target="_blank" rel="noopener noreferrer">
+                        <a
+                          href={invoice.hosted_invoice_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
                           <Download className="h-4 w-4" />
                         </a>
                       </Button>
