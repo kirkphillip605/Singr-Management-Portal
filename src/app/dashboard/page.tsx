@@ -1,3 +1,5 @@
+export const runtime = 'nodejs' // keep Prisma/Stripe on Node
+
 import { redirect } from 'next/navigation'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
@@ -12,90 +14,60 @@ import Link from 'next/link'
 import { formatAmountForDisplay } from '@/lib/format-currency'
 import { CreditCard, AlertTriangle, CheckCircle, Clock, Key, MapPin, Music } from 'lucide-react'
 
+// ✅ NEW: import our normalizers/helpers
+import {
+  fmtDate,
+  periodFromStripe,
+  trialFromStripe,
+  planLabelFromSubscription,
+} from '@/lib/subscription-normalize'
+
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions)
+  if (!session?.user?.id) redirect('/auth/signin')
 
-  if (!session?.user?.id) {
-    redirect('/auth/signin')
-  }
-
-  // Get user data with relationships
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
     include: {
       customer: {
         include: {
-          apiKeys: {
-            where: {
-              status: 'active',
-            },
-          },
+          apiKeys: { where: { status: 'active' } },
         },
       },
       venues: {
         include: {
-          requests: {
-            take: 5,
-            orderBy: {
-              requestTime: 'desc',
-            },
-          },
+          requests: { take: 5, orderBy: { requestTime: 'desc' } },
         },
       },
-      songDb: {
-        take: 1,
-        orderBy: {
-          createdAt: 'desc',
-        },
-      },
+      songDb: { take: 1, orderBy: { createdAt: 'desc' } },
     },
   })
 
-  // Get subscription status from Stripe if we have a customer
-  let activeSubscription = null
-  let nextInvoice = null
-  let subscriptionDetails = null
+  let activeSubscription: any = null
+  let nextInvoice: any = null
 
   if (user?.customer?.stripeCustomerId) {
     try {
-      // Get active subscriptions
       const subsResponse = await stripe.subscriptions.list({
         customer: user.customer.stripeCustomerId,
         status: 'all',
         limit: 10,
+        // expand first item price so plan naming is reliable
+        expand: ['data.items.data.price'],
       })
-      
+
       activeSubscription = subsResponse.data.find(
-        sub => sub.status === 'active' || sub.status === 'trialing'
+        (sub) => sub.status === 'active' || sub.status === 'trialing'
       )
 
       if (activeSubscription) {
-        // Get upcoming invoice for payment details
         try {
-          const upcomingInvoice = await stripe.invoices.retrieveUpcoming({
+          nextInvoice = await stripe.invoices.retrieveUpcoming({
             customer: user.customer.stripeCustomerId,
             subscription: activeSubscription.id,
           })
-          nextInvoice = upcomingInvoice
         } catch (error) {
-          // No upcoming invoice or error - that's okay
           logger.warn('No upcoming invoice found:', error)
-        }
-
-        // Get subscription details
-        subscriptionDetails = {
-          id: activeSubscription.id,
-          status: activeSubscription.status,
-          currentPeriodStart: new Date(activeSubscription.current_period_start * 1000),
-          currentPeriodEnd: new Date(activeSubscription.current_period_end * 1000),
-          trialStart: activeSubscription.trial_start ? new Date(activeSubscription.trial_start * 1000) : null,
-          trialEnd: activeSubscription.trial_end ? new Date(activeSubscription.trial_end * 1000) : null,
-          cancelAtPeriodEnd: activeSubscription.cancel_at_period_end,
-          priceId: activeSubscription.items.data[0]?.price.id,
-          priceAmount: activeSubscription.items.data[0]?.price.unit_amount,
-          currency: activeSubscription.items.data[0]?.price.currency || 'usd',
-          interval: activeSubscription.items.data[0]?.price.recurring?.interval,
-          intervalCount: activeSubscription.items.data[0]?.price.recurring?.interval_count || 1,
         }
       }
     } catch (error) {
@@ -103,27 +75,17 @@ export default async function DashboardPage() {
     }
   }
 
-  const totalSongs = await prisma.songDb.count({
-    where: { userId: session.user.id },
-  })
+  // ✅ Normalize dates safely (prevents Invalid Date)
+  const period = periodFromStripe(activeSubscription)
+  const trial = trialFromStripe(activeSubscription)
+  const status: string | undefined = activeSubscription?.status
+  const cancelAtPeriodEnd: boolean = !!activeSubscription?.cancel_at_period_end
+  const planLabel = planLabelFromSubscription(activeSubscription) ?? 'Singr Pro Plan'
 
+  const totalSongs = await prisma.songDb.count({ where: { userId: session!.user!.id } })
   const totalRequests = await prisma.request.count({
-    where: {
-      venue: {
-        userId: session.user.id,
-      },
-    },
+    where: { venue: { userId: session!.user!.id } },
   })
-
-  const getPlanDisplayName = () => {
-    if (!subscriptionDetails) return 'No Plan'
-    
-    const { interval, intervalCount } = subscriptionDetails
-    if (interval === 'month' && intervalCount === 1) return 'Monthly Plan'
-    if (interval === 'month' && intervalCount === 6) return 'Semi-Annual Plan'
-    if (interval === 'year') return 'Annual Plan'
-    return 'Singr Pro Plan'
-  }
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -193,83 +155,85 @@ export default async function DashboardPage() {
               <CreditCard className="h-5 w-5" />
               Subscription Status
             </CardTitle>
-            <CardDescription>
-              Your current plan and billing information
-            </CardDescription>
+            <CardDescription>Your current plan and billing information</CardDescription>
           </CardHeader>
           <CardContent>
-            {subscriptionDetails ? (
+            {status ? (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">Plan:</span>
-                  <span className="font-semibold">{getPlanDisplayName()}</span>
+                  <span className="font-semibold">{planLabel}</span>
                 </div>
-                
+
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">Status:</span>
                   <div className="flex items-center gap-2">
-                    {subscriptionDetails.status === 'active' && (
-                      <CheckCircle className="h-4 w-4 text-green-600" />
-                    )}
-                    {subscriptionDetails.status === 'trialing' && (
-                      <Clock className="h-4 w-4 text-blue-600" />
-                    )}
+                    {status === 'active' && <CheckCircle className="h-4 w-4 text-green-600" />}
+                    {status === 'trialing' && <Clock className="h-4 w-4 text-blue-600" />}
                     <Badge
                       variant={
-                        subscriptionDetails.status === 'active' 
-                          ? 'default' 
-                          : subscriptionDetails.status === 'trialing'
+                        status === 'active'
+                          ? 'default'
+                          : status === 'trialing'
                           ? 'secondary'
                           : 'destructive'
                       }
                     >
-                      {subscriptionDetails.status === 'trialing' ? 'Free Trial' : subscriptionDetails.status}
+                      {status === 'trialing' ? 'Free Trial' : status}
                     </Badge>
                   </div>
                 </div>
 
-                {subscriptionDetails.status === 'trialing' && subscriptionDetails.trialEnd && (
+                {/* Trial row (if present) */}
+                {(status === 'trialing' || (trial.trialStart && trial.trialEnd)) && (
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Trial ends:</span>
+                    <span className="text-sm font-medium">Trial period:</span>
                     <span className="font-medium">
-                      {subscriptionDetails.trialEnd.toLocaleDateString()}
+                      {fmtDate(trial.trialStart)} — {fmtDate(trial.trialEnd)}
                     </span>
                   </div>
                 )}
 
-                {subscriptionDetails.status === 'active' && (
+                {/* ✅ Current period shown for active or trialing; dates are normalized */}
+                {(status === 'active' || status === 'trialing') && (
                   <>
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium">Current period:</span>
                       <span className="text-sm">
-                        {subscriptionDetails.currentPeriodStart.toLocaleDateString()} - {subscriptionDetails.currentPeriodEnd.toLocaleDateString()}
+                        {fmtDate(period.start)} — {fmtDate(period.end)}
                       </span>
                     </div>
 
-                    {nextInvoice && (
+                    {/* Next payment (may not exist during trial) */}
+                    {nextInvoice?.amount_due != null && nextInvoice?.currency && (
                       <>
                         <div className="flex items-center justify-between">
                           <span className="text-sm font-medium">Next payment:</span>
                           <span className="font-medium">
-                            {formatAmountForDisplay(nextInvoice.amount_due || 0, nextInvoice.currency)}
+                            {formatAmountForDisplay(nextInvoice.amount_due, nextInvoice.currency)}
                           </span>
                         </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium">Payment date:</span>
-                          <span className="font-medium">
-                            {new Date((nextInvoice.next_payment_attempt || nextInvoice.period_end) * 1000).toLocaleDateString()}
-                          </span>
-                        </div>
+                        {(nextInvoice.next_payment_attempt || nextInvoice.period_end) && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium">Payment date:</span>
+                            <span className="font-medium">
+                              {fmtDate(
+                                (nextInvoice.next_payment_attempt ??
+                                  nextInvoice.period_end) as number
+                              )}
+                            </span>
+                          </div>
+                        )}
                       </>
                     )}
                   </>
                 )}
 
-                {subscriptionDetails.cancelAtPeriodEnd && (
+                {cancelAtPeriodEnd && (
                   <Alert>
                     <AlertTriangle className="h-4 w-4" />
                     <AlertDescription>
-                      Your subscription will cancel on {subscriptionDetails.currentPeriodEnd.toLocaleDateString()}
+                      Your subscription will cancel on {fmtDate(period.end)}.
                     </AlertDescription>
                   </Alert>
                 )}
@@ -290,9 +254,7 @@ export default async function DashboardPage() {
                   </p>
                 </div>
                 <Link href="/dashboard/billing/plans">
-                  <Button className="w-full">
-                    Choose a Plan
-                  </Button>
+                  <Button className="w-full">Choose a Plan</Button>
                 </Link>
               </div>
             )}
