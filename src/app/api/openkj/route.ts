@@ -45,7 +45,7 @@ const baseRequestSchema = z.object({
 
 const venueCommandSchema = baseRequestSchema.extend({
   venue_id: z.number().optional(),
-  system_id: z.number().default(0),
+  system_id: z.number().default(1),
 })
 
 const requestSchema = venueCommandSchema.extend({
@@ -64,7 +64,7 @@ const addSongsSchema = baseRequestSchema.extend({
     artist: z.string(),
     title: z.string(),
   })),
-  system_id: z.number().default(0),
+  system_id: z.number().default(1),
 })
 
 /* ===========================
@@ -261,7 +261,7 @@ export async function POST(request: NextRequest) {
     switch (command) {
       case 'getSerial': {
         // Highest serial across all venues for the requested system_id
-        const systemId = Number(body.system_id ?? 0)
+        const systemId = Number(body.system_id ?? 1)
         const maxSerial = venues.reduce((max: number, venue: any) => {
           const state = venue.states?.find((s: any) => s.systemId === systemId)
           return Math.max(max, state?.serial || 1)
@@ -276,6 +276,7 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({
             command,
             error: true,
+a
             errorString: 'venue_id is required',
           })
         }
@@ -289,7 +290,7 @@ export async function POST(request: NextRequest) {
         const requests = await prisma.request.findMany({
           where: {
             venueId: venue.id,
-            systemId: validation.data.system_id,
+            Id: validation.data.system_id,
             processed: false,
           },
           orderBy: { createdAt: 'asc' },
