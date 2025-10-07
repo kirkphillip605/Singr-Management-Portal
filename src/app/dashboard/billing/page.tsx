@@ -22,8 +22,8 @@ import { formatAmountForDisplay } from '@/lib/format-currency';
 import { logger } from '@/lib/logger';
 import { CustomerPortalButton } from '@/components/customer-portal-button';
 
-/** Robust date formatter covering Stripe UNIX seconds, JS Date, or ISO strings. */
-function formatMaybeUnix(value: number | string | Date | null | undefined): string {
+/** Format UNIX seconds, Date, or ISO string to a locale date. */
+function fmtDate(value: number | string | Date | null | undefined): string {
   if (value == null) return '—';
   if (typeof value === 'number') {
     const d = new Date(value * 1000);
@@ -36,40 +36,76 @@ function formatMaybeUnix(value: number | string | Date | null | undefined): stri
   return Number.isNaN(d.valueOf()) ? '—' : d.toLocaleDateString();
 }
 
-/**
- * Extract a period {start,end} from:
- *  - Stripe subscription (UNIX seconds)
- *  - DB subscription (Date objects via Prisma)
- *  - DB subscription.data JSON (Stripe payload mirror) as last-resort fallback
- */
-function extractPeriodFromStripeSub(s: any): { start?: number; end?: number } {
-  if (!s) return {};
-  const start = typeof s.current_period_start === 'number' ? s.current_period_start : undefined;
-  const end = typeof s.current_period_end === 'number' ? s.current_period_end : undefined;
+/** Safe getter for nested properties. */
+function get(obj: any, path: string): any {
+  return path.split('.').reduce((o, k) => (o && o[k] !== undefined ? o[k] : undefined), obj);
+}
+
+/** Extract period {start,end} from a Stripe subscription object (UNIX seconds). */
+function periodFromStripe(sub: any): { start?: number; end?: number } {
+  if (!sub) return {};
+  // Primary fields
+  let start = typeof sub.current_period_start === 'number' ? sub.current_period_start : undefined;
+  let end = typeof sub.current_period_end === 'number' ? sub.current_period_end : undefined;
+
+  // Fallback to first item (some mirrors or older payloads)
+  if (start == null || end == null) {
+    const itemStart = get(sub, 'items.data.0.current_period_start');
+    const itemEnd = get(sub, 'items.data.0.current_period_end');
+    if (typeof itemStart === 'number') start = itemStart;
+    if (typeof itemEnd === 'number') end = itemEnd;
+  }
+
+  // Last-chance: use billing_cycle_anchor as start
+  if (start == null && typeof sub.billing_cycle_anchor === 'number') {
+    start = sub.billing_cycle_anchor;
+  }
   return { start, end };
 }
 
-function extractPeriodFromDbSub(db: any): { start?: Date | number | string; end?: Date | number | string } {
-  if (!db) return {};
-  // Preferred: native mapped fields (Date objects via Prisma)
-  if (db.currentPeriodStart || db.currentPeriodEnd) {
-    return { start: db.currentPeriodStart, end: db.currentPeriodEnd };
+/** Extract trial {start,end} from a Stripe subscription object (UNIX seconds). */
+function trialFromStripe(sub: any): { trialStart?: number; trialEnd?: number } {
+  if (!sub) return {};
+  let trialStart = typeof sub.trial_start === 'number' ? sub.trial_start : undefined;
+  let trialEnd = typeof sub.trial_end === 'number' ? sub.trial_end : undefined;
+
+  // Fallback via payload mirrors on items (rare)
+  if (trialStart == null || trialEnd == null) {
+    const itemTrialStart = get(sub, 'items.data.0.trial_start');
+    const itemTrialEnd = get(sub, 'items.data.0.trial_end');
+    if (typeof itemTrialStart === 'number') trialStart = itemTrialStart;
+    if (typeof itemTrialEnd === 'number') trialEnd = itemTrialEnd;
   }
+  return { trialStart, trialEnd };
+}
 
-  // Fallback: parse db.data JSON if present (as in your sample row)
+/** Extract period {start,end} from DB subscription (Prisma model or mirrored JSON). */
+function periodFromDb(dbSub: any): { start?: Date | number; end?: Date | number } {
+  if (!dbSub) return {};
+  // Preferred: mapped Prisma Date fields
+  if (dbSub.currentPeriodStart || dbSub.currentPeriodEnd) {
+    return { start: dbSub.currentPeriodStart, end: dbSub.currentPeriodEnd };
+  }
+  // Fallback: parse mirrored Stripe JSON stored in `data`
   try {
-    const payload = typeof db.data === 'string' ? JSON.parse(db.data) : db.data;
-    const start =
-      typeof payload?.current_period_start === 'number'
-        ? payload.current_period_start
-        : typeof payload?.start_date === 'number'
-        ? payload.start_date
-        : undefined;
+    const payload = typeof dbSub.data === 'string' ? JSON.parse(dbSub.data) : dbSub.data;
+    let start =
+      typeof payload?.current_period_start === 'number' ? payload.current_period_start : undefined;
+    let end =
+      typeof payload?.current_period_end === 'number' ? payload.current_period_end : undefined;
 
-    const end =
-      typeof payload?.current_period_end === 'number'
-        ? payload.current_period_end
-        : undefined;
+    // Fallback to items.data[0]
+    if (start == null || end == null) {
+      const itemStart = get(payload, 'items.data.0.current_period_start');
+      const itemEnd = get(payload, 'items.data.0.current_period_end');
+      if (typeof itemStart === 'number') start = itemStart;
+      if (typeof itemEnd === 'number') end = itemEnd;
+    }
+
+    // Fallback start to start_date
+    if (start == null && typeof payload?.start_date === 'number') {
+      start = payload.start_date;
+    }
 
     return { start, end };
   } catch {
@@ -77,23 +113,26 @@ function extractPeriodFromDbSub(db: any): { start?: Date | number | string; end?
   }
 }
 
-function extractTrialFromStripeSub(s: any): { trialStart?: number; trialEnd?: number } {
-  if (!s) return {};
-  const trialStart = typeof s.trial_start === 'number' ? s.trial_start : undefined;
-  const trialEnd = typeof s.trial_end === 'number' ? s.trial_end : undefined;
-  return { trialStart, trialEnd };
-}
-
-function extractTrialFromDbSub(db: any): { trialStart?: Date | number | string; trialEnd?: Date | number | string } {
-  if (!db) return {};
-  // Preferred: mapped fields
-  if (db.trialStart || db.trialEnd) return { trialStart: db.trialStart, trialEnd: db.trialEnd };
-
-  // Fallback: parse JSON payload
+/** Extract trial {start,end} from DB subscription (Prisma model or mirrored JSON). */
+function trialFromDb(dbSub: any): { trialStart?: Date | number; trialEnd?: Date | number } {
+  if (!dbSub) return {};
+  if (dbSub.trialStart || dbSub.trialEnd) {
+    return { trialStart: dbSub.trialStart, trialEnd: dbSub.trialEnd };
+  }
   try {
-    const payload = typeof db.data === 'string' ? JSON.parse(db.data) : db.data;
-    const trialStart = typeof payload?.trial_start === 'number' ? payload.trial_start : undefined;
-    const trialEnd = typeof payload?.trial_end === 'number' ? payload.trial_end : undefined;
+    const payload = typeof dbSub.data === 'string' ? JSON.parse(dbSub.data) : dbSub.data;
+    let trialStart =
+      typeof payload?.trial_start === 'number' ? payload.trial_start : undefined;
+    let trialEnd = typeof payload?.trial_end === 'number' ? payload.trial_end : undefined;
+
+    // Items fallback
+    if (trialStart == null || trialEnd == null) {
+      const itemTrialStart = get(payload, 'items.data.0.trial_start');
+      const itemTrialEnd = get(payload, 'items.data.0.trial_end');
+      if (typeof itemTrialStart === 'number') trialStart = itemTrialStart;
+      if (typeof itemTrialEnd === 'number') trialEnd = itemTrialEnd;
+    }
+
     return { trialStart, trialEnd };
   } catch {
     return {};
@@ -110,95 +149,89 @@ async function BillingPage() {
     where: { id: session.user.id },
     include: { customer: true },
   });
-
   if (!user) {
     redirect('/auth/signin');
   }
 
-  // Live Stripe data
+  // Live Stripe fetches
   let subscriptions: any[] = [];
   let paymentMethods: any[] = [];
   let invoices: any[] = [];
 
   if (user.customer?.stripeCustomerId) {
     try {
-      const subsResponse = await stripe.subscriptions.list({
+      const subsResp = await stripe.subscriptions.list({
         customer: user.customer.stripeCustomerId,
         status: 'all',
         limit: 10,
       });
-      subscriptions = subsResponse.data ?? [];
+      subscriptions = subsResp.data ?? [];
 
-      const pmResponse = await stripe.paymentMethods.list({
+      const pmResp = await stripe.paymentMethods.list({
         customer: user.customer.stripeCustomerId,
         limit: 10,
       });
-      paymentMethods = pmResponse.data ?? [];
+      paymentMethods = pmResp.data ?? [];
 
-      const invoiceResponse = await stripe.invoices.list({
+      const invResp = await stripe.invoices.list({
         customer: user.customer.stripeCustomerId,
         limit: 10,
       });
-      invoices = invoiceResponse.data ?? [];
-    } catch (error) {
-      logger.error('Error fetching Stripe data:', error);
+      invoices = invResp.data ?? [];
+    } catch (err) {
+      logger.error('Stripe fetch failed', err);
     }
   }
 
-  // DB fallback subscription (most recent active/trialing)
-  const dbSubscription = await prisma.subscription.findFirst({
+  // DB fallback
+  const dbSub = await prisma.subscription.findFirst({
     where: { userId: user.id, status: { in: ['active', 'trialing'] } },
     orderBy: { created: 'desc' },
   });
 
-  // Prefer live Stripe subscription if available
-  const activeStripeSub = subscriptions.find(
-    (s) => s?.status === 'active' || s?.status === 'trialing'
-  );
+  // Prefer live
+  const live = subscriptions.find((s) => s?.status === 'active' || s?.status === 'trialing');
 
-  // Build normalized view model
-  type NormalizedSub = {
+  type Normalized = {
     source: 'stripe' | 'db';
     status: string;
     cancelAtPeriodEnd: boolean;
-    periodStart?: number | Date | string;
-    periodEnd?: number | Date | string;
-    trialStart?: number | Date | string;
-    trialEnd?: number | Date | string;
+    periodStart?: number | Date;
+    periodEnd?: number | Date;
+    trialStart?: number | Date;
+    trialEnd?: number | Date;
   };
 
-  let normalizedSub: NormalizedSub | null = null;
+  let sub: Normalized | null = null;
 
-  if (activeStripeSub) {
-    const { start, end } = extractPeriodFromStripeSub(activeStripeSub);
-    const { trialStart, trialEnd } = extractTrialFromStripeSub(activeStripeSub);
-    normalizedSub = {
+  if (live) {
+    const p = periodFromStripe(live);
+    const t = trialFromStripe(live);
+    sub = {
       source: 'stripe',
-      status: activeStripeSub.status,
-      cancelAtPeriodEnd: !!activeStripeSub.cancel_at_period_end,
-      periodStart: start,
-      periodEnd: end,
-      trialStart,
-      trialEnd,
+      status: live.status,
+      cancelAtPeriodEnd: !!live.cancel_at_period_end,
+      periodStart: p.start,
+      periodEnd: p.end,
+      trialStart: t.trialStart,
+      trialEnd: t.trialEnd,
     };
-  } else if (dbSubscription) {
-    const { start, end } = extractPeriodFromDbSub(dbSubscription);
-    const { trialStart, trialEnd } = extractTrialFromDbSub(dbSubscription);
-    normalizedSub = {
+  } else if (dbSub) {
+    const p = periodFromDb(dbSub);
+    const t = trialFromDb(dbSub);
+    sub = {
       source: 'db',
-      status: dbSubscription.status,
-      cancelAtPeriodEnd: !!dbSubscription.cancelAtPeriodEnd,
-      periodStart: start,
-      periodEnd: end,
-      trialStart,
-      trialEnd,
+      status: dbSub.status,
+      cancelAtPeriodEnd: !!dbSub.cancelAtPeriodEnd,
+      periodStart: p.start,
+      periodEnd: p.end,
+      trialStart: t.trialStart,
+      trialEnd: t.trialEnd,
     };
   }
 
-  // Detect if current period is actually a trial window
   const isTrial =
-    normalizedSub?.status === 'trialing' ||
-    (normalizedSub?.trialStart != null && normalizedSub?.trialEnd != null);
+    sub?.status === 'trialing' || (sub?.trialStart != null && sub?.trialEnd != null);
 
   return (
     <div className="space-y-6">
@@ -211,7 +244,6 @@ async function BillingPage() {
         </div>
       </div>
 
-      {/* Subscription Status */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -223,7 +255,7 @@ async function BillingPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {normalizedSub ? (
+          {sub ? (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -232,59 +264,54 @@ async function BillingPage() {
                     <span>Status:</span>
                     <Badge
                       variant={
-                        normalizedSub.status === 'active'
+                        sub.status === 'active'
                           ? 'default'
-                          : normalizedSub.status === 'trialing'
+                          : sub.status === 'trialing'
                           ? 'secondary'
                           : 'destructive'
                       }
                     >
-                      {normalizedSub.status === 'trialing' ? 'Trial' : normalizedSub.status}
+                      {sub.status === 'trialing' ? 'Trial' : sub.status}
                     </Badge>
-                    {normalizedSub.source === 'db' ? (
-                      <span className="text-xs">(from DB)</span>
-                    ) : (
-                      <span className="text-xs">(live)</span>
-                    )}
+                    <span className="text-xs">({sub.source === 'stripe' ? 'live' : 'from DB'})</span>
                   </div>
                 </div>
               </div>
 
-              {/* Period / Trial windows */}
               <div className="text-sm space-y-2">
                 {isTrial && (
                   <div className="flex justify-between">
                     <span>Trial period:</span>
                     <span>
-                      {formatMaybeUnix(normalizedSub.trialStart)} — {formatMaybeUnix(normalizedSub.trialEnd)}
+                      {fmtDate(sub.trialStart)} — {fmtDate(sub.trialEnd)}
                     </span>
                   </div>
                 )}
                 <div className="flex justify-between">
                   <span>Current period:</span>
                   <span>
-                    {formatMaybeUnix(normalizedSub.periodStart)} — {formatMaybeUnix(normalizedSub.periodEnd)}
+                    {fmtDate(sub.periodStart)} — {fmtDate(sub.periodEnd)}
                   </span>
                 </div>
-                {normalizedSub.cancelAtPeriodEnd && (
+                {sub.cancelAtPeriodEnd && (
                   <div className="flex justify-between">
                     <span>Cancels on:</span>
-                    <span>{formatMaybeUnix(normalizedSub.periodEnd)}</span>
+                    <span>{fmtDate(sub.periodEnd)}</span>
                   </div>
                 )}
               </div>
 
-              {normalizedSub.cancelAtPeriodEnd && (
+              <CustomerPortalButton />
+
+              {sub.cancelAtPeriodEnd && (
                 <Alert>
                   <AlertTriangle className="h-4 w-4" />
                   <AlertDescription>
                     Your subscription will be cancelled at the end of the current billing period on{' '}
-                    {formatMaybeUnix(normalizedSub.periodEnd)}.
+                    {fmtDate(sub.periodEnd)}.
                   </AlertDescription>
                 </Alert>
               )}
-
-              <CustomerPortalButton />
             </div>
           ) : (
             <div className="text-center py-6">
@@ -299,7 +326,6 @@ async function BillingPage() {
         </CardContent>
       </Card>
 
-      {/* Payment Methods Overview */}
       {paymentMethods && paymentMethods.length > 0 && (
         <Card>
           <CardHeader>
@@ -324,7 +350,7 @@ async function BillingPage() {
                     <div className="text-sm text-muted-foreground">
                       {pm.card
                         ? `Expires ${pm.card.exp_month}/${pm.card.exp_year}`
-                        : `Added ${formatMaybeUnix(pm.created)}`}
+                        : `Added ${fmtDate(pm.created)}`}
                     </div>
                   </div>
                 </div>
@@ -335,7 +361,6 @@ async function BillingPage() {
         </Card>
       )}
 
-      {/* Recent Invoices Overview */}
       {invoices && invoices.length > 0 && (
         <Card>
           <CardHeader>
@@ -345,10 +370,7 @@ async function BillingPage() {
           <CardContent>
             <div className="space-y-3">
               {invoices.slice(0, 5).map((invoice: any) => (
-                <div
-                  key={invoice.id}
-                  className="flex items-center justify-between p-3 border rounded-md"
-                >
+                <div key={invoice.id} className="flex items-center justify-between p-3 border rounded-md">
                   <div className="flex items-center space-x-3">
                     <FileText className="h-5 w-5 text-muted-foreground" />
                     <div>
@@ -356,7 +378,7 @@ async function BillingPage() {
                         {formatAmountForDisplay(invoice.amount_paid || 0, invoice.currency)}
                       </div>
                       <div className="text-sm text-muted-foreground">
-                        {formatMaybeUnix(invoice.created)} • {invoice.status}
+                        {fmtDate(invoice.created)} • {invoice.status}
                       </div>
                     </div>
                   </div>
@@ -374,11 +396,7 @@ async function BillingPage() {
                     </Badge>
                     {invoice.hosted_invoice_url && (
                       <Button variant="outline" size="sm" asChild>
-                        <a
-                          href={invoice.hosted_invoice_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
+                        <a href={invoice.hosted_invoice_url} target="_blank" rel="noopener noreferrer">
                           <Download className="h-4 w-4" />
                         </a>
                       </Button>
@@ -392,7 +410,7 @@ async function BillingPage() {
         </Card>
       )}
 
-      {!normalizedSub && (
+      {!sub && (
         <div className="text-center">
           <Button asChild size="lg">
             <Link href="/dashboard/billing/plans">Choose a Plan</Link>
