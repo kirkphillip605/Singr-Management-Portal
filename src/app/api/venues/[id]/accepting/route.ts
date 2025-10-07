@@ -40,7 +40,7 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const paramsResolved = await paramsResolved
+  const paramsResolved = await params
 
   try {
     const session = await getServerSession(authOptions)
@@ -85,18 +85,13 @@ export async function PATCH(
     // Update venue accepting status
     await prisma.venue.update({
       where: { id: paramsResolved.id },
-      data: { acceptingRequests: accepting },
+      data: { acceptingRequests: accepting, accepting },
     })
 
-    // Update venue state
-    await prisma.state.updateMany({
-      where: {
-        venueId: paramsResolved.id,
-      },
-      data: {
-        accepting,
-        serial: { increment: 1 },
-      },
+    await prisma.state.upsert({
+      where: { userId: session.user.id },
+      update: { serial: { increment: BigInt(1) } },
+      create: { userId: session.user.id, serial: BigInt(1) },
     })
 
     return NextResponse.json({ success: true, accepting })

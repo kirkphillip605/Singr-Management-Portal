@@ -104,7 +104,7 @@ export default async function AdminUserPage(props: PageProps<'/admin/users/[user
         songId: true,
         artist: true,
         title: true,
-        systemId: true,
+        openKjSystemId: true,
         createdAt: true,
       },
     }),
@@ -143,7 +143,7 @@ export default async function AdminUserPage(props: PageProps<'/admin/users/[user
       id: `song-${song.songId.toString()}`,
       type: 'Catalog update',
       detail: `${song.artist} – ${song.title}`,
-      meta: `System ${song.systemId}`,
+      meta: `System ${song.openKjSystemId}`,
       timestamp: song.createdAt,
     })),
     ...apiKeys.map((key) => ({
@@ -460,7 +460,7 @@ export default async function AdminUserPage(props: PageProps<'/admin/users/[user
                     <td className="px-4 py-2 font-medium">
                       {song.artist} – {song.title}
                     </td>
-                    <td className="px-4 py-2 text-muted-foreground">{song.systemId}</td>
+                    <td className="px-4 py-2 text-muted-foreground">{song.openKjSystemId}</td>
                     <td className="px-4 py-2 text-muted-foreground">
                       {formatDistanceToNow(song.createdAt, { addSuffix: true })}
                     </td>

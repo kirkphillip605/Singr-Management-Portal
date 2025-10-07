@@ -8,6 +8,7 @@ const navigation = [
   { name: 'Dashboard', href: '/dashboard' },
   { name: 'Venues', href: '/dashboard/venues' },
   { name: 'API Keys', href: '/dashboard/api-keys' },
+  { name: 'Systems', href: '/dashboard/systems' },
   { name: 'Song Database', href: '/dashboard/songs' },
   { name: 'Requests', href: '/dashboard/requests' },
   { name: 'Billing', href: '/dashboard/billing' },

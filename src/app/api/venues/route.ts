@@ -100,6 +100,7 @@ export async function POST(request: NextRequest) {
         name: validatedData.name,
         urlName: validatedData.urlName,
         acceptingRequests: validatedData.acceptingRequests,
+        accepting: validatedData.acceptingRequests,
         hereplaceid: validatedData.herePlaceId,
         address: validatedData.address,
         city: validatedData.city,
@@ -115,14 +116,10 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    // Initialize state for the venue
-    await prisma.state.create({
-      data: {
-        venueId: venue.id,
-        systemId: 0,
-        accepting: validatedData.acceptingRequests,
-        serial: 1,
-      },
+    await prisma.state.upsert({
+      where: { userId: session.user.id },
+      update: {},
+      create: { userId: session.user.id, serial: BigInt(1) },
     })
 
     return NextResponse.json({
