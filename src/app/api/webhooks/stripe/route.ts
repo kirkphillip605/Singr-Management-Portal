@@ -90,24 +90,17 @@ async function updateApiKeysAndVenues(customerId: string, suspend: boolean) {
       // Set all venues to not accepting requests when subscription lapses
       await prisma.venue.updateMany({
         where: { userId: customer.user.id },
-        data: { 
+        data: {
           acceptingRequests: false,
+          accepting: false,
           updatedAt: new Date(),
         },
       })
 
-      // Update venue states
-      await prisma.state.updateMany({
-        where: {
-          venue: {
-            userId: customer.user.id,
-          }
-        },
-        data: {
-          accepting: false,
-          serial: { increment: 1 },
-          updatedAt: new Date(),
-        },
+      await prisma.state.upsert({
+        where: { userId: customer.user.id },
+        update: { serial: { increment: BigInt(1) } },
+        create: { userId: customer.user.id, serial: BigInt(1) },
       })
     }
     

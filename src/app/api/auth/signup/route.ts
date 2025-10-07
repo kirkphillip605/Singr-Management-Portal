@@ -58,13 +58,27 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    // Create customer record
-    await prisma.customer.create({
-      data: {
-        id: user.id,
-        stripeCustomerId: customer.id,
-      },
-    })
+    // Create customer record and initialize default resources
+    await prisma.$transaction([
+      prisma.customer.create({
+        data: {
+          id: user.id,
+          stripeCustomerId: customer.id,
+        },
+      }),
+      prisma.system.create({
+        data: {
+          userId: user.id,
+          name: 'Main System',
+        },
+      }),
+      prisma.state.create({
+        data: {
+          userId: user.id,
+          serial: BigInt(1),
+        },
+      }),
+    ])
 
     return NextResponse.json(
       { 

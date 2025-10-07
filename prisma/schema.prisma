@@ -45,6 +45,8 @@ model User {
   customer      Customer?
   sessions      Session[]
   songDb        SongDb[]
+  systems       System[]
+  state         State?
   subscriptions Subscription[]
   venues        Venue[]        @relation("UserVenues")
 
@@ -279,6 +281,7 @@ model Venue {
   openKjVenueId     Int      @default(autoincrement()) @map("openkj_venue_id")
   urlName           String   @map("urlname")
   acceptingRequests Boolean  @default(true) @map("acceptingrequests")
+  accepting         Boolean  @default(false)
   hereplaceid       String?  @unique(map: "idx_venues_hereplaceid")
   name              String
   address           String?
@@ -294,10 +297,10 @@ model Venue {
   longitude         Float?
   createdAt         DateTime @default(now()) @map("createdat") @db.Timestamptz(6)
   updatedAt         DateTime @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
+  currentSystemId   Int      @default(1) @map("current_system_id")
 
   // relations
   requests Request[]
-  states   State[]
   user     User      @relation("UserVenues", fields: [userId], references: [id], onDelete: Cascade)
 
   // back-relations from singer_* tables
@@ -319,23 +322,18 @@ model Venue {
 }
 
 model State {
-  venueId   String   @map("venueid") @db.Uuid
-  systemId  Int      @default(0) @map("system_id")
-  accepting Boolean  @default(false)
-  serial    Int      @default(1)
-  createdAt DateTime @default(now()) @map("createdat") @db.Timestamptz(6)
-  updatedAt DateTime @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
+  userId String  @id @map("userid") @db.Uuid
+  serial BigInt  @default(1)
 
-  venue Venue @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@id([venueId, systemId])
   @@map("state")
 }
 
 model SongDb {
   songId             BigInt   @id @default(autoincrement()) @map("song_id")
   userId             String   @map("user_id") @db.Uuid
-  systemId           Int      @default(0) @map("system_id")
+  openKjSystemId     Int      @map("openkj_system_id")
   artist             String   @db.VarChar(255)
   title              String   @db.VarChar(255)
   combined           String   @db.VarChar(255)
@@ -345,18 +343,17 @@ model SongDb {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, systemId, combined], map: "songdb_user_id_system_id_combined_key")
-  @@unique([userId, systemId, normalizedCombined], map: "songdb_user_id_system_id_normalized_combined_key")
-  @@index([userId, systemId, artist], map: "idx_songdb_user_system_artist")
-  @@index([userId, systemId, title], map: "idx_songdb_user_system_title")
-  @@index([userId, systemId, normalizedCombined], map: "idx_songdb_user_system_normcombined")
+  @@unique([userId, openKjSystemId, combined], map: "songdb_user_id_system_id_combined_key")
+  @@unique([userId, openKjSystemId, normalizedCombined], map: "songdb_user_id_system_id_normalized_combined_key")
+  @@index([userId, openKjSystemId, artist], map: "idx_songdb_user_system_artist")
+  @@index([userId, openKjSystemId, title], map: "idx_songdb_user_system_title")
+  @@index([userId, openKjSystemId, normalizedCombined], map: "idx_songdb_user_system_normcombined")
   @@map("songdb")
 }
 
 model Request {
   requestId BigInt   @id @default(autoincrement()) @map("request_id")
   venueId   String   @map("venueid") @db.Uuid
-  systemId  Int      @default(0) @map("system_id")
   artist    String
   title     String
   singer    String?
@@ -374,6 +371,21 @@ model Request {
   singerUser SingerUser? @relation(fields: [singerId], references: [id], onDelete: Cascade)
 
   @@map("requests")
+}
+
+model System {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  openKjSystemId Int      @default(dbgenerated()) @map("openkj_system_id")
+  name           String
+  createdAt      DateTime @default(now()) @map("createdat") @db.Timestamptz(6)
+  updatedAt      DateTime @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, openKjSystemId], map: "systems_user_id_openkj_system_id_key")
+  @@index([userId, openKjSystemId], map: "systems_user_openkj_idx")
+  @@map("systems")
 }
 
 /**

@@ -85,7 +85,7 @@ export default async function AdminActivityPage() {
         songId: true,
         artist: true,
         title: true,
-        systemId: true,
+        openKjSystemId: true,
         createdAt: true,
         user: {
           select: {
@@ -128,7 +128,7 @@ export default async function AdminActivityPage() {
       type: 'Catalog update',
       detail: `${song.artist} – ${song.title}`,
       account: song.user.name || song.user.email,
-      meta: `System ${song.systemId}`,
+      meta: `System ${song.openKjSystemId}`,
       timestamp: song.createdAt,
     })),
   ]

@@ -72,29 +72,46 @@ const addSongsSchema = baseRequestSchema.extend({
    =========================== */
 
 /**
- * Atomically increments the serial for a (venueId, systemId) pair,
- * creating the state row when needed.
+ * Ensures a state row exists for the given user and returns the latest serial.
  */
-async function updateSerial(venueId: string, systemId: number): Promise<number> {
+async function getOrCreateUserSerial(userId: string): Promise<number> {
   try {
-    const state = await prisma.state.upsert({
-      where: {
-        venueId_systemId: {
-          venueId,
-          systemId,
-        },
-      },
-      update: {
-        serial: { increment: 1 },
-      },
+    const existing = await prisma.state.findUnique({ where: { userId } })
+    if (existing) {
+      return Number(existing.serial)
+    }
+
+    const created = await prisma.state.upsert({
+      where: { userId },
+      update: {},
       create: {
-        venueId,
-        systemId,
-        serial: 1,
-        accepting: false,
+        userId,
+        serial: BigInt(1),
       },
     })
-    return state.serial
+    return Number(created.serial)
+  } catch (error) {
+    logger.error('Failed to fetch user serial:', error)
+    return 1
+  }
+}
+
+/**
+ * Atomically increments the serial counter for a user.
+ */
+async function bumpUserSerial(userId: string): Promise<number> {
+  try {
+    const state = await prisma.state.upsert({
+      where: { userId },
+      update: {
+        serial: { increment: BigInt(1) },
+      },
+      create: {
+        userId,
+        serial: BigInt(1),
+      },
+    })
+    return Number(state.serial)
   } catch (error) {
     logger.error('Failed to update serial:', error)
     return 0
@@ -113,9 +130,8 @@ async function authenticateApiKey(apiKey: string) {
           include: {
             user: {
               include: {
-                venues: {
-                  include: { states: true },
-                },
+                venues: true,
+                systems: true,
               },
             },
           },
@@ -169,6 +185,7 @@ async function authenticateApiKey(apiKey: string) {
         customer: key.customer,
         user: key.customer.user,
         venues: key.customer.user.venues,
+        systems: key.customer.user.systems,
       }
     }
 
@@ -256,18 +273,13 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    const { user, venues } = auth as any
+    const { user, venues, systems } = auth as any
 
     switch (command) {
       case 'getSerial': {
-        // Highest serial across all venues for the requested system_id
-        const systemId = Number(body.system_id ?? 1)
-        const maxSerial = venues.reduce((max: number, venue: any) => {
-          const state = venue.states?.find((s: any) => s.systemId === systemId)
-          return Math.max(max, state?.serial || 1)
-        }, 1)
+        const serial = await getOrCreateUserSerial(user.id)
 
-        return NextResponse.json({ command, serial: maxSerial, error: false })
+        return NextResponse.json({ command, serial, error: false })
       }
 
       case 'getRequests': {
@@ -290,7 +302,6 @@ a
         const requests = await prisma.request.findMany({
           where: {
             venueId: venue.id,
-            Id: validation.data.system_id,
             processed: false,
           },
           orderBy: { createdAt: 'asc' },
@@ -307,16 +318,10 @@ a
           // singer_id: req.singerId ?? null,
         }))
 
-        const state = await prisma.state.findUnique({
-          where: {
-            venueId_systemId: { venueId: venue.id, systemId: validation.data.system_id },
-          },
-        })
-
         return NextResponse.json({
           command,
           requests: formatted,
-          serial: state?.serial || 1,
+          serial: await getOrCreateUserSerial(user.id),
           error: false,
         })
       }
@@ -341,7 +346,6 @@ a
           where: {
             requestId: BigInt(validation.data.request_id),
             venueId: venue.id,
-            systemId: validation.data.system_id,
             processed: false,
           },
           data: { processed: true },
@@ -351,7 +355,7 @@ a
           return NextResponse.json({ command, error: true, errorString: 'Request not found' })
         }
 
-        const newSerial = await updateSerial(venue.id, validation.data.system_id)
+        const newSerial = await bumpUserSerial(user.id)
         return NextResponse.json({ command, serial: newSerial, error: false })
       }
 
@@ -370,28 +374,32 @@ a
           return NextResponse.json({ command, error: true, errorString: 'Venue not found' })
         }
 
+        const system = systems.find((s: any) => s.openKjSystemId === validation.data.system_id)
+        if (!system) {
+          return NextResponse.json({
+            command,
+            error: true,
+            errorString: `System ${validation.data.system_id} not found for user`,
+          })
+        }
+
+        const shouldBumpSerial =
+          venue.acceptingRequests !== validation.data.accepting ||
+          venue.accepting !== validation.data.accepting ||
+          venue.currentSystemId !== system.openKjSystemId
+
         await prisma.venue.update({
           where: { id: venue.id },
-          data: { acceptingRequests: validation.data.accepting },
-        })
-
-        await prisma.state.upsert({
-          where: {
-            venueId_systemId: {
-              venueId: venue.id,
-              systemId: validation.data.system_id,
-            },
-          },
-          update: { accepting: validation.data.accepting },
-          create: {
-            venueId: venue.id,
-            systemId: validation.data.system_id,
+          data: {
+            acceptingRequests: validation.data.accepting,
             accepting: validation.data.accepting,
-            serial: 1,
+            currentSystemId: system.openKjSystemId,
           },
         })
 
-        const newSerial = await updateSerial(venue.id, validation.data.system_id)
+        const newSerial = shouldBumpSerial
+          ? await bumpUserSerial(user.id)
+          : await getOrCreateUserSerial(user.id)
 
         return NextResponse.json({
           command,
@@ -407,7 +415,7 @@ a
           venue_id: venue.openKjVenueId,
           name: venue.name,
           url_name: venue.urlName,
-          accepting: venue.acceptingRequests,
+          accepting: typeof venue.accepting === 'boolean' ? venue.accepting : venue.acceptingRequests,
         }))
         return NextResponse.json({ command, venues: venuesFormatted, error: false })
       }
@@ -428,16 +436,16 @@ a
         }
 
         // Soft-clear: mark all as processed for that venue/system
-        await prisma.request.updateMany({
+        const cleared = await prisma.request.updateMany({
           where: {
             venueId: venue.id,
-            systemId: validation.data.system_id,
             processed: false,
           },
           data: { processed: true },
         })
 
-        const newSerial = await updateSerial(venue.id, validation.data.system_id)
+        const newSerial =
+          cleared.count > 0 ? await bumpUserSerial(user.id) : await getOrCreateUserSerial(user.id)
         return NextResponse.json({ command, serial: newSerial, error: false })
       }
 
@@ -457,6 +465,19 @@ a
         }
 
         const { songs, system_id } = validation.data
+        const system = systems.find((s: any) => s.openKjSystemId === system_id)
+        if (!system) {
+          return NextResponse.json({
+            command,
+            error: true,
+            errorString: `System ${system_id} not found for user`,
+            errors: [],
+            'entries processed': 0,
+            last_artist: null,
+            last_title: null,
+            serial: await getOrCreateUserSerial(user.id),
+          })
+        }
         const errors: string[] = []
         let processedCount = 0
         let lastArtist: string | null = null
@@ -476,7 +497,7 @@ a
             lastTitle = title
             return {
               userId: user.id,
-              systemId: system_id,
+              openKjSystemId: system.openKjSystemId,
               artist,
               title,
               combined,
@@ -486,17 +507,19 @@ a
 
         if (songsToAdd.length > 0) {
           try {
-            await prisma.songDb.createMany({ data: songsToAdd, skipDuplicates: true })
-            processedCount = songsToAdd.length
+            const result = await prisma.songDb.createMany({
+              data: songsToAdd,
+              skipDuplicates: true,
+            })
+            processedCount = result.count
           } catch (error) {
             logger.error('Error adding songs:', error)
             errors.push('Database error during bulk add')
           }
         }
 
-        const state = await prisma.state.findFirst({
-          where: { venue: { userId: user.id }, systemId: system_id },
-        })
+        const serial =
+          processedCount > 0 ? await bumpUserSerial(user.id) : await getOrCreateUserSerial(user.id)
 
         return NextResponse.json({
           command,
@@ -506,19 +529,30 @@ a
           'entries processed': processedCount,
           last_artist: lastArtist,
           last_title: lastTitle,
-          serial: state?.serial || 1,
+          serial,
         })
       }
 
       case 'clearDatabase': {
         const system_id: number = Number(body.system_id ?? 0)
-        await prisma.songDb.deleteMany({ where: { userId: user.id, systemId: system_id } })
+        const system = systems.find((s: any) => s.openKjSystemId === system_id)
+        if (!system) {
+          return NextResponse.json({
+            command,
+            error: true,
+            errorString: `System ${system_id} not found for user`,
+          })
+        }
 
-        const state = await prisma.state.findFirst({
-          where: { venue: { userId: user.id }, systemId: system_id },
+        const deleted = await prisma.songDb.deleteMany({
+          where: { userId: user.id, openKjSystemId: system.openKjSystemId },
         })
 
-        return NextResponse.json({ command, serial: state?.serial || 1, error: false })
+        const serial = deleted.count > 0
+          ? await bumpUserSerial(user.id)
+          : await getOrCreateUserSerial(user.id)
+
+        return NextResponse.json({ command, serial, error: false })
       }
 
       case 'getAlert': {
@@ -534,7 +568,7 @@ a
       case 'getEntitledSystemCount': {
         return NextResponse.json({
           command,
-          count: Math.max(venues.length, 1),
+          count: systems.length,
           error: false,
         })
       }

@@ -114,6 +114,7 @@ export async function POST(
         name: validatedData.name,
         urlName: validatedData.urlName,
         acceptingRequests: validatedData.acceptingRequests,
+        accepting: validatedData.acceptingRequests,
         address: validatedData.address,
         city: validatedData.city,
         state: validatedData.state,
@@ -128,13 +129,10 @@ export async function POST(
       },
     })
 
-    await prisma.state.create({
-      data: {
-        venueId: venue.id,
-        systemId: 0,
-        accepting: validatedData.acceptingRequests,
-        serial: 1,
-      },
+    await prisma.state.upsert({
+      where: { userId },
+      update: {},
+      create: { userId, serial: BigInt(1) },
     })
 
     logger.info('Admin created venue on behalf of user', {
