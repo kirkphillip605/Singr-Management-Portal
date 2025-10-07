@@ -22,8 +22,9 @@ export default function SignInPage() {
   // Redirect if already logged in
   useEffect(() => {
     if (status === 'loading') return // Still loading
-    if (session) {
-      router.push('/dashboard')
+    if (session?.user) {
+      const destination = session.user.accountType === 'admin' ? '/admin' : '/dashboard'
+      router.push(destination)
     }
   }, [session, status, router])
 
@@ -44,8 +45,9 @@ export default function SignInPage() {
       } else {
         // Check if sign in was successful
         const session = await getSession()
-        if (session) {
-          router.push('/dashboard')
+        if (session?.user) {
+          const destination = session.user.accountType === 'admin' ? '/admin' : '/dashboard'
+          router.push(destination)
         }
       }
     } catch (error) {

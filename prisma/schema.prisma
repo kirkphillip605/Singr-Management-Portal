@@ -87,6 +87,25 @@ model Session {
   @@map("sessions")
 }
 
+enum AdminLevel {
+  support
+  super_admin
+
+  @@map("admin_level")
+}
+
+model AdminUser {
+  id           String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name         String
+  email        String      @unique
+  passwordHash String      @map("passwordhash")
+  createdAt    DateTime    @default(now()) @map("createdat") @db.Timestamptz(6)
+  updatedAt    DateTime    @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
+  adminLevel   AdminLevel  @default(support) @map("admin_level")
+
+  @@map("admin_users")
+}
+
 /* ===========================
    Billing/Stripe
    =========================== */
