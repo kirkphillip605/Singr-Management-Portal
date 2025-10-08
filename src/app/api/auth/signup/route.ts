@@ -1,10 +1,14 @@
+// src/app/api/auth/signup/route.ts
+
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
 import { z } from 'zod'
+
+// Optional: If you prefer static import for better types
+import Stripe from 'stripe'
+
 export const runtime = 'nodejs'
-
-
 
 const signupSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -13,6 +17,22 @@ const signupSchema = z.object({
   businessName: z.string().optional(),
   phoneNumber: z.string().optional(),
 })
+
+function getStripeClient(): Stripe {
+  const secret = process.env.STRIPE_SECRET_KEY
+  if (!secret) {
+    throw new Error('STRIPE_SECRET_KEY is not set')
+  }
+
+  // If you set STRIPE_API_VERSION in your env (e.g., "2025-08-27.basil"),
+  // narrow it to the exact union type Stripe expects. Otherwise, fall back
+  // to a pinned version to avoid accidental schema drift.
+  const apiVersion =
+    (process.env.STRIPE_API_VERSION as Stripe.StripeConfig['apiVersion']) ??
+    '2025-08-27.basil'
+
+  return new Stripe(secret, { apiVersion })
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -45,23 +65,20 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    // Create Stripe customer
-    const stripe = await import('stripe').then(m => new m.default(process.env.STRIPE_SECRET_KEY!, {
-      apiVersion: process.env.STRIPE_API_VERSION,
-    }))
-
+    // Create Stripe customer (typed + pinned apiVersion)
+    const stripe = getStripeClient()
     const customer = await stripe.customers.create({
       email: user.email,
       name: user.name || undefined,
-      metadata: {
-        userId: user.id,
-      },
+      metadata: { userId: user.id },
     })
 
-    // Create customer record and initialize default resources
+    // Initialize related records atomically
     await prisma.$transaction([
       prisma.customer.create({
         data: {
+          // NOTE: If your Customer model uses a different PK than user.id,
+          // adjust this accordingly.
           id: user.id,
           stripeCustomerId: customer.id,
         },
@@ -81,13 +98,9 @@ export async function POST(request: NextRequest) {
     ])
 
     return NextResponse.json(
-      { 
+      {
         message: 'User created successfully',
-        user: {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-        }
+        user: { id: user.id, name: user.name, email: user.email },
       },
       { status: 201 }
     )
@@ -98,11 +111,7 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
-
     console.error('Signup error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
