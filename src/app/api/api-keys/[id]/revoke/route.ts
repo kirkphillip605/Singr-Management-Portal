@@ -1,6 +1,5 @@
 // src/app/api/api-keys/[id]/revoke/route.ts
 
-// File: src/app/api/api-keys/[id]/revoke/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
@@ -25,12 +24,7 @@ export async function POST(
     const apiKey = await prisma.apiKey.findFirst({
       where: {
         id,
-        // Option A (most explicit): check via the user relation on customer
-        customer: {
-          user: { id: session.user.id },
-        },
-        // Option B (also valid if you prefer): 
-        // customer: { is: { userId: session.user.id } },
+        customer: { user: { id: session.user.id } },
       },
     })
 
@@ -38,7 +32,7 @@ export async function POST(
       return NextResponse.json({ error: 'API key not found' }, { status: 404 })
     }
 
-    // Idempotent revoke: only set if not already revoked
+    // Idempotent revoke
     if (!apiKey.revokedAt) {
       await prisma.apiKey.update({
         where: { id },
@@ -46,10 +40,22 @@ export async function POST(
       })
     }
 
-    logger.info({ apiKeyId: id, userId: session.user.id }, 'API key revoked')
+    // ✅ String-only logging
+    logger.info(
+      `API key revoked: apiKeyId=${id} userId=${session.user.id}`
+    )
+
     return NextResponse.json({ success: true })
   } catch (err) {
-    logger.error({ err }, 'Failed to revoke API key')
+    // ✅ String-only logging with safe error formatting
+    const msg =
+      err instanceof Error
+        ? `${err.name}: ${err.message}`
+        : typeof err === 'string'
+        ? err
+        : JSON.stringify(err)
+
+    logger.error(`Failed to revoke API key: ${msg}`)
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }
 }
