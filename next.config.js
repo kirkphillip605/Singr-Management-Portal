@@ -5,7 +5,8 @@ const nextConfig = {
     NEXT_PUBLIC_GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
   },
   images: {
-    path: "/",
+    path: "/_next/image",
+    unoptimized: true,
   },
   // Allow cross-origin requests from billing subdomain
   async headers() {
