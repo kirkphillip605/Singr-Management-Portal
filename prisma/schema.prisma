@@ -20,7 +20,7 @@ model VerificationToken {
   identifier String
   token      String   @unique
   expires    DateTime @db.Timestamptz(6)
-  createdat  DateTime @default(now()) @map("createdat") @db.Timestamptz(6)
+  createdAt  DateTime @default(now()) @map("createdat") @db.Timestamptz(6)
   updatedAt  DateTime @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
 
   @@id([identifier, token])
@@ -40,7 +40,7 @@ model User {
   passwordHash  String?     @map("passwordhash")
   accountType   String      @default("customer") @map("accounttype")
   adminLevel    AdminLevel? @map("admin_level")
-  createdat     DateTime    @default(now()) @map("createdat") @db.Timestamptz(6)
+  createdAt     DateTime    @default(now()) @map("createdat") @db.Timestamptz(6)
   updatedAt     DateTime    @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
 
   accounts      Account[]
@@ -83,7 +83,7 @@ model Account {
   session_state      String?
   oauth_token_secret String?
   oauth_token        String?
-  createdat          DateTime @default(now()) @map("createdat") @db.Timestamptz(6)
+  createdAt          DateTime @default(now()) @map("createdat") @db.Timestamptz(6)
   updatedAt          DateTime @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -99,7 +99,7 @@ model Session {
   sessionToken String   @unique @map("sessiontoken")
   userId       String   @map("userid") @db.Uuid
   expires      DateTime @db.Timestamptz(6)
-  createdat    DateTime @default(now()) @map("createdat") @db.Timestamptz(6)
+  createdAt    DateTime @default(now()) @map("createdat") @db.Timestamptz(6)
   updatedAt    DateTime @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -126,7 +126,7 @@ enum AdminLevel {
 model Customer {
   id               String   @id @db.Uuid
   stripeCustomerId String   @unique @map("stripecustomerid")
-  createdat        DateTime @default(now()) @map("createdat") @db.Timestamptz(6)
+  createdAt        DateTime @default(now()) @map("createdat") @db.Timestamptz(6)
   updatedAt        DateTime @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
   email            String?
   name             String?
@@ -280,7 +280,7 @@ model ApiKey {
   customerId  String       @map("customerid") @db.Uuid
   description String?
   apiKeyHash  String       @map("apikeyhash")
-  createdat   DateTime     @default(now()) @map("createdat") @db.Timestamptz(6)
+  createdAt   DateTime     @default(now()) @map("createdat") @db.Timestamptz(6)
   lastUsedAt  DateTime?    @map("lastusedat") @db.Timestamptz(6)
   status      ApiKeyStatus @default(active)
   revokedAt   DateTime?    @map("revokedat") @db.Timestamptz(6)
@@ -319,7 +319,7 @@ model Venue {
   website           String?
   latitude          Float?
   longitude         Float?
-  createdat         DateTime @default(now()) @map("createdat") @db.Timestamptz(6)
+  createdAt         DateTime @default(now()) @map("createdat") @db.Timestamptz(6)
   updatedAt         DateTime @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
   currentSystemId   Int      @default(1) @map("current_system_id")
 
@@ -362,7 +362,7 @@ model SongDb {
   title              String   @db.VarChar(255)
   combined           String   @db.VarChar(255)
   normalizedCombined String   @map("normalized_combined") @db.VarChar(255)
-  createdat          DateTime @default(now()) @map("createdat") @db.Timestamptz(6)
+  createdAt          DateTime @default(now()) @map("createdat") @db.Timestamptz(6)
   updatedAt          DateTime @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -383,7 +383,7 @@ model Request {
   title     String
   singer    String?
   keyChange Int      @default(0) @map("key_change")
-  createdat DateTime @default(now()) @map("createdat") @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @map("createdat") @db.Timestamptz(6)
   processed Boolean  @default(false)
   singerId  String?  @map("singer_id") @db.Uuid
 
@@ -401,7 +401,7 @@ model System {
   userId         String   @map("user_id") @db.Uuid
   openKjSystemId Int      @default(dbgenerated()) @map("openkj_system_id")
   name           String
-  createdat      DateTime @default(now()) @map("createdat") @db.Timestamptz(6)
+  createdAt      DateTime @default(now()) @map("createdat") @db.Timestamptz(6)
   updatedAt      DateTime @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -424,7 +424,7 @@ model SingerUser {
   email        String
   phone        String?
   passwordHash String   @map("passwordhash")
-  createdat    DateTime @default(now()) @map("createdat") @db.Timestamptz(6)
+  createdAt    DateTime @default(now()) @map("createdat") @db.Timestamptz(6)
   updatedAt    DateTime @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
 
   favoriteSongs  SingerFavoriteSong[]
@@ -469,7 +469,7 @@ model SingerRequestHistory {
 model SingerFavoriteVenue {
   singerId  String   @map("singer_id") @db.Uuid
   venueId   String   @map("venue_id") @db.Uuid
-  createdat DateTime @default(now()) @map("createdat") @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @map("createdat") @db.Timestamptz(6)
 
   singer SingerUser @relation(fields: [singerId], references: [id], onDelete: Cascade)
   venue  Venue      @relation("VenueSingerFavoriteVenues", fields: [venueId], references: [id], onDelete: Cascade)
@@ -482,14 +482,14 @@ model SingerFavoriteVenue {
 model UserNote {
   id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId     String   @map("user_id")  @db.Uuid
-  createdby  String   @map("createdby") @db.Uuid
+  createdBy  String   @map("createdby") @db.Uuid
   important  Boolean  @default(false)
   subject    String
   note       String
-  createdat  DateTime @default(now()) @map("createdat") @db.Timestamptz(6)
+  createdAt  DateTime @default(now()) @map("createdat") @db.Timestamptz(6)
 
   user   User @relation("NotesAboutUser",  fields: [userId],    references: [id], onDelete: Restrict, onUpdate: Cascade)
-  author User @relation("NotesAuthoredBy", fields: [createdby], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  author User @relation("NotesAuthoredBy", fields: [createdBy], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
   @@map("user_notes")
   @@schema("public")
@@ -503,28 +503,28 @@ model UserNote {
 
 model SupportTicket {
   id                String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  requesterid       String           @db.Uuid
-  createdbyid       String           @map("created_by") @db.Uuid
-  assigneeid        String?          @map("assignee_id") @db.Uuid
+  requesterId       String           @db.Uuid
+  createdById       String           @map("created_by") @db.Uuid
+  assigneeId        String?          @map("assignee_id") @db.Uuid
   subject           String
   description       String?
   status            TicketStatus     @default(open)
   priority          TicketPriority   @default(normal)
   category          String?
-  externalreference String?          @map("external_reference")
-  closedat          DateTime?        @map("closedat") @db.Timestamptz(6)
-  createdat         DateTime         @default(now()) @map("createdat") @db.Timestamptz(6)
+  externalReference String?          @map("external_reference")
+  closedAt          DateTime?        @map("closedat") @db.Timestamptz(6)
+  createdAt         DateTime         @default(now()) @map("createdat") @db.Timestamptz(6)
   updatedAt         DateTime         @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
 
-  requester User @relation("RequestedTickets", fields: [requesterid], references: [id], onUpdate: Cascade, onDelete: Restrict)
-  creator   User @relation("CreatedTickets",   fields: [createdbyid], references: [id], onUpdate: Cascade, onDelete: Restrict)
-  assignee  User? @relation("AssignedTickets", fields: [assigneeid],  references: [id], onUpdate: Cascade, onDelete: SetNull)
+  requester User @relation("RequestedTickets", fields: [requesterId], references: [id], onUpdate: Cascade, onDelete: Restrict)
+  creator   User @relation("CreatedTickets",   fields: [createdById], references: [id], onUpdate: Cascade, onDelete: Restrict)
+  assignee  User? @relation("AssignedTickets", fields: [assigneeId],  references: [id], onUpdate: Cascade, onDelete: SetNull)
 
   messages SupportTicketMessage[]
   audits   SupportTicketAudit[]
 
-  @@index([requesterid], map: "tickets_requester_id_idx")
-  @@index([assigneeid],  map: "tickets_assignee_id_idx")
+  @@index([requesterId], map: "tickets_requester_id_idx")
+  @@index([assigneeId],  map: "tickets_assignee_id_idx")
   @@index([status],      map: "tickets_status_idx")
   @@index([priority],    map: "tickets_priority_idx")
 
@@ -534,49 +534,49 @@ model SupportTicket {
 
 model SupportTicketMessage {
   id         String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  ticketid   String            @db.Uuid
-  authorid   String            @db.Uuid
+  ticketId   String            @db.Uuid
+  authorId   String            @db.Uuid
   visibility MessageVisibility @default(public)
   body       String
-  editedat   DateTime?         @map("editedat") @db.Timestamptz(6)
-  createdat  DateTime          @default(now()) @map("createdat") @db.Timestamptz(6)
+  editedAt   DateTime?         @map("editedat") @db.Timestamptz(6)
+  createdAt  DateTime          @default(now()) @map("createdat") @db.Timestamptz(6)
 
-  ticket SupportTicket @relation(fields: [ticketid], references: [id], onUpdate: Cascade, onDelete: Cascade)
-  author User          @relation(fields: [authorid], references: [id], onUpdate: Cascade, onDelete: Restrict)
+  ticket SupportTicket @relation(fields: [ticketId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  author User          @relation(fields: [authorId], references: [id], onUpdate: Cascade, onDelete: Restrict)
 
   attachments SupportMessageAttachment[]
 
-  @@index([ticketid, createdat], map: "ticket_messages_ticket_created_idx")
+  @@index([ticketId, createdAt], map: "ticket_messages_ticket_created_idx")
   @@map("ticket_messages")
   @@schema("support")
 }
 
 model SupportMessageAttachment {
   id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  messageid  String   @db.Uuid
-  filename   String   @map("file_name")
-  mimetype   String?  @map("mime_type")
-  bytesize   BigInt?  @map("byte_size")
-  storageurl String   @map("storage_url")
-  createdat  DateTime @default(now()) @map("createdat") @db.Timestamptz(6)
+  messageId  String   @db.Uuid
+  fileName   String   @map("file_name")
+  mimeType   String?  @map("mime_type")
+  byteSize   BigInt?  @map("byte_size")
+  storageUrl String   @map("storage_url")
+  createdAt  DateTime @default(now()) @map("createdat") @db.Timestamptz(6)
 
-  message SupportTicketMessage @relation(fields: [messageid], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  message SupportTicketMessage @relation(fields: [messageId], references: [id], onUpdate: Cascade, onDelete: Cascade)
 
-  @@index([messageid], map: "message_attachments_message_idx")
+  @@index([messageId], map: "message_attachments_message_idx")
   @@map("message_attachments")
   @@schema("support")
 }
 
 model SupportTicketAudit {
   id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  ticketid  String   @db.Uuid
+  ticketId  String   @db.Uuid
   actorId   String   @db.Uuid
   action    String
-  oldvalues Json?    @map("old_values")
-  newvalues Json?    @map("new_values")
-  createdat DateTime @default(now()) @map("createdat") @db.Timestamptz(6)
+  oldValues Json?    @map("old_values")
+  newValues Json?    @map("new_values")
+  createdAt DateTime @default(now()) @map("createdat") @db.Timestamptz(6)
 
-  ticket SupportTicket @relation(fields: [ticketid], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  ticket SupportTicket @relation(fields: [ticketId], references: [id], onUpdate: Cascade, onDelete: Cascade)
   actor  User          @relation(fields: [actorId], references: [id], onUpdate: Cascade, onDelete: Restrict)
 
   @@map("ticket_audits")
