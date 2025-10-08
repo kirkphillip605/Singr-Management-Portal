@@ -7,22 +7,20 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Switch } from '@/components/ui/switch'
+import { Loader2 } from 'lucide-react'
+import { useToast } from '@/components/ui/use-toast'
+import { formatUSPhoneInput, isCompleteUSPhone } from '@/lib/phone'
+import { toVenueSlug, isVenueSlugValid } from '@/lib/slug'
 
 interface AdminCreateVenueFormProps {
   userId: string
   adminLevel: 'support' | 'super_admin'
 }
 
-const toSlug = (value: string) =>
-  value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)+/g, '')
-
 export function AdminCreateVenueForm({ userId, adminLevel }: AdminCreateVenueFormProps) {
   const router = useRouter()
   const isSupport = adminLevel === 'support'
+  const { toast } = useToast()
   const [formState, setFormState] = useState({
     name: '',
     urlName: '',
@@ -56,6 +54,16 @@ export function AdminCreateVenueForm({ userId, adminLevel }: AdminCreateVenueFor
       return
     }
 
+    if (!isVenueSlugValid(formState.urlName)) {
+      setError('URL name can only contain lowercase letters and hyphens')
+      return
+    }
+
+    if (formState.phoneNumber && !isCompleteUSPhone(formState.phoneNumber)) {
+      setError('Phone number must include 10 digits (US format) or be left blank')
+      return
+    }
+
     setIsSubmitting(true)
 
     try {
@@ -86,6 +94,10 @@ export function AdminCreateVenueForm({ userId, adminLevel }: AdminCreateVenueFor
 
       const data = await response.json()
       setSuccess(`Venue ${data.name} created successfully`)
+      toast({
+        title: 'Venue created',
+        description: `${data.name} is ready to accept updates.`,
+      })
       setFormState((prev) => ({
         ...prev,
         name: '',
@@ -100,7 +112,13 @@ export function AdminCreateVenueForm({ userId, adminLevel }: AdminCreateVenueFor
       }))
       router.refresh()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create venue')
+      const message = err instanceof Error ? err.message : 'Failed to create venue'
+      setError(message)
+      toast({
+        variant: 'destructive',
+        title: 'Unable to create venue',
+        description: message,
+      })
     } finally {
       setIsSubmitting(false)
     }
@@ -136,8 +154,8 @@ export function AdminCreateVenueForm({ userId, adminLevel }: AdminCreateVenueFor
             onChange={(event) => {
               const name = event.target.value
               handleChange('name', name)
-              if (!formState.urlName || formState.urlName === toSlug(formState.name)) {
-                handleChange('urlName', toSlug(name))
+              if (!formState.urlName || formState.urlName === toVenueSlug(formState.name)) {
+                handleChange('urlName', toVenueSlug(name))
               }
             }}
             placeholder="Singr Lounge Downtown"
@@ -149,7 +167,7 @@ export function AdminCreateVenueForm({ userId, adminLevel }: AdminCreateVenueFor
           <Input
             id="admin-new-venue-url"
             value={formState.urlName}
-            onChange={(event) => handleChange('urlName', toSlug(event.target.value))}
+            onChange={(event) => handleChange('urlName', toVenueSlug(event.target.value))}
             placeholder="singr-lounge-downtown"
             disabled={isSubmitting}
           />
@@ -203,7 +221,7 @@ export function AdminCreateVenueForm({ userId, adminLevel }: AdminCreateVenueFor
           <Input
             id="admin-new-venue-phone"
             value={formState.phoneNumber}
-            onChange={(event) => handleChange('phoneNumber', event.target.value)}
+            onChange={(event) => handleChange('phoneNumber', formatUSPhoneInput(event.target.value))}
             placeholder="+1 (555) 123-4567"
             disabled={isSubmitting}
           />
@@ -235,7 +253,14 @@ export function AdminCreateVenueForm({ userId, adminLevel }: AdminCreateVenueFor
       </div>
 
       <Button type="submit" disabled={isSubmitting}>
-        {isSubmitting ? 'Creating venue...' : 'Create venue'}
+        {isSubmitting ? (
+          <span className="flex items-center gap-2">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Creating venue...
+          </span>
+        ) : (
+          'Create venue'
+        )}
       </Button>
     </form>
   )

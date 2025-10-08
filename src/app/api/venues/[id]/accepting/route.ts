@@ -76,7 +76,7 @@ export async function PATCH(
       const hasSubscription = await hasActiveSubscription(venue.user.customer.stripeCustomerId)
       if (!hasSubscription) {
         return NextResponse.json(
-          { error: 'Active subscription required to accept requests' },
+          { error: 'You must have an active subscription to accept requests.' },
           { status: 403 }
         )
       }

@@ -12,7 +12,8 @@ import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { formatDistanceToNow } from 'date-fns'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { PageProps } from 'next';
+import { ArrowLeft } from 'lucide-react'
+import { PageProps } from 'next'
 
 interface AdminUserPageProps {
   params: { userId: string }
@@ -166,11 +167,26 @@ export default async function AdminUserPage(props: PageProps<'/admin/users/[user
 
   return (
     <div className="space-y-8">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <Button
+          asChild
+          variant="ghost"
+          className="w-full justify-start gap-2 p-0 text-sm font-medium text-muted-foreground lg:w-auto"
+        >
+          <Link href="/admin" className="inline-flex items-center gap-2">
+            <ArrowLeft className="h-4 w-4" />
+            Back to customer directory
+          </Link>
+        </Button>
+      </div>
+
       <section className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
         <div className="space-y-2">
-          <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-bold">{user.name || user.email}</h1>
-            <Badge variant="secondary">{primarySubscription?.status ?? 'no subscription'}</Badge>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+            <h1 className="text-3xl font-bold break-words">{user.name || user.email}</h1>
+            <Badge variant="secondary" className="w-max uppercase">
+              {primarySubscription?.status ?? 'no subscription'}
+            </Badge>
           </div>
           <p className="text-muted-foreground">Customer since {user.createdAt.toLocaleDateString()}</p>
           <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
