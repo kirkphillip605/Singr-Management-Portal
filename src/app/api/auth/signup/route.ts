@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
 
     // Create Stripe customer
     const stripe = await import('stripe').then(m => new m.default(process.env.STRIPE_SECRET_KEY!, {
-      apiVersion: '2024-06-20',
+      apiVersion: process.env.STRIPE_API_VERSION,
     }))
 
     const customer = await stripe.customers.create({
