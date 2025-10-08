@@ -198,7 +198,7 @@ async function authenticateApiKey(apiKey: string) {
 async function verifyActiveSubscription(stripeCustomerId: string): Promise<boolean> {
   try {
     const stripe = await import('stripe').then(
-      (m) => new m.default(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2024-06-20' }),
+      (m) => new m.default(process.env.STRIPE_SECRET_KEY!, { apiVersion: process.env.STRIPE_API_VERSION }),
     )
 
     const active = await stripe.subscriptions.list({
