@@ -6,3 +6,5 @@
 .turbo/
 tsconfig.tsbuildinfo
 .env.sentry-build-plugin
+/logs/
+package-lock.json
