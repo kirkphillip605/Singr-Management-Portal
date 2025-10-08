@@ -7,7 +7,7 @@ export const runtime = 'nodejs'
 
 
 export async function POST(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const paramsResolved = await params

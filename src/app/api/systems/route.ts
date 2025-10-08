@@ -10,7 +10,7 @@ const createSystemSchema = z.object({
   name: z.string().min(1, 'Name is required').max(100, 'Name must be 100 characters or fewer'),
 })
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   const session = await getServerSession(authOptions)
 
   if (!session?.user?.id) {
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ system })
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.errors[0].message }, { status: 400 })
+      return NextResponse.json({ error: error.errors[0]?.message ?? 'Validation error' }, { status: 400 })
     }
 
     console.error('Failed to create system', error)

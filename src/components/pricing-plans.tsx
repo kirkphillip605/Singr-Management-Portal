@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { CheckCircle, Star, Loader2, CreditCard } from 'lucide-react'
@@ -61,15 +61,15 @@ export function PricingPlans({ prices }: PricingPlansProps) {
   }
 
   const getSavingsPercentage = (price: StripePrice) => {
-    if (price.metadata?.savings_percentage) {
-      return parseInt(price.metadata.savings_percentage)
+    if (price.metadata?.['savings_percentage']) {
+      return parseInt(price.metadata['savings_percentage'])
     }
     return null
   }
 
   const getPlanName = (price: StripePrice) => {
-    if (price.metadata?.plan_name) {
-      switch (price.metadata.plan_name) {
+    if (price.metadata?.['plan_name']) {
+      switch (price.metadata['plan_name']) {
         case 'monthly': return 'Monthly'
         case 'semi-annual': return 'Semi-Annual'
         case 'annual': return 'Annual'
@@ -81,8 +81,8 @@ export function PricingPlans({ prices }: PricingPlansProps) {
 
   const sortedPrices = [...prices].sort((a, b) => {
     const order = { monthly: 1, 'semi-annual': 2, annual: 3 }
-    const aOrder = order[a.metadata?.plan_name as keyof typeof order] || 999
-    const bOrder = order[b.metadata?.plan_name as keyof typeof order] || 999
+    const aOrder = order[a.metadata?.['plan_name'] as keyof typeof order] || 999
+    const bOrder = order[b.metadata?.['plan_name'] as keyof typeof order] || 999
     return aOrder - bOrder
   })
 
@@ -109,10 +109,10 @@ export function PricingPlans({ prices }: PricingPlansProps) {
       )}
 
       <div className="grid md:grid-cols-3 gap-6">
-        {sortedPrices.map((price, index) => {
+        {sortedPrices.map((price) => {
           const savings = getSavingsPercentage(price)
           const planName = getPlanName(price)
-          const isPopular = price.metadata?.plan_name === 'semi-annual'
+          const isPopular = price.metadata?.['plan_name'] === 'semi-annual'
           const isLoading = loadingPriceId === price.id
 
           return (
@@ -170,7 +170,7 @@ export function PricingPlans({ prices }: PricingPlansProps) {
                     <CheckCircle className="h-4 w-4 text-green-500 mr-3 flex-shrink-0" />
                     <span>Email Support</span>
                   </li>
-                  {(isPopular || price.metadata?.plan_name === 'annual') && (
+                  {(isPopular || price.metadata?.['plan_name'] === 'annual') && (
                     <>
                       <li className="flex items-center text-sm">
                         <CheckCircle className="h-4 w-4 text-green-500 mr-3 flex-shrink-0" />
@@ -182,7 +182,7 @@ export function PricingPlans({ prices }: PricingPlansProps) {
                       </li>
                     </>
                   )}
-                  {price.metadata?.plan_name === 'annual' && (
+                  {price.metadata?.['plan_name'] === 'annual' && (
                     <li className="flex items-center text-sm">
                       <CheckCircle className="h-4 w-4 text-green-500 mr-3 flex-shrink-0" />
                       <span>Free Setup Consultation</span>
