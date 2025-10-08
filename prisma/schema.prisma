@@ -503,15 +503,15 @@ model UserNote {
 
 model SupportTicket {
   id                String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  requesterId       String           @map("requester_id") @db.Uuid        // <- added @map
-  createdById       String           @map("created_by")   @db.Uuid
-  assigneeId        String?          @map("assignee_id")  @db.Uuid
+  requesterId       String           @map("requesterid") @db.Uuid
+  createdById       String           @map("createdby")   @db.Uuid
+  assigneeId        String?          @map("assigneeid")  @db.Uuid
   subject           String
   description       String?
   status            TicketStatus     @default(open)
   priority          TicketPriority   @default(normal)
   category          String?
-  externalReference String?          @map("external_reference")
+  externalReference String?          @map("externalreference")
   closedAt          DateTime?        @map("closedat") @db.Timestamptz(6)
   createdAt         DateTime         @default(now()) @map("createdat") @db.Timestamptz(6)
   updatedAt         DateTime         @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
@@ -533,8 +533,8 @@ model SupportTicket {
 
 model SupportTicketMessage {
   id         String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  ticketId   String            @map("ticket_id") @db.Uuid     // <- added @map
-  authorId   String            @map("author_id") @db.Uuid     // <- added @map
+  ticketId   String            @map("ticketid") @db.Uuid
+  authorId   String            @map("authorid") @db.Uuid
   visibility MessageVisibility @default(public)
   body       String
   editedAt   DateTime?         @map("editedat") @db.Timestamptz(6)
@@ -552,11 +552,11 @@ model SupportTicketMessage {
 
 model SupportMessageAttachment {
   id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  messageId  String   @map("message_id") @db.Uuid   // <- added @map
-  fileName   String   @map("file_name")
-  mimeType   String?  @map("mime_type")
-  byteSize   BigInt?  @map("byte_size")
-  storageUrl String   @map("storage_url")
+  messageId  String   @map("messageid")  @db.Uuid
+  fileName   String   @map("filename")
+  mimeType   String?  @map("mimetype")
+  byteSize   BigInt?  @map("bytesize")
+  storageUrl String   @map("storageurl")
   createdAt  DateTime @default(now()) @map("createdat") @db.Timestamptz(6)
 
   message SupportTicketMessage @relation(fields: [messageId], references: [id], onUpdate: Cascade, onDelete: Cascade)
@@ -568,11 +568,11 @@ model SupportMessageAttachment {
 
 model SupportTicketAudit {
   id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  ticketId  String   @db.Uuid
-  actorId   String   @db.Uuid
+  ticketId  String   @map("ticketid") @db.Uuid
+  actorId   String   @map("actorid")  @db.Uuid
   action    String
-  oldValues Json?    @map("old_values")
-  newValues Json?    @map("new_values")
+  oldValues Json?    @map("oldvalues")
+  newValues Json?    @map("newvalues")
   createdAt DateTime @default(now()) @map("createdat") @db.Timestamptz(6)
 
   ticket SupportTicket @relation(fields: [ticketId], references: [id], onUpdate: Cascade, onDelete: Cascade)
