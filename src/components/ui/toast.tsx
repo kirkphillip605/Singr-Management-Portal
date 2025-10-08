@@ -1,3 +1,5 @@
+// src/components/ui/toast.tsx
+
 'use client'
 
 import * as React from 'react'
@@ -5,6 +7,18 @@ import * as ToastPrimitives from '@radix-ui/react-toast'
 import { cva, type VariantProps } from 'class-variance-authority'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
+
+/**
+ * SHadcn/Radix Toast primitives with a small styling layer.
+ * Exposes:
+ *  - ToastProvider
+ *  - ToastViewport
+ *  - Toast (Root)
+ *  - ToastTitle
+ *  - ToastDescription
+ *  - ToastClose
+ *  - ToastAction
+ */
 
 const ToastProvider = ToastPrimitives.Provider
 
@@ -40,13 +54,13 @@ const toastVariants = cva(
 
 const Toast = React.forwardRef<
   React.ElementRef<typeof ToastPrimitives.Root>,
-  React.ComponentPropsWithoutRef<typeof ToastPrimitives.Root> &
-    VariantProps<typeof toastVariants>
+  React.ComponentPropsWithoutRef<typeof ToastPrimitives.Root> & VariantProps<typeof toastVariants>
 >(({ className, variant, ...props }, ref) => {
   return (
     <ToastPrimitives.Root
       ref={ref}
       className={cn(toastVariants({ variant }), className)}
+      // Radix handles aria attributes internally; additional props forwarded
       {...props}
     />
   )
@@ -78,10 +92,10 @@ const ToastClose = React.forwardRef<
       'absolute right-2 top-2 rounded-md p-1 text-slate-500 opacity-0 transition-opacity hover:text-slate-900 focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 group-hover:opacity-100 group-focus:opacity-100',
       className,
     )}
-    toast-close=""
     {...props}
   >
-    <X className="h-4 w-4" />
+    <X className="h-4 w-4" aria-hidden="true" />
+    <span className="sr-only">Close</span>
   </ToastPrimitives.Close>
 ))
 ToastClose.displayName = ToastPrimitives.Close.displayName
@@ -90,11 +104,7 @@ const ToastTitle = React.forwardRef<
   React.ElementRef<typeof ToastPrimitives.Title>,
   React.ComponentPropsWithoutRef<typeof ToastPrimitives.Title>
 >(({ className, ...props }, ref) => (
-  <ToastPrimitives.Title
-    ref={ref}
-    className={cn('text-sm font-semibold', className)}
-    {...props}
-  />
+  <ToastPrimitives.Title ref={ref} className={cn('text-sm font-semibold', className)} {...props} />
 ))
 ToastTitle.displayName = ToastPrimitives.Title.displayName
 
