@@ -292,7 +292,7 @@ export default function HomePage() {
                 popular: false,
                 features: ['Full Platform Access', 'Priority Support', 'Unlimited Venues', 'Real-time Song Requests', 'Custom Branding Available', 'Free Setup Consultation'] 
               },
-            ].map((plan, index) => (
+            ].map((plan) => (
               <Card key={plan.name} className={`border-0 shadow-lg relative hover:shadow-xl transition-all duration-300 ${plan.popular ? 'ring-2 ring-primary transform scale-105' : ''}`}>
                 {plan.popular && (
                   <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">

@@ -2,9 +2,8 @@ import { redirect } from 'next/navigation'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { VenueSearchForm } from '@/components/venue-search-form'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { MapPin, Info } from 'lucide-react'
+import { Info } from 'lucide-react'
 
 export default async function NewVenuePage() {
   const session = await getServerSession(authOptions)

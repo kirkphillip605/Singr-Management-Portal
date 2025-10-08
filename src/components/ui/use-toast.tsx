@@ -3,16 +3,18 @@
 'use client'
 
 import * as React from 'react'
-import { type ToastActionElement, type ToastProps } from '@radix-ui/react-toast'
+import { type ToastProps } from '@radix-ui/react-toast'
 import {
   Toast,                   // ✅ needed to render each toast
-  ToastAction,
   ToastClose,
   ToastDescription,
   ToastProvider,
   ToastTitle,
   ToastViewport,
 } from './toast'
+
+// Define ToastActionElement type locally since it's not exported by Radix
+type ToastActionElement = React.ReactElement<any>
 
 /**
  * A tiny in-memory toast store with a React hook + Toaster renderer.

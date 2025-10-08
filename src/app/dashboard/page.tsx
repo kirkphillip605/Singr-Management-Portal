@@ -62,7 +62,7 @@ export default async function DashboardPage() {
 
       if (activeSubscription) {
         try {
-          nextInvoice = await stripe.invoices.retrieveUpcoming({
+          nextInvoice = await stripe.invoices.createPreview({
             customer: user.customer.stripeCustomerId,
             subscription: activeSubscription.id,
           })

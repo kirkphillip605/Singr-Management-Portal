@@ -261,7 +261,7 @@ function findVenue(venues: any[], venueId?: number) {
    =========================== */
 
 export async function POST(request: NextRequest) {
-  const ip = request.ip || 'unknown'
+  const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown'
 
   try {
     // Basic rate limit

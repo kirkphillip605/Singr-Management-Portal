@@ -11,10 +11,10 @@ export async function GET(
   const paramsResolved = await params
 
   try {
-    const price = await prisma.price.findUnique({
+    const price = await prisma.stripePrice.findUnique({
       where: { id: paramsResolved.id },
       include: {
-        product: true,
+        productRelation: true,
       },
     })
 

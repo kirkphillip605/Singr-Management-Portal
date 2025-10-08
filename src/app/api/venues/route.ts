@@ -37,7 +37,7 @@ const createVenueSchema = z.object({
 })
 
 async function geocodeAddress(address: string): Promise<{ lat: number; lng: number } | null> {
-  const apiKey = process.env.HERE_API_KEY
+  const apiKey = process.env['HERE_API_KEY']
   if (!apiKey) return null
 
   try {

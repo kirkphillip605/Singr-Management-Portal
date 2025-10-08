@@ -78,7 +78,7 @@ export function VenueManagementForm({ venue }: VenueManagementFormProps) {
       }, 1500)
     } catch (error) {
       if (error instanceof z.ZodError) {
-        setError(error.errors[0].message)
+        setError(error.errors[0]?.message ?? 'Validation error')
       } else {
         setError(error instanceof Error ? error.message : 'An error occurred')
       }

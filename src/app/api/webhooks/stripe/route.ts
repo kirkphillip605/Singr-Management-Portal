@@ -25,23 +25,25 @@ function safeBigInt(value: number | null | undefined): bigint | null {
   return BigInt(value)
 }
 
-// Helper to extract customer ID from Stripe customer string or object
-function extractCustomerId(customer: string | Stripe.Customer | null): string | null {
+// Helper to extract customer ID from Stripe customer string or object (including DeletedCustomer)
+function extractCustomerId(customer: string | Stripe.Customer | Stripe.DeletedCustomer | null): string | null {
   if (!customer) return null
-  return typeof customer === 'string' ? customer : customer.id
+  if (typeof customer === 'string') return customer
+  // Both Customer and DeletedCustomer have an id property
+  return customer.id
 }
 
 // Helper to safely extract subscription periods from Stripe subscription object
 function extractSubscriptionPeriods(subscription: Stripe.Subscription) {
   // For trial subscriptions, current_period_start/end might not be set
   // Use trial dates or creation date as fallbacks
-  const currentPeriodStart = safeTimestampToDate(subscription.current_period_start) || 
-                            safeTimestampToDate(subscription.trial_start) ||
+  const currentPeriodStart = safeTimestampToDate((subscription as any).current_period_start) || 
+                            safeTimestampToDate((subscription as any).trial_start) ||
                             safeTimestampToDate(subscription.created) ||
                             new Date()
                             
-  const currentPeriodEnd = safeTimestampToDate(subscription.current_period_end) || 
-                          safeTimestampToDate(subscription.trial_end) ||
+  const currentPeriodEnd = safeTimestampToDate((subscription as any).current_period_end) || 
+                          safeTimestampToDate((subscription as any).trial_end) ||
                           new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days from now as fallback
 
   return {
@@ -181,7 +183,7 @@ export async function POST(request: NextRequest) {
               packageDimensions: product.package_dimensions as any,
               shippable: product.shippable,
               statementDescriptor: product.statement_descriptor,
-              taxCode: product.tax_code,
+              taxCode: typeof product.tax_code === 'string' ? product.tax_code : null,
               unitLabel: product.unit_label,
               url: product.url,
               livemode: product.livemode,
@@ -199,7 +201,7 @@ export async function POST(request: NextRequest) {
               packageDimensions: product.package_dimensions as any,
               shippable: product.shippable,
               statementDescriptor: product.statement_descriptor,
-              taxCode: product.tax_code,
+              taxCode: typeof product.tax_code === 'string' ? product.tax_code : null,
               unitLabel: product.unit_label,
               url: product.url,
               livemode: product.livemode,
