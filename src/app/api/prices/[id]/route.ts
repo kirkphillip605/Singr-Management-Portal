@@ -8,7 +8,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const paramsResolved = await paramsResolved
+  const paramsResolved = await params
 
   try {
     const price = await prisma.price.findUnique({

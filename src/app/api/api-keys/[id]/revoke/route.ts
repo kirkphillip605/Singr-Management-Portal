@@ -13,7 +13,7 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const paramsResolved = await paramsResolved
+  const paramsResolved = await params
 
   try {
     const session = await getServerSession(authOptions)
@@ -21,7 +21,7 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { id } = await paramsResolved
+    const { id } = paramsResolved
 
     // Verify ownership (adjust where clause to your schema)
     const apiKey = await prisma.apiKey.findFirst({

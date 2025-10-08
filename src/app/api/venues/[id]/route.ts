@@ -21,7 +21,7 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const paramsResolved = await paramsResolved
+  const paramsResolved = await params
 
   try {
     const session = await getServerSession(authOptions)

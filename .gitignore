@@ -3,4 +3,6 @@
 /config/ssl/
 .env
 /.next/
+.turbo/
+tsconfig.tsbuildinfo
 .env.sentry-build-plugin

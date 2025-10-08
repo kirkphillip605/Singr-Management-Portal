@@ -9,11 +9,15 @@ const navigation = [
   { name: 'Global Activity', href: '/admin/activity' },
 ]
 
-export function AdminNav() {
+type AdminNavProps = {
+  onNavigate?: () => void
+}
+
+export function AdminNav({ onNavigate }: AdminNavProps) {
   const pathname = usePathname()
 
   return (
-    <nav className="p-4 space-y-2">
+    <nav className="space-y-2">
       {navigation.map((item) => {
         const isActive = pathname === item.href || pathname?.startsWith(`${item.href}/`)
         return (
@@ -21,11 +25,13 @@ export function AdminNav() {
             key={item.name}
             href={item.href}
             className={cn(
-              'block px-3 py-2 rounded-md text-sm font-medium transition-colors',
+              'block rounded-md px-3 py-2 text-sm font-medium transition-colors',
               isActive
                 ? 'bg-primary text-primary-foreground'
                 : 'text-muted-foreground hover:text-foreground hover:bg-muted'
             )}
+            aria-current={isActive ? 'page' : undefined}
+            onClick={onNavigate}
           >
             {item.name}
           </Link>
