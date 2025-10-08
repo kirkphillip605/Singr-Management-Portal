@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Loader2 } from 'lucide-react'
+import { useToast } from '@/components/ui/use-toast'
 
 interface AdminApiKeyGeneratorProps {
   userId: string
@@ -19,6 +21,7 @@ export function AdminApiKeyGenerator({ userId, adminLevel }: AdminApiKeyGenerato
   const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [generatedKey, setGeneratedKey] = useState<string | null>(null)
+  const { toast } = useToast()
 
   const handleGenerate = async (event: React.FormEvent) => {
     event.preventDefault()
@@ -49,9 +52,19 @@ export function AdminApiKeyGenerator({ userId, adminLevel }: AdminApiKeyGenerato
       const data = await response.json()
       setGeneratedKey(data.apiKey)
       setDescription('')
+      toast({
+        title: 'API key generated',
+        description: 'Share the new key securely with the customer.',
+      })
       router.refresh()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to generate API key')
+      const message = err instanceof Error ? err.message : 'Failed to generate API key'
+      setError(message)
+      toast({
+        variant: 'destructive',
+        title: 'Unable to generate API key',
+        description: message,
+      })
     } finally {
       setIsGenerating(false)
     }
@@ -63,8 +76,18 @@ export function AdminApiKeyGenerator({ userId, adminLevel }: AdminApiKeyGenerato
     try {
       await navigator.clipboard.writeText(generatedKey)
       setError(null)
+      toast({
+        title: 'Copied to clipboard',
+        description: 'The API key value is ready to share.',
+      })
     } catch (err) {
-      setError('Unable to copy API key to clipboard')
+      const message = 'Unable to copy API key to clipboard'
+      setError(message)
+      toast({
+        variant: 'destructive',
+        title: 'Copy failed',
+        description: message,
+      })
     }
   }
 
@@ -82,7 +105,14 @@ export function AdminApiKeyGenerator({ userId, adminLevel }: AdminApiKeyGenerato
       </div>
 
       <Button type="submit" disabled={isGenerating}>
-        {isGenerating ? 'Generating...' : 'Generate new API key'}
+        {isGenerating ? (
+          <span className="flex items-center gap-2">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Generating...
+          </span>
+        ) : (
+          'Generate new API key'
+        )}
       </Button>
 
       {isSupport && (

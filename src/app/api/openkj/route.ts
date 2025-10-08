@@ -165,14 +165,6 @@ async function authenticateApiKey(apiKey: string) {
       }
 
       const hasActiveSubscription = await verifyActiveSubscription(key.customer.stripeCustomerId)
-      if (!hasActiveSubscription) {
-        logger.warn(`API access denied - no active subscription for customer ${key.customer.id}`)
-        return {
-          error: true,
-          errorString:
-            'The API key provided is SUSPENDED. Visit https://billing.singrkaraoke.com/dashboard/billing for more details',
-        }
-      }
 
       // Async but not awaited intentionally? We will await to keep it tidy.
       await prisma.apiKey.update({
@@ -186,6 +178,7 @@ async function authenticateApiKey(apiKey: string) {
         user: key.customer.user,
         venues: key.customer.user.venues,
         systems: key.customer.user.systems,
+        hasActiveSubscription,
       }
     }
 
@@ -273,7 +266,7 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    const { user, venues, systems } = auth as any
+    const { user, venues, systems, hasActiveSubscription } = auth as any
 
     switch (command) {
       case 'getSerial': {
@@ -379,6 +372,18 @@ export async function POST(request: NextRequest) {
             command,
             error: true,
             errorString: `System ${validation.data.system_id} not found for user`,
+          })
+        }
+
+        if (!hasActiveSubscription && validation.data.accepting) {
+          logger.warn('Blocked setAccepting due to inactive subscription', {
+            userId: user.id,
+            venueId: venue.id,
+          })
+          return NextResponse.json({
+            command,
+            error: true,
+            errorString: 'You must have an active subscription to accept requests.',
           })
         }
 
@@ -517,8 +522,7 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        const serial =
-          processedCount > 0 ? await bumpUserSerial(user.id) : await getOrCreateUserSerial(user.id)
+        const serial = await getOrCreateUserSerial(user.id)
 
         return NextResponse.json({
           command,
@@ -547,9 +551,7 @@ export async function POST(request: NextRequest) {
           where: { userId: user.id, openKjSystemId: system.openKjSystemId },
         })
 
-        const serial = deleted.count > 0
-          ? await bumpUserSerial(user.id)
-          : await getOrCreateUserSerial(user.id)
+        const serial = await getOrCreateUserSerial(user.id)
 
         return NextResponse.json({ command, serial, error: false })
       }

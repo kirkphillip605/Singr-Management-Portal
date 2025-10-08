@@ -7,6 +7,9 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Switch } from '@/components/ui/switch'
+import { Loader2 } from 'lucide-react'
+import { useToast } from '@/components/ui/use-toast'
+import { formatUSPhoneInput, isCompleteUSPhone } from '@/lib/phone'
 
 interface AdminVenueEditorProps {
   venue: {
@@ -30,6 +33,7 @@ interface AdminVenueEditorProps {
 export function AdminVenueEditor({ venue, adminLevel }: AdminVenueEditorProps) {
   const router = useRouter()
   const isReadOnly = adminLevel !== 'super_admin'
+  const { toast } = useToast()
 
   const [formState, setFormState] = useState({
     name: venue.name,
@@ -38,7 +42,7 @@ export function AdminVenueEditor({ venue, adminLevel }: AdminVenueEditorProps) {
     state: venue.state || '',
     stateCode: venue.stateCode || '',
     postalCode: venue.postalCode || '',
-    phoneNumber: venue.phoneNumber || '',
+    phoneNumber: venue.phoneNumber ? formatUSPhoneInput(venue.phoneNumber) : '',
     website: venue.website || '',
     acceptingRequests: venue.acceptingRequests,
   })
@@ -61,13 +65,25 @@ export function AdminVenueEditor({ venue, adminLevel }: AdminVenueEditorProps) {
     setError(null)
     setSuccess(null)
 
+    if (formState.phoneNumber && !isCompleteUSPhone(formState.phoneNumber)) {
+      setError('Phone number must include 10 digits (US format) or be cleared')
+      setIsSaving(false)
+      return
+    }
+
     try {
+      const payload = {
+        ...formState,
+        phoneNumber: formState.phoneNumber || null,
+        website: formState.website || null,
+      }
+
       const response = await fetch(`/api/admin/venues/${venue.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formState),
+        body: JSON.stringify(payload),
       })
 
       if (!response.ok) {
@@ -76,9 +92,19 @@ export function AdminVenueEditor({ venue, adminLevel }: AdminVenueEditorProps) {
       }
 
       setSuccess('Venue details updated successfully')
+      toast({
+        title: 'Venue updated',
+        description: `${formState.name} has been refreshed.`,
+      })
       router.refresh()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update venue')
+      const message = err instanceof Error ? err.message : 'Failed to update venue'
+      setError(message)
+      toast({
+        variant: 'destructive',
+        title: 'Unable to update venue',
+        description: message,
+      })
     } finally {
       setIsSaving(false)
     }
@@ -110,9 +136,19 @@ export function AdminVenueEditor({ venue, adminLevel }: AdminVenueEditorProps) {
       }
 
       setSuccess('Venue deleted')
+      toast({
+        title: 'Venue deleted',
+        description: `${venue.name} has been removed from the account.`,
+      })
       router.refresh()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete venue')
+      const message = err instanceof Error ? err.message : 'Failed to delete venue'
+      setError(message)
+      toast({
+        variant: 'destructive',
+        title: 'Unable to delete venue',
+        description: message,
+      })
     } finally {
       setIsSaving(false)
     }
@@ -155,7 +191,7 @@ export function AdminVenueEditor({ venue, adminLevel }: AdminVenueEditorProps) {
           <Input
             id={`venue-phone-${venue.id}`}
             value={formState.phoneNumber}
-            onChange={(event) => handleChange('phoneNumber', event.target.value)}
+            onChange={(event) => handleChange('phoneNumber', formatUSPhoneInput(event.target.value))}
             disabled={isReadOnly || isSaving}
           />
         </div>
@@ -227,7 +263,14 @@ export function AdminVenueEditor({ venue, adminLevel }: AdminVenueEditorProps) {
 
       <div className="flex flex-wrap gap-3">
         <Button type="submit" disabled={isReadOnly || isSaving}>
-          {isSaving ? 'Saving...' : 'Save changes'}
+          {isSaving ? (
+            <span className="flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Saving...
+            </span>
+          ) : (
+            'Save changes'
+          )}
         </Button>
         <Button
           type="button"

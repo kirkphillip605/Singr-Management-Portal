@@ -6,6 +6,9 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Loader2 } from 'lucide-react'
+import { useToast } from '@/components/ui/use-toast'
+import { formatUSPhoneInput, isCompleteUSPhone } from '@/lib/phone'
 
 interface AdminUserProfileFormProps {
   userId: string
@@ -24,11 +27,12 @@ export function AdminUserProfileForm({
 }: AdminUserProfileFormProps) {
   const router = useRouter()
   const isReadOnly = adminLevel !== 'super_admin'
+  const { toast } = useToast()
 
   const [formState, setFormState] = useState({
     name: name || '',
     businessName: businessName || '',
-    phoneNumber: phoneNumber || '',
+    phoneNumber: phoneNumber ? formatUSPhoneInput(phoneNumber) : '',
   })
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -45,17 +49,27 @@ export function AdminUserProfileForm({
 
     if (isReadOnly) return
 
+    if (formState.phoneNumber && !isCompleteUSPhone(formState.phoneNumber)) {
+      setError('Phone number must include 10 digits (US format) or be blank')
+      return
+    }
+
     setIsSaving(true)
     setError(null)
     setSuccess(null)
 
     try {
+      const payload = {
+        ...formState,
+        phoneNumber: formState.phoneNumber || null,
+      }
+
       const response = await fetch(`/api/admin/users/${userId}/profile`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formState),
+        body: JSON.stringify(payload),
       })
 
       if (!response.ok) {
@@ -64,9 +78,19 @@ export function AdminUserProfileForm({
       }
 
       setSuccess('Customer profile updated successfully')
+      toast({
+        title: 'Profile updated',
+        description: 'Customer profile changes have been saved.',
+      })
       router.refresh()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update profile')
+      const message = err instanceof Error ? err.message : 'Failed to update profile'
+      setError(message)
+      toast({
+        variant: 'destructive',
+        title: 'Unable to update profile',
+        description: message,
+      })
     } finally {
       setIsSaving(false)
     }
@@ -119,13 +143,20 @@ export function AdminUserProfileForm({
         <Input
           id="admin-customer-phone"
           value={formState.phoneNumber}
-          onChange={(event) => handleChange('phoneNumber', event.target.value)}
+          onChange={(event) => handleChange('phoneNumber', formatUSPhoneInput(event.target.value))}
           disabled={isReadOnly || isSaving}
         />
       </div>
 
       <Button type="submit" disabled={isReadOnly || isSaving}>
-        {isSaving ? 'Saving...' : 'Save profile changes'}
+        {isSaving ? (
+          <span className="flex items-center gap-2">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Saving...
+          </span>
+        ) : (
+          'Save profile changes'
+        )}
       </Button>
     </form>
   )

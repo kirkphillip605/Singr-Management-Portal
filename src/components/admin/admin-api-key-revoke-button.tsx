@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { useRouter } from 'next/navigation'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Loader2 } from 'lucide-react'
+import { useToast } from '@/components/ui/use-toast'
 
 interface AdminApiKeyRevokeButtonProps {
   apiKeyId: string
@@ -21,6 +23,7 @@ export function AdminApiKeyRevokeButton({
   const [error, setError] = useState<string | null>(null)
   const isRevoked = status !== 'active'
   const isSuperAdmin = adminLevel === 'super_admin'
+  const { toast } = useToast()
 
   if (!isSuperAdmin) {
     return null
@@ -40,9 +43,19 @@ export function AdminApiKeyRevokeButton({
         throw new Error(data.error || 'Failed to revoke API key')
       }
 
+      toast({
+        title: 'API key revoked',
+        description: 'The key can no longer be used for requests.',
+      })
       router.refresh()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to revoke API key')
+      const message = err instanceof Error ? err.message : 'Failed to revoke API key'
+      setError(message)
+      toast({
+        variant: 'destructive',
+        title: 'Unable to revoke key',
+        description: message,
+      })
     } finally {
       setIsLoading(false)
     }
@@ -62,7 +75,16 @@ export function AdminApiKeyRevokeButton({
         onClick={handleRevoke}
         disabled={isLoading || isRevoked}
       >
-        {isRevoked ? 'Revoked' : isLoading ? 'Revoking…' : 'Revoke key'}
+        {isRevoked ? (
+          'Revoked'
+        ) : isLoading ? (
+          <span className="flex items-center gap-2">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Revoking…
+          </span>
+        ) : (
+          'Revoke key'
+        )}
       </Button>
     </div>
   )

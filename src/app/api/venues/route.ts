@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
+import { isCompleteUSPhone } from '@/lib/phone'
 export const runtime = 'nodejs'
 
 
@@ -10,7 +11,10 @@ export const runtime = 'nodejs'
 const createVenueSchema = z.object({
   name: z.string().min(1, 'Venue name is required'),
   displayName: z.string().optional(),
-  urlName: z.string().min(1, 'URL name is required').regex(/^[a-z0-9-]+$/, 'URL name can only contain lowercase letters, numbers, and hyphens'),
+  urlName: z
+    .string()
+    .min(1, 'URL name is required')
+    .regex(/^[a-z-]+$/, 'URL name can only contain lowercase letters and hyphens'),
   address: z.string().optional(),
   city: z.string().optional(),
   state: z.string().optional(),
@@ -18,7 +22,13 @@ const createVenueSchema = z.object({
   postalCode: z.string().optional(),
   country: z.string().default('US'),
   countryCode: z.string().optional(),
-  phoneNumber: z.string().optional(),
+  phoneNumber: z
+    .string()
+    .optional()
+    .refine(
+      (value) => !value || isCompleteUSPhone(value),
+      'Phone number must include 10 digits (US format) or be blank',
+    ),
   website: z.string().optional(),
   herePlaceId: z.string().optional(),
   latitude: z.number().optional(),
@@ -118,7 +128,7 @@ export async function POST(request: NextRequest) {
 
     await prisma.state.upsert({
       where: { userId: session.user.id },
-      update: {},
+      update: { serial: { increment: BigInt(1) } },
       create: { userId: session.user.id, serial: BigInt(1) },
     })
 

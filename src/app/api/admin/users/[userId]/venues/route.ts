@@ -3,6 +3,7 @@ import { getAdminSession, assertAdminLevel } from '@/lib/admin-auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import { logger } from '@/lib/logger'
+import { isCompleteUSPhone } from '@/lib/phone'
 export const runtime = 'nodejs'
 
 
@@ -12,7 +13,7 @@ const createVenueSchema = z.object({
   urlName: z
     .string()
     .min(1, 'URL name is required')
-    .regex(/^[a-z0-9-]+$/, 'URL name can only contain lowercase letters, numbers, and hyphens'),
+    .regex(/^[a-z-]+$/, 'URL name can only contain lowercase letters and hyphens'),
   address: z.string().optional(),
   city: z.string().optional(),
   state: z.string().optional(),
@@ -20,7 +21,13 @@ const createVenueSchema = z.object({
   postalCode: z.string().optional(),
   country: z.string().default('US'),
   countryCode: z.string().optional(),
-  phoneNumber: z.string().optional(),
+  phoneNumber: z
+    .string()
+    .optional()
+    .refine(
+      (value) => !value || isCompleteUSPhone(value),
+      'Phone number must include 10 digits (US format) or be blank',
+    ),
   website: z.string().optional(),
   acceptingRequests: z.boolean().default(true),
 })
@@ -55,7 +62,7 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ userId: string }> }
 ) {
-  const paramsResolved = await paramsResolved
+  const paramsResolved = await params
 
   const session = await getAdminSession()
 
@@ -122,7 +129,7 @@ export async function POST(
         postalCode: validatedData.postalCode,
         country: validatedData.country,
         countryCode: validatedData.countryCode || null,
-        phoneNumber: validatedData.phoneNumber,
+        phoneNumber: validatedData.phoneNumber || undefined,
         website: validatedData.website,
         latitude: coordinates?.lat,
         longitude: coordinates?.lng,
@@ -131,7 +138,7 @@ export async function POST(
 
     await prisma.state.upsert({
       where: { userId },
-      update: {},
+      update: { serial: { increment: BigInt(1) } },
       create: { userId, serial: BigInt(1) },
     })
 

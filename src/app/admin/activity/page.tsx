@@ -3,6 +3,9 @@ import { prisma } from '@/lib/prisma'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { formatDistanceToNow } from 'date-fns'
+import { Button } from '@/components/ui/button'
+import Link from 'next/link'
+import { ArrowLeft } from 'lucide-react'
 
 export default async function AdminActivityPage() {
   await requireAdminSession()
@@ -137,11 +140,23 @@ export default async function AdminActivityPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Global activity</h1>
-        <p className="text-muted-foreground">
-          Unified timeline of customer changes across venues, requests, catalog updates, and integrations.
-        </p>
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <Button
+          asChild
+          variant="ghost"
+          className="w-full justify-start gap-2 p-0 text-sm font-medium text-muted-foreground lg:w-auto"
+        >
+          <Link href="/admin" className="inline-flex items-center gap-2">
+            <ArrowLeft className="h-4 w-4" />
+            Back to customer directory
+          </Link>
+        </Button>
+        <div className="space-y-1">
+          <h1 className="text-3xl font-bold">Global activity</h1>
+          <p className="text-muted-foreground">
+            Unified timeline of customer changes across venues, requests, catalog updates, and integrations.
+          </p>
+        </div>
       </div>
 
       <Card>

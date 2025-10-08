@@ -3,6 +3,7 @@ import { getAdminSession, assertAdminLevel } from '@/lib/admin-auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import { logger } from '@/lib/logger'
+import { isCompleteUSPhone } from '@/lib/phone'
 export const runtime = 'nodejs'
 
 
@@ -15,7 +16,14 @@ const updateVenueSchema = z.object({
   state: z.string().optional().nullable(),
   stateCode: z.string().optional().nullable(),
   postalCode: z.string().optional().nullable(),
-  phoneNumber: z.string().optional().nullable(),
+  phoneNumber: z
+    .string()
+    .optional()
+    .nullable()
+    .refine(
+      (value) => !value || isCompleteUSPhone(value),
+      'Phone number must include 10 digits (US format) or be blank',
+    ),
   website: z.string().optional().nullable(),
 })
 
@@ -23,7 +31,7 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ venueId: string }> }
 ) {
-  const paramsResolved = await paramsResolved
+  const paramsResolved = await params
 
   const session = await getAdminSession()
 
@@ -88,6 +96,12 @@ export async function PATCH(
       },
     })
 
+    await prisma.state.upsert({
+      where: { userId: existingVenue.userId },
+      update: { serial: { increment: BigInt(1) } },
+      create: { userId: existingVenue.userId, serial: BigInt(1) },
+    })
+
     logger.info('Admin updated venue', {
       adminId: session?.user?.adminId,
       adminLevel: session?.user?.adminLevel,
@@ -120,7 +134,7 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ venueId: string }> }
 ) {
-  const paramsResolved = await paramsResolved
+  const paramsResolved = await params
 
   const session = await getAdminSession()
 
@@ -141,6 +155,12 @@ export async function DELETE(
     }
 
     await prisma.venue.delete({ where: { id: venueId } })
+
+    await prisma.state.upsert({
+      where: { userId: venue.userId },
+      update: { serial: { increment: BigInt(1) } },
+      create: { userId: venue.userId, serial: BigInt(1) },
+    })
 
     logger.info('Admin deleted venue', {
       adminId: session?.user?.adminId,

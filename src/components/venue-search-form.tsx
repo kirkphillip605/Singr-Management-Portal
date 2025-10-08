@@ -12,6 +12,9 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { MapPin, Search, Plus, Loader2, Phone, Globe, Clock } from 'lucide-react'
 import { z } from 'zod'
+import { useToast } from '@/components/ui/use-toast'
+import { formatUSPhoneInput, isCompleteUSPhone } from '@/lib/phone'
+import { toVenueSlug, isVenueSlugValid } from '@/lib/slug'
 
 const searchSchema = z.object({
   businessName: z.string().min(1, 'Business name is required'),
@@ -24,13 +27,22 @@ const searchSchema = z.object({
 const manualVenueSchema = z.object({
   name: z.string().min(1, 'Venue name is required'),
   displayName: z.string().optional(),
-  urlName: z.string().min(1, 'URL name is required').regex(/^[a-z0-9-]+$/, 'URL name can only contain lowercase letters, numbers, and hyphens'),
+  urlName: z
+    .string()
+    .min(1, 'URL name is required')
+    .regex(/^[a-z-]+$/, 'URL name can only contain lowercase letters and hyphens'),
   address: z.string().optional(),
   city: z.string().optional(),
   state: z.string().optional(),
   postalCode: z.string().optional(),
   country: z.string().default('US'),
-  phoneNumber: z.string().optional(),
+  phoneNumber: z
+    .string()
+    .optional()
+    .refine(
+      (value) => !value || isCompleteUSPhone(value),
+      'Phone number must include 10 digits (US format) or be blank',
+    ),
   website: z.string().url('Invalid website URL').optional().or(z.literal('')),
   acceptingRequests: z.boolean().default(true),
 })
@@ -102,6 +114,7 @@ export function VenueSearchForm() {
   const [locationError, setLocationError] = useState('')
   const [error, setError] = useState('')
   const router = useRouter()
+  const { toast } = useToast()
 
   // Get user location on component mount
   useEffect(() => {
@@ -128,14 +141,7 @@ export function VenueSearchForm() {
     }
   }, [])
 
-  const generateUrlName = (name: string) => {
-    return name
-      .toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-')
-      .trim()
-  }
+  const generateUrlName = (name: string) => toVenueSlug(name)
 
   const handleNameChange = (name: string) => {
     setManualData(prev => ({
@@ -185,8 +191,11 @@ export function VenueSearchForm() {
     } catch (error) {
       if (error instanceof z.ZodError) {
         setError(error.errors[0].message)
+        toast({ variant: 'destructive', title: 'Search error', description: error.errors[0].message })
       } else {
-        setError(error instanceof Error ? error.message : 'Search failed')
+        const message = error instanceof Error ? error.message : 'Search failed'
+        setError(message)
+        toast({ variant: 'destructive', title: 'Search failed', description: message })
       }
     } finally {
       setIsSearching(false)
@@ -210,7 +219,7 @@ export function VenueSearchForm() {
       state: result.address.state || '',
       postalCode: result.address.postalCode || '',
       country: result.address.countryName || 'US',
-      phoneNumber: result.contacts?.[0]?.phone?.[0]?.value || '',
+      phoneNumber: formatUSPhoneInput(result.contacts?.[0]?.phone?.[0]?.value || ''),
       website: result.contacts?.[0]?.www?.[0]?.value || '',
       acceptingRequests: true,
     })
@@ -224,6 +233,10 @@ export function VenueSearchForm() {
     setError('')
 
     try {
+      if (!isVenueSlugValid(manualData.urlName)) {
+        throw new Error('URL name can only contain lowercase letters and hyphens')
+      }
+
       const validatedData = manualVenueSchema.parse(manualData)
 
       const response = await fetch('/api/venues', {
@@ -233,6 +246,8 @@ export function VenueSearchForm() {
         },
         body: JSON.stringify({
           ...validatedData,
+          phoneNumber: validatedData.phoneNumber || undefined,
+          website: validatedData.website || undefined,
           herePlaceId: selectedResult?.id || null,
           latitude: selectedResult?.position.lat || null,
           longitude: selectedResult?.position.lng || null,
@@ -245,12 +260,20 @@ export function VenueSearchForm() {
         throw new Error(data.error || 'Failed to create venue')
       }
 
+      toast({
+        title: 'Venue created',
+        description: 'Your venue has been added to your account.',
+      })
       router.push('/dashboard/venues')
     } catch (error) {
       if (error instanceof z.ZodError) {
-        setError(error.errors[0].message)
+        const message = error.errors[0].message
+        setError(message)
+        toast({ variant: 'destructive', title: 'Invalid details', description: message })
       } else {
-        setError(error instanceof Error ? error.message : 'An error occurred')
+        const message = error instanceof Error ? error.message : 'An error occurred'
+        setError(message)
+        toast({ variant: 'destructive', title: 'Unable to create venue', description: message })
       }
     } finally {
       setIsCreating(false)
@@ -541,14 +564,14 @@ export function VenueSearchForm() {
 
             <div className="space-y-2">
               <Label htmlFor="urlName">URL Name *</Label>
-              <Input
-                id="urlName"
-                value={manualData.urlName}
-                onChange={(e) => setManualData(prev => ({ ...prev, urlName: e.target.value }))}
-                placeholder="e.g., singing-spot"
-                required
-                disabled={isCreating}
-              />
+                <Input
+                  id="urlName"
+                  value={manualData.urlName}
+                  onChange={(e) => setManualData(prev => ({ ...prev, urlName: toVenueSlug(e.target.value) }))}
+                  placeholder="e.g., singing-spot"
+                  required
+                  disabled={isCreating}
+                />
               <p className="text-sm text-muted-foreground">
                 This will be used in the request URL: /venue/{manualData.urlName || 'your-url-name'}
               </p>
@@ -613,7 +636,7 @@ export function VenueSearchForm() {
                   <Input
                     id="phoneNumber"
                     value={manualData.phoneNumber}
-                    onChange={(e) => setManualData(prev => ({ ...prev, phoneNumber: e.target.value }))}
+                    onChange={(e) => setManualData(prev => ({ ...prev, phoneNumber: formatUSPhoneInput(e.target.value) }))}
                     placeholder="+1 (555) 123-4567"
                     disabled={isCreating}
                   />
