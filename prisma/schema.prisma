@@ -55,16 +55,17 @@ model User {
   venues        Venue[]        @relation("UserVenues")
 
   // ===== Support relationships (support schema) =====
-  // Tickets where this user is the customer/requester
   ticketsRequested SupportTicket[]        @relation("RequestedTickets")
-  // Tickets created by this user (may be same as requester or admin creating on behalf)
   ticketsCreated   SupportTicket[]        @relation("CreatedTickets")
-  // Tickets assigned to this admin/support user
   ticketsAssigned  SupportTicket[]        @relation("AssignedTickets")
-  // Messages authored by this user on tickets
   supportMessages  SupportTicketMessage[]
-  // Ticket audit entries attributed to this user
   supportAudits    SupportTicketAudit[]
+
+  // ===== User notes (PUBLIC schema) =====
+  // Notes ABOUT this user (they are the subject/customer)
+  notesAbout   UserNote[] @relation("NotesAboutUser")
+  // Notes AUTHORED by this user (typically admins/support)
+  notesAuthored UserNote[] @relation("NotesAuthoredBy")
 
   @@index([email], map: "idx_users_email")
   @@map("users")
@@ -468,6 +469,24 @@ model SingerFavoriteVenue {
 
   @@id([singerId, venueId])
   @@map("singer_favorite_venues")
+}
+
+model UserNote {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId     String   @map("user_id")  @db.Uuid        // the customer/user the note is about
+  createdBy  String   @map("createdby") @db.Uuid       // the admin/support author
+  important  Boolean  @default(false)
+  subject    String
+  note       String
+  createdAt  DateTime @default(now()) @map("createdat") @db.Timestamptz(6)
+
+  // Relationships
+  // Subject user (the customer the note is about)
+  user   User @relation("NotesAboutUser",  fields: [userId],    references: [id], onDelete: Restrict, onUpdate: Cascade)
+  // Author user (the admin/support who wrote the note)
+  author User @relation("NotesAuthoredBy", fields: [createdBy], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@map("user_notes")
 }
 
 /**
