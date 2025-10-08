@@ -12,6 +12,7 @@ const navigation = [
   { name: 'Song Database', href: '/dashboard/songs' },
   { name: 'Requests', href: '/dashboard/requests' },
   { name: 'Billing', href: '/dashboard/billing' },
+  { name: 'Support', href: '/dashboard/support' },
   { name: 'Settings', href: '/dashboard/settings' },
 ]
 
