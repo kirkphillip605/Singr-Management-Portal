@@ -1,6 +1,7 @@
-// syncStripeData.js
+// file: syncStripeData.js
 // Synchronizes Stripe products and prices with a local database using Prisma.
-// Requirements: Set STRIPE_SECRET_KEY and DATABASE_URL in environment variables.
+// Requirements:
+//   STRIPE_SECRET_KEY, DATABASE_URL, and STRIPE_API_VERSION must be set in the .env file.
 
 'use strict';
 
@@ -10,7 +11,7 @@ const LOG_SEPARATOR = '───────────────────
 
 // Validate required environment variables
 function validateEnvironment() {
-  const requiredEnvVars = ['STRIPE_SECRET_KEY', 'DATABASE_URL'];
+  const requiredEnvVars = ['STRIPE_SECRET_KEY', 'DATABASE_URL', 'STRIPE_API_VERSION'];
   const missing = requiredEnvVars.filter(env => !process.env[env]);
 
   if (missing.length > 0) {
@@ -24,8 +25,9 @@ validateEnvironment();
 
 // Initialize Stripe and Prisma
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2024-06-20',
+  apiVersion: process.env.STRIPE_API_VERSION,
 });
+
 const prisma = new PrismaClient();
 
 async function syncStripeProducts() {
@@ -171,7 +173,6 @@ async function main() {
     console.log(LOG_SEPARATOR);
     console.log('🎉 Stripe data synchronization completed successfully!');
 
-    // Summary
     const [productCount, priceCount] = await Promise.all([
       prisma.stripeProduct.count(),
       prisma.stripePrice.count(),
@@ -179,7 +180,7 @@ async function main() {
 
     console.log('\n📊 Database Summary:');
     console.log(`  • Products: ${productCount}`);
-    console.log(`  • Prices: ${priceCount}`);
+    console.log(`  • Prices:   ${priceCount}`);
   } catch (error) {
     console.error('❌ Error during synchronization:', error.message);
     console.error('Details:', error);
@@ -189,7 +190,6 @@ async function main() {
   }
 }
 
-// Execute only when run directly
 if (require.main === module) {
   main()
     .then(() => {
