@@ -1,10 +1,11 @@
+// ./src/app/admin/users/[userId]/notes/page.tsx
+
 export const runtime = 'nodejs'
 
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { ArrowLeft, NotebookPen } from 'lucide-react'
 import { format } from 'date-fns'
-import { PageProps } from 'next'
 
 import { requireAdminSession } from '@/lib/admin-auth'
 import { prisma } from '@/lib/prisma'
@@ -14,12 +15,27 @@ import { Badge } from '@/components/ui/badge'
 import { AdminUserNotesForm } from '@/components/admin/admin-user-notes-form'
 import { AdminUserNotesTable } from '@/components/admin/admin-user-notes-table'
 
-export default async function AdminUserNotesPage(props: PageProps<'/admin/users/[userId]/notes'>) {
-  const paramsResolved = await props.params
+/**
+ * Page props for this route segment.
+ * In the App Router, `params` is a plain object (not a Promise).
+ */
+type AdminUserNotesPageProps = {
+  params: {
+    userId: string
+  }
+}
 
+/**
+ * Admin - Customer Notes
+ * - Requires an admin session
+ * - Loads the user record and their notes
+ * - Renders a form to add a new note and a table of existing notes
+ */
+export default async function AdminUserNotesPage({ params }: AdminUserNotesPageProps) {
+  // Auth guard (throws or redirects if not admin)
   await requireAdminSession()
 
-  const { userId } = paramsResolved
+  const { userId } = params
 
   const [user, notes] = await Promise.all([
     prisma.user.findUnique({
@@ -36,16 +52,10 @@ export default async function AdminUserNotesPage(props: PageProps<'/admin/users/
       where: { userId },
       include: {
         author: {
-          select: {
-            name: true,
-            email: true,
-          },
+          select: { name: true, email: true },
         },
       },
-      orderBy: [
-        { important: 'desc' },
-        { createdAt: 'desc' },
-      ],
+      orderBy: [{ important: 'desc' }, { createdAt: 'desc' }],
     }),
   ])
 
@@ -53,17 +63,27 @@ export default async function AdminUserNotesPage(props: PageProps<'/admin/users/
     notFound()
   }
 
-  const preparedNotes = notes.map((note: any) => ({
+  type PreparedNote = {
+    id: string
+    subject: string
+    note: string
+    important: boolean
+    createdAt: Date
+    authorName: string
+    authorEmail?: string | null
+  }
+
+  const preparedNotes: PreparedNote[] = (notes as any[]).map((note) => ({
     id: note.id,
     subject: note.subject,
     note: note.note,
     important: note.important,
     createdAt: note.createdAt,
     authorName: note.author?.name ?? note.author?.email ?? '',
-    authorEmail: note.author?.email,
+    authorEmail: note.author?.email ?? null,
   }))
 
-  const noteCount = notes.length
+  const noteCount = preparedNotes.length
 
   return (
     <div className="space-y-8">
@@ -82,7 +102,7 @@ export default async function AdminUserNotesPage(props: PageProps<'/admin/users/
             Customer notes
           </h1>
           <p className="text-muted-foreground">
-            {user.name || user.email} · Customer since {format(user.createdAt, 'MMM d, yyyy')}
+            {(user.name || user.email) ?? 'Customer'} · Customer since {format(user.createdAt, 'MMM d, yyyy')}
           </p>
         </div>
         <Badge variant="secondary" className="w-fit">
