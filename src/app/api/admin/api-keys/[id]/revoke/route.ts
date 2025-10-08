@@ -10,7 +10,7 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const paramsResolved = await paramsResolved
+  const paramsResolved = await params
 
   const session = await getAdminSession()
 

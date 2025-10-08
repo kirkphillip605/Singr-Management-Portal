@@ -15,25 +15,35 @@ const navigation = [
   { name: 'Settings', href: '/dashboard/settings' },
 ]
 
-export function DashboardNav() {
+type DashboardNavProps = {
+  onNavigate?: () => void
+}
+
+export function DashboardNav({ onNavigate }: DashboardNavProps) {
   const pathname = usePathname()
 
   return (
-    <nav className="p-4 space-y-2">
-      {navigation.map((item) => (
-        <Link
-          key={item.name}
-          href={item.href}
-          className={cn(
-            'block px-3 py-2 rounded-md text-sm font-medium transition-colors',
-            pathname === item.href
-              ? 'bg-primary text-primary-foreground'
-              : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-          )}
-        >
-          {item.name}
-        </Link>
-      ))}
+    <nav className="space-y-2">
+      {navigation.map((item) => {
+        const isActive = pathname === item.href || pathname?.startsWith(`${item.href}/`)
+
+        return (
+          <Link
+            key={item.name}
+            href={item.href}
+            className={cn(
+              'block rounded-md px-3 py-2 text-sm font-medium transition-colors',
+              isActive
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+            )}
+            aria-current={isActive ? 'page' : undefined}
+            onClick={onNavigate}
+          >
+            {item.name}
+          </Link>
+        )
+      })}
     </nav>
   )
 }

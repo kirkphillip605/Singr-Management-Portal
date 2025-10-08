@@ -9,8 +9,8 @@ interface DashboardHeaderProps {
 
 export function DashboardHeader({ userEmail }: DashboardHeaderProps) {
   return (
-    <div className="flex items-center gap-4">
-      <span className="text-sm text-muted-foreground">
+    <div className="flex flex-col items-end gap-2 text-right sm:flex-row sm:items-center sm:gap-4 sm:text-left">
+      <span className="text-sm text-muted-foreground break-all sm:break-normal">
         {userEmail}
       </span>
       <Button
