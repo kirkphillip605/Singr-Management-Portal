@@ -503,9 +503,9 @@ model UserNote {
 
 model SupportTicket {
   id                String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  requesterId       String           @db.Uuid
-  createdById       String           @map("created_by") @db.Uuid
-  assigneeId        String?          @map("assignee_id") @db.Uuid
+  requesterId       String           @map("requester_id") @db.Uuid        // <- added @map
+  createdById       String           @map("created_by")   @db.Uuid
+  assigneeId        String?          @map("assignee_id")  @db.Uuid
   subject           String
   description       String?
   status            TicketStatus     @default(open)
@@ -527,15 +527,14 @@ model SupportTicket {
   @@index([assigneeId],  map: "tickets_assignee_id_idx")
   @@index([status],      map: "tickets_status_idx")
   @@index([priority],    map: "tickets_priority_idx")
-
   @@map("tickets")
   @@schema("support")
 }
 
 model SupportTicketMessage {
   id         String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  ticketId   String            @db.Uuid
-  authorId   String            @db.Uuid
+  ticketId   String            @map("ticket_id") @db.Uuid     // <- added @map
+  authorId   String            @map("author_id") @db.Uuid     // <- added @map
   visibility MessageVisibility @default(public)
   body       String
   editedAt   DateTime?         @map("editedat") @db.Timestamptz(6)
@@ -553,7 +552,7 @@ model SupportTicketMessage {
 
 model SupportMessageAttachment {
   id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  messageId  String   @db.Uuid
+  messageId  String   @map("message_id") @db.Uuid   // <- added @map
   fileName   String   @map("file_name")
   mimeType   String?  @map("mime_type")
   byteSize   BigInt?  @map("byte_size")
