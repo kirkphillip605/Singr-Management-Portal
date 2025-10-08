@@ -51,7 +51,7 @@ export function DashboardLayoutShell({
 
             <Link href="/dashboard" className="flex items-center gap-2">
               <Image
-                src="/singr-icon.png"
+                src="./singr-icon.png"
                 alt="Singr Karaoke"
                 width={40}
                 height={40}
