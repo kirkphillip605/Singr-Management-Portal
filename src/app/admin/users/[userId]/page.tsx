@@ -13,11 +13,7 @@ import Link from 'next/link'
 import { formatDistanceToNow } from 'date-fns'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { ArrowLeft, ArrowUpRight, NotebookPen, Star } from 'lucide-react'
-import { PageProps } from 'next'
-
-interface AdminUserPageProps {
-  params: { userId: string }
-}
+import type { PageProps } from '@/types/global'
 
 function formatCount(value: number) {
   return new Intl.NumberFormat('en-US').format(value)
@@ -31,7 +27,7 @@ type ActivityItem = {
   timestamp: Date
 }
 
-export default async function AdminUserPage(props: PageProps<'/admin/users/[userId]'>) {
+export default async function AdminUserPage(props: PageProps<{ userId: string }>) {
   const paramsResolved = await props.params
 
   const session = await requireAdminSession()
@@ -136,7 +132,7 @@ export default async function AdminUserPage(props: PageProps<'/admin/users/[user
   const totalSongs = await prisma.songDb.count({ where: { userId } })
   const totalRequests = venues.reduce((acc, venue) => acc + venue._count.requests, 0)
   const primarySubscription = user.subscriptions[0]
-  const notesPreview = recentNotes.map((note) => ({
+  const notesPreview = recentNotes.map((note: any) => ({
     id: note.id,
     subject: note.subject,
     body: note.note.split('\n-----\n')[0] ?? note.note,

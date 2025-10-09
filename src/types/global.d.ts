@@ -1,7 +1,5 @@
 // Global type definitions for Next.js 15
 
-import type { Metadata, Viewport } from 'next'
-
 // Next.js 15 Page Props with async params
 export interface PageProps<
   TParams = Record<string, string>,
