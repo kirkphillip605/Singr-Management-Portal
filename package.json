@@ -1,7 +1,7 @@
 {
   "name": "singr-karaoke-connect",
   "version": "1.0.0",
-  "description": "Professional karaoke management platform with real-time requests and multi-venue support",
+  "description": "Professional karaoke online request management platform with real-time requests and multi-venue support. Singer facing request app included.",
   "main": "index.js",
   "scripts": {
     "dev": "next dev --turbopack",
@@ -20,10 +20,6 @@
     "stripe:setup": "node scripts/setup-stripe.js",
     "type-check": "tsc --noEmit",
     "type-check:watch": "tsc --noEmit --watch",
-    "codemod:next15-params:dry": "tsx ./tools/fix-next15-route-params.ts --dry",
-    "codemod:next15-params": "tsx ./tools/fix-next15-route-params.ts --write",
-    "codemod:next15-pages:dry": "tsx ./tools/fix-next15-page-params.ts --dry",
-    "codemod:next15-pages": "tsx ./tools/fix-next15-page-params.ts --write",
     "analyze": "ANALYZE=true npm run build",
     "clean": "rm -rf .next node_modules/.cache",
     "prebuild": "npm run type-check",
