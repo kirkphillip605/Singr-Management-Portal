@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils'
 const navigation = [
   { name: 'Customer Directory', href: '/admin' },
   { name: 'Global Activity', href: '/admin/activity' },
+  { name: 'Support Tickets', href: '/admin/support' },
 ]
 
 type AdminNavProps = {
