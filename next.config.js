@@ -35,7 +35,7 @@ const nextConfig = {
         headers: [
           {
             key: 'Permissions-Policy',
-            value: 'geolocation=self',
+            value: 'geolocation=*'
           },
           {
             key: 'Access-Control-Allow-Origin',
