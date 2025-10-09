@@ -27,7 +27,6 @@
     "analyze": "ANALYZE=true npm run build",
     "clean": "rm -rf .next node_modules/.cache",
     "prebuild": "npm run type-check",
-    "postbuild": "next-sitemap",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
