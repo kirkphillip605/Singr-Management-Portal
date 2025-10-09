@@ -109,6 +109,7 @@ export default function SignInPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 disabled={isLoading}
+                autoComplete="email"
               />
             </div>
 
@@ -121,6 +122,7 @@ export default function SignInPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 disabled={isLoading}
+                autoComplete="current-password"
               />
             </div>
 
