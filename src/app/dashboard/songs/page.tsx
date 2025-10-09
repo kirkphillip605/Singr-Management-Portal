@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { Upload, Search, Music, Download, Trash2 } from 'lucide-react'
+import { Search, Music, Download, Trash2 } from 'lucide-react'
 
 export default async function SongsPage() {
   const session = await getAuthSession()
