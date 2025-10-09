@@ -1,11 +1,13 @@
 // src/app/api/auth/signup/route.ts
+// ───────────────────────────────────────────────────────────────────────────────
+// Creates a new user, Stripe customer, initial Customer row, the user's first
+// System with openKjSystemId=1, and initializes State.
+// Includes robust validation and pinned Stripe API version.
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
 import { z } from 'zod'
-
-// Optional: If you prefer static import for better types
 import Stripe from 'stripe'
 
 export const runtime = 'nodejs'
@@ -24,9 +26,7 @@ function getStripeClient(): Stripe {
     throw new Error('STRIPE_SECRET_KEY is not set')
   }
 
-  // If you set STRIPE_API_VERSION in your env (e.g., "2025-08-27.basil"),
-  // narrow it to the exact union type Stripe expects. Otherwise, fall back
-  // to a pinned version to avoid accidental schema drift.
+  // Pin to a known-good version; allow override via env if you explicitly set it.
   const apiVersion =
     (process.env.STRIPE_API_VERSION as Stripe.StripeConfig['apiVersion']) ??
     '2025-08-27.basil'
@@ -39,11 +39,11 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const validatedData = signupSchema.parse(body)
 
-    // Check if user already exists
+    // Ensure uniqueness on email
     const existingUser = await prisma.user.findUnique({
       where: { email: validatedData.email },
+      select: { id: true },
     })
-
     if (existingUser) {
       return NextResponse.json(
         { error: 'User with this email already exists' },
@@ -51,10 +51,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Hash password
     const passwordHash = await bcrypt.hash(validatedData.password, 12)
 
-    // Create user
+    // Create user first
     const user = await prisma.user.create({
       data: {
         name: validatedData.name,
@@ -77,8 +76,7 @@ export async function POST(request: NextRequest) {
     await prisma.$transaction([
       prisma.customer.create({
         data: {
-          // NOTE: If your Customer model uses a different PK than user.id,
-          // adjust this accordingly.
+          // If your Customer PK differs, adjust accordingly.
           id: user.id,
           stripeCustomerId: customer.id,
         },
@@ -87,11 +85,14 @@ export async function POST(request: NextRequest) {
         data: {
           userId: user.id,
           name: 'Main System',
+          // FIRST system is always 1 for that user.
+          openKjSystemId: 1,
         },
       }),
       prisma.state.create({
         data: {
           userId: user.id,
+          // Use BigInt in DB; we do not serialize this value in the response.
           serial: BigInt(1),
         },
       }),
