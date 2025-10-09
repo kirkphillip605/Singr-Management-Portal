@@ -57,31 +57,31 @@ export async function PATCH(
     const data: Record<string, any> = {}
 
     if (validatedData.name !== undefined) {
-      data.name = validatedData.name
+      data['name'] = validatedData.name
     }
     if (validatedData.acceptingRequests !== undefined) {
-      data.acceptingRequests = validatedData.acceptingRequests
+      data['acceptingRequests'] = validatedData.acceptingRequests
     }
     if (validatedData.address !== undefined) {
-      data.address = validatedData.address || null
+      data['address'] = validatedData.address || null
     }
     if (validatedData.city !== undefined) {
-      data.city = validatedData.city || null
+      data['city'] = validatedData.city || null
     }
     if (validatedData.state !== undefined) {
-      data.state = validatedData.state || null
+      data['state'] = validatedData.state || null
     }
     if (validatedData.stateCode !== undefined) {
-      data.stateCode = validatedData.stateCode || null
+      data['stateCode'] = validatedData.stateCode || null
     }
     if (validatedData.postalCode !== undefined) {
-      data.postalCode = validatedData.postalCode || null
+      data['postalCode'] = validatedData.postalCode || null
     }
     if (validatedData.phoneNumber !== undefined) {
-      data.phoneNumber = validatedData.phoneNumber || null
+      data['phoneNumber'] = validatedData.phoneNumber || null
     }
     if (validatedData.website !== undefined) {
-      data.website = validatedData.website || null
+      data['website'] = validatedData.website || null
     }
 
     if (Object.keys(data).length === 0) {
@@ -122,7 +122,7 @@ export async function PATCH(
     })
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.errors[0].message }, { status: 400 })
+      return NextResponse.json({ error: error.errors[0]?.message ?? 'Validation error' }, { status: 400 })
     }
 
     logger.error('Failed to update venue as admin', { error })
@@ -131,7 +131,7 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ venueId: string }> }
 ) {
   const paramsResolved = await params

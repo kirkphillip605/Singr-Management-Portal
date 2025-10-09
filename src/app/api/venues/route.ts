@@ -37,7 +37,7 @@ const createVenueSchema = z.object({
 })
 
 async function geocodeAddress(address: string): Promise<{ lat: number; lng: number } | null> {
-  const apiKey = process.env.HERE_API_KEY
+  const apiKey = process.env['HERE_API_KEY']
   if (!apiKey) return null
 
   try {
@@ -150,7 +150,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: error.errors[0].message },
+        { error: error.errors[0]?.message ?? 'Validation error' },
         { status: 400 }
       )
     }

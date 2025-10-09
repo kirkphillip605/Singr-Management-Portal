@@ -176,6 +176,7 @@ export function useAsyncWithRefetch<T = unknown, E = Error>(
         }
       }
     }
+    return undefined
   }, [refetchInterval, refetch])
 
   return {

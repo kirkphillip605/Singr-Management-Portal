@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { query, userLocation } = searchSchema.parse(body)
 
-    const apiKey = process.env.HERE_API_KEY
+    const apiKey = process.env['HERE_API_KEY']
     if (!apiKey) {
       return NextResponse.json(
         { error: 'HERE API key not configured' },
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: error.errors[0].message },
+        { error: error.errors[0]?.message ?? 'Validation error' },
         { status: 400 }
       )
     }

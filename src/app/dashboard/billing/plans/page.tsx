@@ -34,7 +34,7 @@ export default async function PlansPage() {
         </p>
       </div>
 
-      <PricingPlans prices={prices} />
+      <PricingPlans prices={prices as any} />
     </div>
   )
 }

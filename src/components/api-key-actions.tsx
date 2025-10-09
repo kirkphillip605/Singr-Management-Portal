@@ -16,7 +16,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { RefreshCw, Trash2, Copy, CheckIcon, AlertTriangle } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
 
 interface ApiKey {
   id: string

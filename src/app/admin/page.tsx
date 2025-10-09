@@ -57,12 +57,6 @@ export default async function AdminHomePage() {
     (user) => user.subscriptions[0]?.status === 'trialing'
   ).length
   const totalVenues = users.reduce((acc, user) => acc + user._count.venues, 0)
-  const totalSongs = users.reduce((acc, user) => acc + user._count.songDb, 0)
-  const totalRequests = users.reduce(
-    (acc, user) =>
-      acc + user.venues.reduce((venueSum, venue) => venueSum + venue._count.requests, 0),
-    0
-  )
 
   return (
     <div className="space-y-8">

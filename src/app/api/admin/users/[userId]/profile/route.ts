@@ -40,13 +40,13 @@ export async function PATCH(
     const updateData: Record<string, unknown> = { updatedAt: new Date() }
 
     if (validatedData.name !== undefined) {
-      updateData.name = validatedData.name || null
+      updateData['name'] = validatedData.name || null
     }
     if (validatedData.businessName !== undefined) {
-      updateData.businessName = validatedData.businessName || null
+      updateData['businessName'] = validatedData.businessName || null
     }
     if (validatedData.phoneNumber !== undefined) {
-      updateData.phoneNumber = validatedData.phoneNumber || null
+      updateData['phoneNumber'] = validatedData.phoneNumber || null
     }
 
     if (Object.keys(updateData).length === 1) {
@@ -72,7 +72,7 @@ export async function PATCH(
     })
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.errors[0].message }, { status: 400 })
+      return NextResponse.json({ error: error.errors[0]?.message ?? 'Validation error' }, { status: 400 })
     }
 
     logger.error('Failed to update user profile as admin', { error })

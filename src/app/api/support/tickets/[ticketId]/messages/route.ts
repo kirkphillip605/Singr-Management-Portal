@@ -66,7 +66,7 @@ export async function POST(
   }
 
   const messageHistory = ticket.messages
-    .map((message) => {
+    .map((message: any) => {
       const authorName =
         message.author?.id === session.user!.id
           ? 'You'

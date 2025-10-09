@@ -5,16 +5,16 @@ export const runtime = 'nodejs'
 
 
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const paramsResolved = await params
 
   try {
-    const price = await prisma.price.findUnique({
+    const price = await prisma.stripePrice.findUnique({
       where: { id: paramsResolved.id },
       include: {
-        product: true,
+        productRelation: true,
       },
     })
 

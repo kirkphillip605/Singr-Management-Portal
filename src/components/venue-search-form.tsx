@@ -190,8 +190,8 @@ export function VenueSearchForm() {
       setStep('results')
     } catch (error) {
       if (error instanceof z.ZodError) {
-        setError(error.errors[0].message)
-        toast({ variant: 'destructive', title: 'Search error', description: error.errors[0].message })
+        setError(error.errors[0]?.message ?? 'Validation error')
+        toast({ variant: 'destructive', title: 'Search error', description: error.errors[0]?.message ?? 'Validation error' })
       } else {
         const message = error instanceof Error ? error.message : 'Search failed'
         setError(message)
@@ -267,7 +267,7 @@ export function VenueSearchForm() {
       router.push('/dashboard/venues')
     } catch (error) {
       if (error instanceof z.ZodError) {
-        const message = error.errors[0].message
+        const message = error.errors[0]?.message ?? 'Validation error'
         setError(message)
         toast({ variant: 'destructive', title: 'Invalid details', description: message })
       } else {

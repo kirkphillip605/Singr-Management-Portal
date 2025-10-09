@@ -67,7 +67,7 @@ export function SupportTicketMessageThread({ currentUserId, messages }: SupportT
               </header>
 
               <div className="space-y-3 text-sm leading-relaxed text-foreground">
-                <div className="whitespace-pre-line text-muted-foreground">{primaryBody.trim() || '—'}</div>
+                <div className="whitespace-pre-line text-muted-foreground">{primaryBody?.trim() || '—'}</div>
                 {history.length ? (
                   <details className="text-xs text-muted-foreground">
                     <summary className="cursor-pointer font-medium text-foreground">Quoted conversation</summary>

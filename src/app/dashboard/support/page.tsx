@@ -102,14 +102,14 @@ export default async function SupportDashboardPage() {
     }),
   ])
 
-  const countByStatus = new Map<TicketStatus, number>(groupedCounts.map((item) => [item.status, item._count._all]))
+  const countByStatus = new Map<TicketStatus, number>(groupedCounts.map((item: any) => [item.status, item._count._all]))
 
   const summaryCards = STATUS_SUMMARY.map((card) => ({
     ...card,
     value: card.statuses.reduce((total, status) => total + (countByStatus.get(status) ?? 0), 0),
   }))
 
-  const ticketRows = tickets.map((ticket) => ({
+  const ticketRows = tickets.map((ticket: any) => ({
     id: ticket.id,
     subject: ticket.subject,
     status: ticket.status,
