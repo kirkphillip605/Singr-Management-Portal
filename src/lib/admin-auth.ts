@@ -6,7 +6,7 @@ export type AdminLevel = 'support' | 'super_admin'
 export async function getAdminSession() {
   const session = await getAuthSession()
 
-  if (!session?.user || session.user.accountType !== 'admin') {
+  if (!session?.user || (session.user.accountType !== 'admin' && session.user.accountType !== 'support')) {
     return null
   }
 
@@ -16,7 +16,7 @@ export async function getAdminSession() {
 export async function requireAdminSession(requiredLevel: AdminLevel = 'support') {
   const session = await getAuthSession()
 
-  if (!session?.user || session.user.accountType !== 'admin') {
+  if (!session?.user || (session.user.accountType !== 'admin' && session.user.accountType !== 'support')) {
     redirect('/auth/signin')
   }
 
@@ -31,7 +31,7 @@ export function assertAdminLevel(
   session: Awaited<ReturnType<typeof getAdminSession>>,
   requiredLevel: AdminLevel = 'support'
 ) {
-  if (!session?.user || session.user.accountType !== 'admin') {
+  if (!session?.user || (session.user.accountType !== 'admin' && session.user.accountType !== 'support')) {
     return false
   }
 
