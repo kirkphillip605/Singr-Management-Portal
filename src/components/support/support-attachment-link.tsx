@@ -40,10 +40,17 @@ function iconForMime(mimeType: string | null) {
 export function SupportAttachmentLink({ attachment }: SupportAttachmentLinkProps) {
   const Icon = iconForMime(attachment.mimeType)
   const fileSize = formatFileSize(typeof attachment.byteSize === 'bigint' ? Number(attachment.byteSize) : attachment.byteSize ?? null)
+  
+  // Extract ticketId and filename from storageUrl
+  // Expected format: /uploads/support/{ticketId}/{filename}
+  const urlParts = attachment.storageUrl.split('/')
+  const ticketId = urlParts[3]
+  const filename = urlParts[4]
+  const secureUrl = `/api/support/attachments/${ticketId}/${filename}`
 
   return (
     <Link
-      href={attachment.storageUrl}
+      href={secureUrl}
       className="flex items-center gap-2 rounded-md border border-border/60 bg-muted/50 px-3 py-2 text-sm text-muted-foreground transition-colors hover:border-primary hover:text-foreground"
       target="_blank"
       rel="noopener noreferrer"

@@ -17,6 +17,7 @@ import { SupportTicketMessageThread } from '@/components/support/support-ticket-
 import { AdminTicketActions } from '@/components/admin/admin-ticket-actions'
 import { AdminTicketReplyForm } from '@/components/admin/admin-ticket-reply-form'
 import { TicketAuditTrail } from '@/components/support/ticket-audit-trail'
+import { AdminTicketConversation } from '@/components/admin/admin-ticket-conversation'
 
 type PageProps = {
   params: Promise<{ ticketId: string }>
@@ -157,16 +158,14 @@ export default async function AdminSupportTicketDetailPage({ params }: PageProps
             <CardTitle>Conversation</CardTitle>
             <CardDescription>All messages and file attachments for this ticket.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <SupportTicketMessageThread 
-              currentUserId={session.user!.id} 
+          <CardContent>
+            <AdminTicketConversation
+              ticketId={ticket.id}
+              currentUserId={session.user!.id}
               messages={messages}
-              showInternal={true}
+              disabled={false}
             />
           </CardContent>
-          <CardFooter className="flex-col gap-4">
-            <AdminTicketReplyForm ticketId={ticket.id} disabled={false} />
-          </CardFooter>
         </Card>
 
         <div className="space-y-6">

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -15,9 +15,10 @@ const MAX_ATTACHMENT_SIZE_BYTES = 10 * 1024 * 1024
 type AdminTicketReplyFormProps = {
   ticketId: string
   disabled: boolean
+  quotedMessage?: string
 }
 
-export function AdminTicketReplyForm({ ticketId, disabled }: AdminTicketReplyFormProps) {
+export function AdminTicketReplyForm({ ticketId, disabled, quotedMessage }: AdminTicketReplyFormProps) {
   const router = useRouter()
   const { toast } = useToast()
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -25,6 +26,18 @@ export function AdminTicketReplyForm({ ticketId, disabled }: AdminTicketReplyFor
   const [visibility, setVisibility] = useState<'public' | 'internal'>('public')
   const [attachments, setAttachments] = useState<File[]>([])
   const [error, setError] = useState<string | null>(null)
+
+  // Set quoted message when provided
+  useEffect(() => {
+    if (quotedMessage) {
+      setBody((prev) => {
+        if (prev) {
+          return `${prev}\n\n-----\n${quotedMessage}`
+        }
+        return quotedMessage
+      })
+    }
+  }, [quotedMessage])
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files ?? [])
