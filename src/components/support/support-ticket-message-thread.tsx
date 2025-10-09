@@ -1,7 +1,9 @@
 import { format } from 'date-fns'
 
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { SupportAttachmentLink } from '@/components/support/support-attachment-link'
+import { Reply } from 'lucide-react'
 
 type ThreadAttachment = {
   id: string
@@ -29,9 +31,10 @@ type SupportTicketMessageThreadProps = {
   currentUserId: string
   messages: ThreadMessage[]
   showInternal?: boolean
+  onReply?: (messageBody: string) => void
 }
 
-export function SupportTicketMessageThread({ currentUserId, messages, showInternal = false }: SupportTicketMessageThreadProps) {
+export function SupportTicketMessageThread({ currentUserId, messages, showInternal = false, onReply }: SupportTicketMessageThreadProps) {
   const displayMessages = showInternal ? messages : messages.filter((m) => m.visibility !== 'internal')
 
   if (!displayMessages.length) {
@@ -40,6 +43,12 @@ export function SupportTicketMessageThread({ currentUserId, messages, showIntern
         No {showInternal ? '' : 'public '}messages have been posted to this ticket yet.
       </div>
     )
+  }
+
+  const handleReply = (messageBody: string) => {
+    if (onReply) {
+      onReply(messageBody)
+    }
   }
 
   return (
@@ -98,6 +107,20 @@ export function SupportTicketMessageThread({ currentUserId, messages, showIntern
                   </div>
                 </div>
               ) : null}
+
+              {!isInternal && onReply && (
+                <div className="flex justify-end">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleReply(`On ${timestamp}, ${authorLabel} wrote:\n${primaryBody?.trim() || ''}`)}
+                    className="gap-2"
+                  >
+                    <Reply className="h-3 w-3" />
+                    Reply
+                  </Button>
+                </div>
+              )}
             </article>
           </li>
         )

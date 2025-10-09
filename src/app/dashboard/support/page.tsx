@@ -67,6 +67,11 @@ export default async function SupportDashboardPage() {
 
   const userId = session.user.id
 
+  // Get support contact details from environment variables
+  const supportPhone = process.env['SUPPORT_PHONE'] || '+1 (605) 956-0173'
+  const supportEmail = process.env['SUPPORT_EMAIL'] || 'support@singrkaraoke.com'
+  const supportDocs = process.env['SUPPORT_DOCS'] || 'https://docs.singrkaraoke.com'
+
   const [tickets, groupedCounts] = await Promise.all([
     (prisma as any).supportTicket.findMany({
       where: { requesterId: userId },
@@ -151,8 +156,8 @@ export default async function SupportDashboardPage() {
         })}
       </section>
 
-      <section className="grid gap-6 lg:grid-cols-[0.55fr_0.45fr]">
-        <Card className="order-last border border-border/70 lg:order-first">
+      <section className="grid gap-6">
+        <Card className="border border-border/70">
           <CardHeader>
             <CardTitle>Submit a support request</CardTitle>
             <CardDescription>
@@ -168,16 +173,16 @@ export default async function SupportDashboardPage() {
           <CardHeader>
             <CardTitle>Need immediate help?</CardTitle>
             <CardDescription>
-              Search our knowledge base or call the Singr support line for urgent production incidents.
+              Search our knowledge base or contact the Singr support team for urgent production incidents.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 text-sm text-muted-foreground">
             <p>
-              • Visit the <a href="https://support.singr.io" className="font-medium text-primary hover:underline">support
+              • Visit the <a href={supportDocs} className="font-medium text-primary hover:underline" target="_blank" rel="noopener noreferrer">support
               documentation</a> for setup guides, FAQs, and troubleshooting steps.
             </p>
-            <p>• Call our emergency hotline at <span className="font-medium text-foreground">(800) 555-0199</span>.</p>
-            <p>• Email <span className="font-medium text-foreground">support@singr.io</span> for billing or account changes.</p>
+            <p>• Call our support line at <span className="font-medium text-foreground">{supportPhone}</span>.</p>
+            <p>• Email <span className="font-medium text-foreground">{supportEmail}</span> for billing or account changes.</p>
           </CardContent>
         </Card>
       </section>

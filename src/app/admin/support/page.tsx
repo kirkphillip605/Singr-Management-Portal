@@ -4,16 +4,16 @@ import { requireAdminSession } from '@/lib/admin-auth'
 import { prisma } from '@/lib/prisma'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { formatDistanceToNow } from 'date-fns'
 import { LifeBuoy, Inbox, Clock, CheckCircle2, Archive, AlertTriangle } from 'lucide-react'
 import type { TicketStatus } from '@/components/support/support-ticket-status-badge'
+import { AdminTicketCreateModal } from '@/components/admin/admin-ticket-create-modal'
 
 export default async function AdminSupportPage() {
   await requireAdminSession()
 
-  const [tickets, groupedCounts] = await Promise.all([
+  const [tickets, groupedCounts, customers] = await Promise.all([
     (prisma as any).supportTicket.findMany({
       include: {
         requester: {
@@ -53,6 +53,17 @@ export default async function AdminSupportPage() {
       _count: {
         _all: true,
       },
+    }),
+    prisma.user.findMany({
+      where: {
+        accountType: 'customer',
+      },
+      select: {
+        id: true,
+        name: true,
+        businessName: true,
+      },
+      orderBy: { name: 'asc' },
     }),
   ])
 
@@ -100,11 +111,14 @@ export default async function AdminSupportPage() {
 
   return (
     <div className="space-y-6">
-      <header className="space-y-2">
-        <h1 className="text-3xl font-bold">Support Tickets</h1>
-        <p className="text-muted-foreground">
-          Manage customer support requests and respond to inquiries
-        </p>
+      <header className="flex items-center justify-between">
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold">Support Tickets</h1>
+          <p className="text-muted-foreground">
+            Manage customer support requests and respond to inquiries
+          </p>
+        </div>
+        <AdminTicketCreateModal customers={customers} />
       </header>
 
       {/* Status Summary */}
@@ -145,7 +159,6 @@ export default async function AdminSupportPage() {
           ) : (
             <div className="space-y-2">
               {tickets.map((ticket: any) => {
-                const lastMessage = ticket.messages[0]
                 const timeAgo = formatDistanceToNow(new Date(ticket.updatedAt), { addSuffix: true })
                 const requesterName = ticket.requester?.name || ticket.requester?.email || 'Unknown'
                 const assigneeName = ticket.assignee?.name || ticket.assignee?.email || 'Unassigned'

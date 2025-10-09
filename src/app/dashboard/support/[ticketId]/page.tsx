@@ -13,8 +13,8 @@ import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { SupportTicketStatusBadge } from '@/components/support/support-ticket-status-badge'
 import { SupportTicketPriorityBadge } from '@/components/support/support-ticket-priority-badge'
-import { SupportTicketMessageThread } from '@/components/support/support-ticket-message-thread'
-import { SupportTicketReplyForm } from '@/components/support/support-ticket-reply-form'
+import { TicketAuditTrail } from '@/components/support/ticket-audit-trail'
+import { CustomerTicketConversation } from '@/components/support/customer-ticket-conversation'
 
 type PageProps = {
   params: Promise<{ ticketId: string }>
@@ -88,7 +88,23 @@ export default async function SupportTicketDetailPage({ params }: PageProps) {
         },
       },
     },
-    orderBy: { createdAt: 'asc' },
+    orderBy: { createdAt: 'desc' },
+  })
+
+  const audits = await (prisma as any).supportTicketAudit.findMany({
+    where: {
+      ticketId,
+    },
+    include: {
+      actor: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
   })
 
   const isClosed = ticket.status === 'closed'
@@ -137,14 +153,16 @@ export default async function SupportTicketDetailPage({ params }: PageProps) {
             <CardDescription>All customer-visible messages and file attachments.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <SupportTicketMessageThread currentUserId={session.user.id} messages={messages} />
+            <CustomerTicketConversation
+              ticketId={ticket.id}
+              currentUserId={session.user.id}
+              messages={messages}
+              disabled={isClosed}
+            />
             <div className="rounded-md border border-border/60 bg-muted/30 p-4 text-xs text-muted-foreground">
               Internal notes from the support team are hidden from this view. Replies you send are always public to our team.
             </div>
           </CardContent>
-          <CardFooter>
-            <SupportTicketReplyForm ticketId={ticket.id} disabled={isClosed} />
-          </CardFooter>
         </Card>
 
         <Card className="border border-border/70 bg-muted/10">
@@ -184,6 +202,8 @@ export default async function SupportTicketDetailPage({ params }: PageProps) {
           </CardFooter>
         </Card>
       </section>
+
+      <TicketAuditTrail audits={audits} />
     </div>
   )
 }

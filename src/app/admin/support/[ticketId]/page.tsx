@@ -1,21 +1,21 @@
 export const runtime = 'nodejs'
 
-import { notFound, redirect } from 'next/navigation'
+import { notFound } from 'next/navigation'
 import { format, formatDistanceToNow } from 'date-fns'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 
 import { requireAdminSession } from '@/lib/admin-auth'
 import { prisma } from '@/lib/prisma'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { SupportTicketStatusBadge } from '@/components/support/support-ticket-status-badge'
 import { SupportTicketPriorityBadge } from '@/components/support/support-ticket-priority-badge'
-import { SupportTicketMessageThread } from '@/components/support/support-ticket-message-thread'
 import { AdminTicketActions } from '@/components/admin/admin-ticket-actions'
-import { AdminTicketReplyForm } from '@/components/admin/admin-ticket-reply-form'
+import { TicketAuditTrail } from '@/components/support/ticket-audit-trail'
+import { AdminTicketConversation } from '@/components/admin/admin-ticket-conversation'
 
 type PageProps = {
   params: Promise<{ ticketId: string }>
@@ -81,7 +81,23 @@ export default async function AdminSupportTicketDetailPage({ params }: PageProps
         },
       },
     },
-    orderBy: { createdAt: 'asc' },
+    orderBy: { createdAt: 'desc' },
+  })
+
+  const audits = await (prisma as any).supportTicketAudit.findMany({
+    where: {
+      ticketId,
+    },
+    include: {
+      actor: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
   })
 
   const adminUsers = await prisma.user.findMany({
@@ -140,16 +156,14 @@ export default async function AdminSupportTicketDetailPage({ params }: PageProps
             <CardTitle>Conversation</CardTitle>
             <CardDescription>All messages and file attachments for this ticket.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <SupportTicketMessageThread 
-              currentUserId={session.user!.id} 
+          <CardContent>
+            <AdminTicketConversation
+              ticketId={ticket.id}
+              currentUserId={session.user!.id}
               messages={messages}
-              showInternal={true}
+              disabled={false}
             />
           </CardContent>
-          <CardFooter className="flex-col gap-4">
-            <AdminTicketReplyForm ticketId={ticket.id} disabled={false} />
-          </CardFooter>
         </Card>
 
         <div className="space-y-6">
@@ -202,6 +216,8 @@ export default async function AdminSupportTicketDetailPage({ params }: PageProps
           />
         </div>
       </section>
+
+      <TicketAuditTrail audits={audits} />
     </div>
   )
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Loader2, Paperclip } from 'lucide-react'
 
@@ -16,9 +16,10 @@ const MAX_ATTACHMENT_SIZE_BYTES = 10 * 1024 * 1024
 type SupportTicketReplyFormProps = {
   ticketId: string
   disabled?: boolean
+  quotedMessage?: string
 }
 
-export function SupportTicketReplyForm({ ticketId, disabled = false }: SupportTicketReplyFormProps) {
+export function SupportTicketReplyForm({ ticketId, disabled = false, quotedMessage }: SupportTicketReplyFormProps) {
   const router = useRouter()
   const { toast } = useToast()
 
@@ -26,6 +27,18 @@ export function SupportTicketReplyForm({ ticketId, disabled = false }: SupportTi
   const [attachments, setAttachments] = useState<File[]>([])
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Set quoted message when provided
+  useEffect(() => {
+    if (quotedMessage) {
+      setMessage((prev) => {
+        if (prev) {
+          return `${prev}\n\n-----\n${quotedMessage}`
+        }
+        return quotedMessage
+      })
+    }
+  }, [quotedMessage])
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files ?? [])

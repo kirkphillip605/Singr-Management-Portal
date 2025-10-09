@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { promises as fs } from 'fs'
 import path from 'path'
 
-import { getAuthSession } from '@/lib/auth-server'
+import { requireAdminSession } from '@/lib/admin-auth'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import {
@@ -15,6 +15,7 @@ import {
 export const runtime = 'nodejs'
 
 const createTicketSchema = z.object({
+  customerId: z.string().uuid(),
   subject: z.string().min(5, 'Subject must be at least 5 characters.'),
   description: z.string().min(10, 'Description must be at least 10 characters.'),
   priority: z.enum(['low', 'normal', 'high', 'urgent']).default('normal'),
@@ -22,15 +23,12 @@ const createTicketSchema = z.object({
 })
 
 export async function POST(request: NextRequest) {
-  const session = await getAuthSession()
-
-  if (!session?.user?.id || session.user.accountType !== 'customer') {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const session = await requireAdminSession()
 
   const formData = await request.formData()
 
   const payload = createTicketSchema.safeParse({
+    customerId: formData.get('customerId'),
     subject: formData.get('subject'),
     description: formData.get('description'),
     priority: (formData.get('priority') ?? 'normal').toString(),
@@ -41,22 +39,32 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: payload.error.errors[0]?.message ?? 'Invalid request' }, { status: 400 })
   }
 
+  // Verify customer exists and is a customer
+  const customer = await prisma.user.findUnique({
+    where: { id: payload.data.customerId },
+  })
+
+  if (!customer || customer.accountType !== 'customer') {
+    return NextResponse.json({ error: 'Invalid customer' }, { status: 400 })
+  }
+
   const attachments = formData
     .getAll('attachments')
     .filter((value): value is File => value instanceof File && value.size > 0)
 
   try {
     const result = await (prisma as any).$transaction(async (tx: any) => {
-      // Get user details for message body
+      // Get customer details for message body
       const user = await tx.user.findUnique({
-        where: { id: session.user!.id },
+        where: { id: payload.data.customerId },
         select: { name: true, businessName: true },
       })
 
       const ticket = await tx.supportTicket.create({
         data: {
-          requesterId: session.user!.id,
+          requesterId: payload.data.customerId,
           createdById: session.user!.id,
+          assigneeId: session.user!.id,
           subject: payload.data.subject,
           description: payload.data.description,
           priority: payload.data.priority,
@@ -106,7 +114,7 @@ Attachment: ${attachmentList}`
       const message = await tx.supportTicketMessage.create({
         data: {
           ticketId: ticket.id,
-          authorId: session.user!.id,
+          authorId: payload.data.customerId,
           visibility: 'public',
           body: messageBody,
         },
@@ -137,6 +145,8 @@ Attachment: ${attachmentList}`
             priority: ticket.priority,
             category: ticket.category,
             status: 'open',
+            requesterId: ticket.requesterId,
+            createdBy: 'admin',
           },
         },
       })
@@ -144,9 +154,10 @@ Attachment: ${attachmentList}`
       return ticket
     })
 
-    logger.info('Customer created support ticket', {
+    logger.info('Admin created support ticket on behalf of customer', {
       ticketId: result.id,
-      requesterId: session.user.id,
+      adminId: session.user!.id,
+      customerId: payload.data.customerId,
     })
 
     return NextResponse.json({ id: result.id })
@@ -157,7 +168,7 @@ Attachment: ${attachmentList}`
 
     logger.error('Failed to create support ticket', {
       error,
-      requesterId: session.user.id,
+      adminId: session.user!.id,
     })
 
     return NextResponse.json({ error: 'Unable to create support ticket' }, { status: 500 })
