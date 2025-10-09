@@ -13,8 +13,6 @@ import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { SupportTicketStatusBadge } from '@/components/support/support-ticket-status-badge'
 import { SupportTicketPriorityBadge } from '@/components/support/support-ticket-priority-badge'
-import { SupportTicketMessageThread } from '@/components/support/support-ticket-message-thread'
-import { SupportTicketReplyForm } from '@/components/support/support-ticket-reply-form'
 import { TicketAuditTrail } from '@/components/support/ticket-audit-trail'
 import { CustomerTicketConversation } from '@/components/support/customer-ticket-conversation'
 

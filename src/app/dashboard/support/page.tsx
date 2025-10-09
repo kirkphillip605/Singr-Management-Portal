@@ -68,9 +68,9 @@ export default async function SupportDashboardPage() {
   const userId = session.user.id
 
   // Get support contact details from environment variables
-  const supportPhone = process.env.SUPPORT_PHONE || '+1 (605) 956-0173'
-  const supportEmail = process.env.SUPPORT_EMAIL || 'support@singrkaraoke.com'
-  const supportDocs = process.env.SUPPORT_DOCS || 'https://docs.singrkaraoke.com'
+  const supportPhone = process.env['SUPPORT_PHONE'] || '+1 (605) 956-0173'
+  const supportEmail = process.env['SUPPORT_EMAIL'] || 'support@singrkaraoke.com'
+  const supportDocs = process.env['SUPPORT_DOCS'] || 'https://docs.singrkaraoke.com'
 
   const [tickets, groupedCounts] = await Promise.all([
     (prisma as any).supportTicket.findMany({

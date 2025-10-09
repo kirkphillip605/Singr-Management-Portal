@@ -1,21 +1,19 @@
 export const runtime = 'nodejs'
 
-import { notFound, redirect } from 'next/navigation'
+import { notFound } from 'next/navigation'
 import { format, formatDistanceToNow } from 'date-fns'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 
 import { requireAdminSession } from '@/lib/admin-auth'
 import { prisma } from '@/lib/prisma'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { SupportTicketStatusBadge } from '@/components/support/support-ticket-status-badge'
 import { SupportTicketPriorityBadge } from '@/components/support/support-ticket-priority-badge'
-import { SupportTicketMessageThread } from '@/components/support/support-ticket-message-thread'
 import { AdminTicketActions } from '@/components/admin/admin-ticket-actions'
-import { AdminTicketReplyForm } from '@/components/admin/admin-ticket-reply-form'
 import { TicketAuditTrail } from '@/components/support/ticket-audit-trail'
 import { AdminTicketConversation } from '@/components/admin/admin-ticket-conversation'
 

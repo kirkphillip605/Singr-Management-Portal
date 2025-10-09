@@ -159,7 +159,6 @@ export default async function AdminSupportPage() {
           ) : (
             <div className="space-y-2">
               {tickets.map((ticket: any) => {
-                const lastMessage = ticket.messages[0]
                 const timeAgo = formatDistanceToNow(new Date(ticket.updatedAt), { addSuffix: true })
                 const requesterName = ticket.requester?.name || ticket.requester?.email || 'Unknown'
                 const assigneeName = ticket.assignee?.name || ticket.assignee?.email || 'Unassigned'

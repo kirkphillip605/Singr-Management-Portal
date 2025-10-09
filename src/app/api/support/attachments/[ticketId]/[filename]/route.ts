@@ -52,7 +52,8 @@ export async function GET(
         userId: session.user.id,
         userType: session.user.accountType,
       })
-      return NextResponse.redirect(new URL(session.user.accountType === 'customer' ? '/dashboard' : '/admin', request.url))
+      const redirectUrl = session.user.accountType === 'customer' ? '/dashboard' : '/admin'
+      return NextResponse.redirect(new URL(redirectUrl, request.url))
     }
 
     // Construct the file path
@@ -72,6 +73,7 @@ export async function GET(
 
     // Read the file
     const fileBuffer = await fs.readFile(filePath)
+    const uint8Array = new Uint8Array(fileBuffer)
 
     // Determine content type
     const ext = path.extname(filename).toLowerCase()
@@ -98,7 +100,7 @@ export async function GET(
       userId: session.user.id,
     })
 
-    return new NextResponse(fileBuffer, {
+    return new NextResponse(uint8Array, {
       status: 200,
       headers: {
         'Content-Type': contentType,
