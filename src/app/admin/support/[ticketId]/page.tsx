@@ -16,6 +16,7 @@ import { SupportTicketPriorityBadge } from '@/components/support/support-ticket-
 import { SupportTicketMessageThread } from '@/components/support/support-ticket-message-thread'
 import { AdminTicketActions } from '@/components/admin/admin-ticket-actions'
 import { AdminTicketReplyForm } from '@/components/admin/admin-ticket-reply-form'
+import { TicketAuditTrail } from '@/components/support/ticket-audit-trail'
 
 type PageProps = {
   params: Promise<{ ticketId: string }>
@@ -81,7 +82,23 @@ export default async function AdminSupportTicketDetailPage({ params }: PageProps
         },
       },
     },
-    orderBy: { createdAt: 'asc' },
+    orderBy: { createdAt: 'desc' },
+  })
+
+  const audits = await (prisma as any).supportTicketAudit.findMany({
+    where: {
+      ticketId,
+    },
+    include: {
+      actor: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
   })
 
   const adminUsers = await prisma.user.findMany({
@@ -202,6 +219,8 @@ export default async function AdminSupportTicketDetailPage({ params }: PageProps
           />
         </div>
       </section>
+
+      <TicketAuditTrail audits={audits} />
     </div>
   )
 }

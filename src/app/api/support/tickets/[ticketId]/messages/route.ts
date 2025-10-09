@@ -101,7 +101,33 @@ export async function POST(
           where: { id: ticketId },
           data: { status: nextStatus },
         })
+
+        // Create audit trail for status change
+        await tx.supportTicketAudit.create({
+          data: {
+            ticketId,
+            actorId: session.user!.id,
+            action: 'status_changed',
+            oldValues: { status: ticket.status },
+            newValues: { status: nextStatus },
+          },
+        })
       }
+
+      // Create audit trail for message creation
+      await tx.supportTicketAudit.create({
+        data: {
+          ticketId,
+          actorId: session.user!.id,
+          action: 'message_added',
+          oldValues: null,
+          newValues: {
+            messageId: message.id,
+            visibility: 'public',
+            hasAttachments: attachments.length > 0,
+          },
+        },
+      })
 
       if (attachments.length) {
         const savedFiles: SavedSupportAttachment[] = []

@@ -15,6 +15,7 @@ import { SupportTicketStatusBadge } from '@/components/support/support-ticket-st
 import { SupportTicketPriorityBadge } from '@/components/support/support-ticket-priority-badge'
 import { SupportTicketMessageThread } from '@/components/support/support-ticket-message-thread'
 import { SupportTicketReplyForm } from '@/components/support/support-ticket-reply-form'
+import { TicketAuditTrail } from '@/components/support/ticket-audit-trail'
 
 type PageProps = {
   params: Promise<{ ticketId: string }>
@@ -88,7 +89,23 @@ export default async function SupportTicketDetailPage({ params }: PageProps) {
         },
       },
     },
-    orderBy: { createdAt: 'asc' },
+    orderBy: { createdAt: 'desc' },
+  })
+
+  const audits = await (prisma as any).supportTicketAudit.findMany({
+    where: {
+      ticketId,
+    },
+    include: {
+      actor: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
   })
 
   const isClosed = ticket.status === 'closed'
@@ -184,6 +201,8 @@ export default async function SupportTicketDetailPage({ params }: PageProps) {
           </CardFooter>
         </Card>
       </section>
+
+      <TicketAuditTrail audits={audits} />
     </div>
   )
 }
