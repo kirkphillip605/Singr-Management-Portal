@@ -1,4 +1,14 @@
-// src/app/api/systems/route.ts (only the POST handler changed)
+import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth/next'
+import { authOptions } from '@/lib/auth'
+import { prisma } from '@/lib/prisma'
+import { z } from 'zod'
+
+export const runtime = 'nodejs'
+
+const createSystemSchema = z.object({
+  name: z.string().min(1, 'Name is required').max(100, 'Name must be 100 characters or fewer'),
+})
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions)
