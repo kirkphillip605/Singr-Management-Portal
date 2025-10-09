@@ -12,7 +12,7 @@ interface AdminUserPageProps {
 export default async function AdminUserPage({ params }: AdminUserPageProps) {
   // ✅ params is a plain object; do not await it
   await requireAdminSession()
-  const { userId } = params
+  const { userId } = await params
 
   const [user] = await Promise.all([
     prisma.user.findUnique({
