@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Upload, Search, Music, Download, Trash2 } from 'lucide-react'
-import Link from 'next/link'
 
 export default async function SongsPage() {
   const session = await getAuthSession()
@@ -46,12 +45,6 @@ export default async function SongsPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Link href="/dashboard/songs/upload">
-            <Button>
-              <Upload className="mr-2 h-4 w-4" />
-              Upload Songs
-            </Button>
-          </Link>
           <Button variant="outline">
             <Download className="mr-2 h-4 w-4" />
             Export
@@ -110,14 +103,8 @@ export default async function SongsPage() {
             <Music className="h-12 w-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold mb-2">No songs in your database</h3>
             <p className="text-muted-foreground text-center mb-4">
-              Upload a song list or add songs manually to get started
+              Add songs manually or import a song list to get started
             </p>
-            <Link href="/dashboard/songs/upload">
-              <Button>
-                <Upload className="mr-2 h-4 w-4" />
-                Upload Your First Songs
-              </Button>
-            </Link>
           </CardContent>
         </Card>
       ) : (

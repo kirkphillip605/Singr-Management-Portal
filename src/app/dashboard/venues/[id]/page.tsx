@@ -6,7 +6,7 @@ import { VenueManagementForm } from '@/components/venue-management-form'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { MapPin, Calendar, ExternalLink } from 'lucide-react'
+import { MapPin, Calendar } from 'lucide-react'
 import Link from 'next/link'
 
 type PageProps = {
@@ -51,12 +51,6 @@ export default async function VenueManagePage(props: PageProps) {
           </p>
         </div>
         <div className="flex gap-2">
-          <Link href={`/venue/${venue.urlName}`} target="_blank">
-            <Button variant="outline">
-              <ExternalLink className="mr-2 h-4 w-4" />
-              View Public Page
-            </Button>
-          </Link>
           <Link href="/dashboard/venues">
             <Button variant="outline">
               Back to Venues
