@@ -7,8 +7,9 @@ import argon2 from 'argon2';
 import readline from 'readline';
 import { Writable } from 'stream';
 
-const DATABASE_URL = 'postgresql://postgres:!Jameson5475!@45.63.69.221:5432/karaoke';
-
+const db = process.env.DATABASE_URL;
+//const DATABASE_URL = 'postgresql://postgres:!Jameson5475!@45.63.69.221:5432/karaoke';
+const DATABASE_URL = db;
 // ------------ prompt helpers ------------
 function rlStd() {
   return readline.createInterface({ input: process.stdin, output: process.stdout });
