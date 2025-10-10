@@ -7,9 +7,8 @@ import argon2 from 'argon2';
 import readline from 'readline';
 import { Writable } from 'stream';
 
-const db = process.env.DATABASE_URL;
-const DATABASE_URL = 'postgresql://postgres:!Jameson5475!@45.63.69.221:5432/karaoke';
-// const DATABASE_URL = db;
+const db_url = process.env.DATABASE_URL;
+const DATABASE_URL = db_url;
 // ------------ prompt helpers ------------
 function rlStd() {
   return readline.createInterface({ input: process.stdin, output: process.stdout });
@@ -89,10 +88,7 @@ async function main() {
 
     const name = (await ask(rl, 'Full name: ')).trim();
     const email = (await ask(rl, 'Email: ')).trim().toLowerCase();
-    if (!email || !email.includes('@')) {
-      throw new Error('Please provide a valid email address.');
-    }
-
+    
     const pw1 = await askHidden('Password: ');
     const pw2 = await askHidden('Confirm Password: ');
     if (!pw1) throw new Error('Password cannot be empty.');
@@ -100,9 +96,9 @@ async function main() {
 
     const passwordHash = await argon2.hash(pw1, {
       type: argon2.argon2id,
-      timeCost: 3,
-      memoryCost: 19456, // ~19MB
-      parallelism: 1,
+      timeCost: 10,
+      memoryCost: 524288, // ~512MB
+      parallelism: 2,
     });
 
     const client = new Client({ connectionString: DATABASE_URL });
