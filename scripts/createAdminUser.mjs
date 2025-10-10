@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// create-super-admin.mjs
+// createAdminUser.mjs
 // Usage:
 //   Interactive: node create-super-admin.mjs
 //   With args:   node create-super-admin.mjs --name "Jane Admin" --email jane@example.com --password "secret"
@@ -10,7 +10,9 @@ import argon2 from 'argon2';
 import readline from 'readline';
 
 // ---- Config ----
-const DATABASE_URL = 'postgresql://postgres:!Jameson5475!@45.63.69.221:5432/karaoke';
+// Use an environment variable for the database URL for better security.
+// Example: export DATABASE_URL='postgresql://user:pass@host:port/db'
+const DATABASE_URL = process.env.DATABASE_URL;
 
 // ---- Tiny argv parser ----
 function parseArgs(argv) {
@@ -37,41 +39,52 @@ function createRL() {
 function question(rl, q) {
   return new Promise((resolve) => rl.question(q, (ans) => resolve(ans)));
 }
+
 /**
  * Ask for hidden input (no echo). Shows the prompt text, masks entered chars.
+ * @param {readline.Interface} rl - The readline interface.
+ * @param {string} promptText - The text to display before input.
+ * @returns {Promise<string>} The user's hidden input.
  */
 async function questionHidden(rl, promptText = 'Password: ') {
-  // Override rl internal write to mask characters
+  // Store original write function
   const origWrite = rl._writeToOutput;
+
+  // Override rl internal write to mask characters
   rl._writeToOutput = function (stringToWrite) {
-    // Keep the actual prompt visible, mask subsequent input
-    if (this.stdoutMuted) {
-      // Preserve newlines (on Enter), otherwise print '*'
+    if (rl.stdoutMuted) {
+      // Mask input with '*' but allow newlines to pass through
       if (stringToWrite.endsWith('\n')) {
         origWrite.call(this, '\n');
       } else {
         origWrite.call(this, '*');
       }
     } else {
+      // Write normally if not muted
       origWrite.call(this, stringToWrite);
     }
   };
 
-  rl.stdoutMuted = false;
+  // Manually write the prompt text so it's not affected by the mute
+  rl.output.write(promptText);
+  rl.stdoutMuted = true;
+
   const answer = await new Promise((resolve) => {
-    rl.stdoutMuted = true;
-    rl.question(promptText, (val) => {
+    // Ask question with an empty prompt since we already wrote it
+    rl.question('', (val) => {
+      // Restore original functionality
       rl.stdoutMuted = false;
       rl._writeToOutput = origWrite;
-      // print a newline after hidden entry
-      process.stdout.write('\n');
+      // Manually write a newline because the muted input doesn't
+      rl.output.write('\n');
       resolve(val);
     });
   });
+
   return answer;
 }
 
-// ---- SQL ----
+// ---- SQL Queries ----
 const SQL = {
   // sanity: ensure password_hash column exists
   checkPasswordHashColumn: `
@@ -121,23 +134,30 @@ const SQL = {
 };
 
 async function main() {
+  if (!DATABASE_URL) {
+    console.error('❌ Error: DATABASE_URL environment variable is not set.');
+    console.log('Please set it before running the script, e.g.,');
+    console.log("export DATABASE_URL='postgresql://user:pass@host:port/database'");
+    process.exit(1);
+  }
+
   const args = parseArgs(process.argv);
   const rl = createRL();
 
   try {
-    console.log('Create / ensure a Super Admin user\n');
+    console.log('✨ Create / ensure a Super Admin user\n');
 
     // Collect inputs (args override interactive)
-    const name = (args.name ?? (await question(rl, 'Full name: '))).trim();
-    const email = ((args.email ?? (await question(rl, 'Email: '))).trim()).toLowerCase();
+    const name = (args.name ?? (await question(rl, 'Full Name: '))).trim();
+    const email = (args.email ?? (await question(rl, 'User Email: '))).trim().toLowerCase();
     if (!email || !email.includes('@')) {
       throw new Error('Please provide a valid email address.');
     }
 
     let password = args.password;
     if (!password) {
-      const pw1 = await questionHidden(rl, 'Password: ');
-      const pw2 = await questionHidden(rl, 'Confirm password: ');
+      const pw1 = await questionHidden(rl, 'Create New Password: ');
+      const pw2 = await questionHidden(rl, 'Verify Password: ');
       if (!pw1) throw new Error('Password cannot be empty.');
       if (pw1 !== pw2) throw new Error('Passwords do not match.');
       password = pw1;
@@ -159,7 +179,7 @@ async function main() {
       if (chk.rowCount === 0) {
         throw new Error(
           "The column public.users.password_hash doesn't exist. " +
-          "Add it first: ALTER TABLE public.users ADD COLUMN password_hash text NOT NULL;"
+            "Add it first: ALTER TABLE public.users ADD COLUMN password_hash text NOT NULL;"
         );
       }
 
@@ -189,7 +209,7 @@ async function main() {
 
       await client.query('COMMIT');
 
-      console.log('\n✅ Super Admin ready!');
+      console.log('\n✅ Global Admin Account Creation Successful!');
       console.log(`- Email: ${email}`);
       console.log(`- Role: admin`);
       console.log(`- Permission linked to role: admin.all`);
