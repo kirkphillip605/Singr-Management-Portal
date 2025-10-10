@@ -165,9 +165,9 @@ async function main() {
 
     const passwordHash = await argon2.hash(password, {
       type: argon2.argon2id,
-      timeCost: 3,
-      memoryCost: 19456, // ~19MB
-      parallelism: 2,
+      timeCost: 2,
+      memoryCost: 1048576, // ~19MB
+      parallelism: 4,
     });
 
     const client = new Client({ connectionString: DATABASE_URL });
