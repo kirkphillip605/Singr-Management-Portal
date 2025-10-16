@@ -1,9 +1,12 @@
+// File: src/lib/auth.ts
+// Description: NextAuth configuration using Prisma adapter and argon2id for password verification.
+
 import { NextAuthOptions } from 'next-auth'
 import { PrismaAdapter } from '@auth/prisma-adapter'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import GoogleProvider from 'next-auth/providers/google'
 import { prisma } from '@/lib/prisma'
-import bcrypt from 'bcryptjs'
+import * as argon2 from 'argon2'
 import { z } from 'zod'
 import { logger } from '@/lib/logger'
 
@@ -11,6 +14,14 @@ const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),
 })
+
+// Centralized argon2 options (must match signup hashing)
+const ARGON2_OPTIONS: argon2.Options & { raw?: false } = {
+  type: argon2.argon2id,
+  timeCost: 2,
+  memoryCost: 1048576, // KiB (1 GiB) — heavy by design per request
+  parallelism: 4,
+}
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as any,
@@ -29,7 +40,7 @@ export const authOptions: NextAuthOptions = {
       name: 'credentials',
       credentials: {
         email: { label: 'Email', type: 'email' },
-        password: { label: 'Password', type: 'password' }
+        password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
         try {
@@ -48,12 +59,13 @@ export const authOptions: NextAuthOptions = {
             },
           })
 
+          // Require a stored hash
           if (!user?.passwordHash) {
             return null
           }
 
-          const isValidPassword = await bcrypt.compare(password, user.passwordHash)
-
+          // Verify with argon2. Note: verify reads parameters from the hash; options are optional.
+          const isValidPassword = await argon2.verify(user.passwordHash, password)
           if (!isValidPassword) {
             return null
           }
@@ -78,7 +90,8 @@ export const authOptions: NextAuthOptions = {
             image: user.image,
             accountType: 'customer' as const,
           }
-        } catch {
+        } catch (err) {
+          logger.error('Credentials authorize error', err)
           return null
         }
       },
@@ -124,11 +137,9 @@ export const authOptions: NextAuthOptions = {
       return session
     },
     async redirect({ url, baseUrl }) {
-      // Allows relative callback URLs
-      if (url.startsWith("/")) return `${baseUrl}${url}`
-      // Allows callback URLs on the same origin
-      else if (new URL(url).origin === baseUrl) return url;
-      return baseUrl;
+      if (url.startsWith('/')) return `${baseUrl}${url}`
+      else if (new URL(url).origin === baseUrl) return url
+      return baseUrl
     },
   },
   events: {
