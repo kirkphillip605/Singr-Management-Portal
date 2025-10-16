@@ -4,7 +4,8 @@
 //   Interactive: node create-super-admin.mjs
 //   With args:   node create-super-admin.mjs --name "Jane Admin" --email jane@example.com --password "secret"
 // Requires: npm i pg argon2
-
+import dotenv from 'dotenv';
+dotenv.config({ path: new URL('./.env', import.meta.url).pathname });
 import { Client } from 'pg';
 import argon2 from 'argon2';
 import readline from 'readline';
