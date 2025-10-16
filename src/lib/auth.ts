@@ -1,5 +1,4 @@
-// File: src/lib/auth.ts
-// Description: NextAuth configuration using Prisma adapter and argon2id for password verification.
+// auth.ts
 
 import { NextAuthOptions } from 'next-auth'
 import { PrismaAdapter } from '@auth/prisma-adapter'
@@ -14,14 +13,6 @@ const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),
 })
-
-// Centralized argon2 options (must match signup hashing)
-const ARGON2_OPTIONS: argon2.Options & { raw?: false } = {
-  type: argon2.argon2id,
-  timeCost: 2,
-  memoryCost: 1048576, // KiB (1 GiB) — heavy by design per request
-  parallelism: 4,
-}
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as any,
@@ -59,18 +50,19 @@ export const authOptions: NextAuthOptions = {
             },
           })
 
-          // Require a stored hash
           if (!user?.passwordHash) {
             return null
           }
 
-          // Verify with argon2. Note: verify reads parameters from the hash; options are optional.
+          // Use argon2.verify instead of bcrypt.compare
           const isValidPassword = await argon2.verify(user.passwordHash, password)
+
           if (!isValidPassword) {
             return null
           }
 
-          const accountType = (user.accountType as 'customer' | 'admin' | null) ?? 'customer'
+          const accountType =
+            (user.accountType as 'customer' | 'admin' | null) ?? 'customer'
 
           if (accountType === 'admin') {
             return {
@@ -79,7 +71,9 @@ export const authOptions: NextAuthOptions = {
               name: user.name,
               image: user.image,
               accountType: 'admin' as const,
-              adminLevel: (user.adminLevel as 'support' | 'super_admin' | null) ?? 'support',
+              adminLevel:
+                (user.adminLevel as 'support' | 'super_admin' | null) ??
+                'support',
             }
           }
 
@@ -90,8 +84,7 @@ export const authOptions: NextAuthOptions = {
             image: user.image,
             accountType: 'customer' as const,
           }
-        } catch (err) {
-          logger.error('Credentials authorize error', err)
+        } catch {
           return null
         }
       },
@@ -137,7 +130,9 @@ export const authOptions: NextAuthOptions = {
       return session
     },
     async redirect({ url, baseUrl }) {
+      // Allows relative callback URLs
       if (url.startsWith('/')) return `${baseUrl}${url}`
+      // Allows callback URLs on the same origin
       else if (new URL(url).origin === baseUrl) return url
       return baseUrl
     },
@@ -163,7 +158,9 @@ export const authOptions: NextAuthOptions = {
           },
         })
 
-        logger.info(`Stripe customer created for user ${user.id}: ${customer.id}`)
+        logger.info(
+          `Stripe customer created for user ${user.id}: ${customer.id}`
+        )
       } catch (error) {
         logger.error('Failed to create Stripe customer:', error)
       }
