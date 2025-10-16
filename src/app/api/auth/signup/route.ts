@@ -1,12 +1,9 @@
-// src/app/api/auth/signup/route.ts
-// ───────────────────────────────────────────────────────────────────────────────
-// Creates a new user, Stripe customer, initial Customer row, the user's first
-// System with openKjSystemId=1, and initializes State.
-// Includes robust validation and pinned Stripe API version.
+// File: src/app/api/auth/signup/route.ts
+// Description: Signup route using argon2id hashing (matches auth.ts verification settings).
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import bcrypt from 'bcryptjs'
+import * as argon2 from 'argon2'
 import { z } from 'zod'
 import Stripe from 'stripe'
 
@@ -20,13 +17,21 @@ const signupSchema = z.object({
   phoneNumber: z.string().optional(),
 })
 
+// Must match verification assumptions in auth.ts
+const ARGON2_OPTIONS: argon2.Options & { raw?: false } = {
+  type: argon2.argon2id,
+  timeCost: 2,
+  memoryCost: 1048576, // KiB (1 GiB)
+  parallelism: 4,
+}
+
 function getStripeClient(): Stripe {
   const secret = process.env.STRIPE_SECRET_KEY
   if (!secret) {
     throw new Error('STRIPE_SECRET_KEY is not set')
   }
 
-  // Pin to a known-good version; allow override via env if you explicitly set it.
+  // Pin to a known-good version; allow override via env if explicitly set.
   const apiVersion =
     (process.env.STRIPE_API_VERSION as Stripe.StripeConfig['apiVersion']) ??
     '2025-08-27.basil'
@@ -51,7 +56,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const passwordHash = await bcrypt.hash(validatedData.password, 12)
+    // Hash password with argon2id
+    const passwordHash = await argon2.hash(validatedData.password, ARGON2_OPTIONS)
 
     // Create user first
     const user = await prisma.user.create({
@@ -76,7 +82,6 @@ export async function POST(request: NextRequest) {
     await prisma.$transaction([
       prisma.customer.create({
         data: {
-          // If your Customer PK differs, adjust accordingly.
           id: user.id,
           stripeCustomerId: customer.id,
         },
