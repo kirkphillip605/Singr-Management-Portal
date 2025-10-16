@@ -1,5 +1,8 @@
-// File: src/app/api/auth/signup/route.ts
-// Description: Signup route using argon2id hashing (matches auth.ts verification settings).
+// src/app/api/auth/signup/route.ts
+// ───────────────────────────────────────────────────────────────────────────────
+// Creates a new user, Stripe customer, initial Customer row, the user's first
+// System with openKjSystemId=1, and initializes State.
+// Includes robust validation and pinned Stripe API version.
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
@@ -17,21 +20,13 @@ const signupSchema = z.object({
   phoneNumber: z.string().optional(),
 })
 
-// Must match verification assumptions in auth.ts
-const ARGON2_OPTIONS: argon2.Options & { raw?: false } = {
-  type: argon2.argon2id,
-  timeCost: 2,
-  memoryCost: 1048576, // KiB (1 GiB)
-  parallelism: 4,
-}
-
 function getStripeClient(): Stripe {
   const secret = process.env.STRIPE_SECRET_KEY
   if (!secret) {
     throw new Error('STRIPE_SECRET_KEY is not set')
   }
 
-  // Pin to a known-good version; allow override via env if explicitly set.
+  // Pin to a known-good version; allow override via env if you explicitly set it.
   const apiVersion =
     (process.env.STRIPE_API_VERSION as Stripe.StripeConfig['apiVersion']) ??
     '2025-08-27.basil'
@@ -56,8 +51,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Hash password with argon2id
-    const passwordHash = await argon2.hash(validatedData.password, ARGON2_OPTIONS)
+    // Hash password with argon2 using specified options
+    const passwordHash = await argon2.hash(validatedData.password, {
+      type: argon2.argon2id,
+      timeCost: 2,
+      memoryCost: 1048576,
+      parallelism: 4,
+    })
 
     // Create user first
     const user = await prisma.user.create({
@@ -82,6 +82,7 @@ export async function POST(request: NextRequest) {
     await prisma.$transaction([
       prisma.customer.create({
         data: {
+          // If your Customer PK differs, adjust accordingly.
           id: user.id,
           stripeCustomerId: customer.id,
         },
@@ -118,6 +119,9 @@ export async function POST(request: NextRequest) {
       )
     }
     console.error('Signup error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
   }
 }
