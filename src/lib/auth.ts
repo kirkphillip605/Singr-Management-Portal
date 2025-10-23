@@ -2,17 +2,8 @@
 
 import { NextAuthOptions } from 'next-auth'
 import { PrismaAdapter } from '@auth/prisma-adapter'
-import CredentialsProvider from 'next-auth/providers/credentials'
-import GoogleProvider from 'next-auth/providers/google'
 import { prisma } from '@/lib/prisma'
-import * as argon2 from 'argon2'
-import { z } from 'zod'
 import { logger } from '@/lib/logger'
-
-const loginSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(6),
-})
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as any,
@@ -23,89 +14,88 @@ export const authOptions: NextAuthOptions = {
     signIn: '/auth/signin',
   },
   providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID || '',
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
-    }),
-    CredentialsProvider({
-      name: 'credentials',
-      credentials: {
-        email: { label: 'Email', type: 'email' },
-        password: { label: 'Password', type: 'password' },
+    {
+      id: 'fusionauth',
+      name: 'FusionAuth',
+      type: 'oauth',
+      wellKnown: `${process.env.FUSIONAUTH_ISSUER}/${process.env.FUSIONAUTH_TENANT_ID}/.well-known/openid-configuration`,
+      authorization: {
+        params: {
+          scope: 'openid email profile',
+        },
       },
-      async authorize(credentials) {
-        try {
-          const { email, password } = loginSchema.parse(credentials)
-
-          const user = await prisma.user.findUnique({
-            where: { email },
-            select: {
-              id: true,
-              email: true,
-              name: true,
-              passwordHash: true,
-              image: true,
-              accountType: true,
-              adminLevel: true,
-            },
-          })
-
-          if (!user?.passwordHash) {
-            return null
-          }
-
-          // Use argon2.verify instead of bcrypt.compare
-          const isValidPassword = await argon2.verify(user.passwordHash, password)
-
-          if (!isValidPassword) {
-            return null
-          }
-
-          const accountType =
-            (user.accountType as 'customer' | 'admin' | null) ?? 'customer'
-
-          if (accountType === 'admin') {
-            return {
-              id: user.id,
-              email: user.email,
-              name: user.name,
-              image: user.image,
-              accountType: 'admin' as const,
-              adminLevel:
-                (user.adminLevel as 'support' | 'super_admin' | null) ??
-                'support',
-            }
-          }
-
-          return {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            image: user.image,
-            accountType: 'customer' as const,
-          }
-        } catch {
-          return null
+      clientId: process.env.FUSIONAUTH_CLIENT_ID,
+      clientSecret: process.env.FUSIONAUTH_CLIENT_SECRET,
+      issuer: process.env.FUSIONAUTH_ISSUER,
+      profile(profile) {
+        return {
+          id: profile.sub,
+          email: profile.email,
+          name: profile.name || profile.email,
+          image: profile.picture,
         }
       },
-    }),
+    },
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }) {
       if (user) {
-        const accountType = (user as any).accountType ?? 'customer'
-        token.accountType = accountType
+        // Store the FusionAuth user ID in the token
+        token.fusionauthUserId = user.id
+        
+        // Find or create the SingrUser
+        let singrUser = await prisma.singrUser.findUnique({
+          where: { fusionauthUserId: user.id },
+          include: {
+            adminProfile: true,
+            customerProfile: true,
+            singerProfile: true,
+          },
+        })
 
-        if (accountType === 'admin') {
-          token.adminId = user.id
-          token.adminLevel = (user as any).adminLevel
+        // If user doesn't exist in our database, create them
+        if (!singrUser) {
+          singrUser = await prisma.singrUser.create({
+            data: {
+              fusionauthUserId: user.id,
+              email: user.email!,
+              name: user.name || user.email!,
+              image: user.image,
+            },
+            include: {
+              adminProfile: true,
+              customerProfile: true,
+              singerProfile: true,
+            },
+          })
+        }
+
+        token.singrUserId = singrUser.id
+        
+        // Determine account type based on profiles
+        if (singrUser.adminProfile) {
+          token.accountType = 'admin'
+          token.adminLevel = singrUser.adminProfile.adminLevel as 'support' | 'super_admin'
+          token.adminId = singrUser.id
           token.userId = null
-          token['id'] = user.id
-        } else {
-          token.userId = user.id
-          token.adminId = null
+        } else if (singrUser.customerProfile) {
+          token.accountType = 'customer'
           token.adminLevel = null
-          token['id'] = user.id
+          token.adminId = null
+          token.userId = singrUser.id
+          token.customerProfileId = singrUser.customerProfile.id
+        } else {
+          // Default to customer if no profile exists
+          token.accountType = 'customer'
+          token.adminLevel = null
+          token.adminId = null
+          token.userId = singrUser.id
+        }
+
+        // Check for required role from FusionAuth token
+        if (account?.access_token) {
+          // Store roles from FusionAuth if available in the token
+          token.roles = (account as any).roles || []
         }
       }
       return token
@@ -114,18 +104,22 @@ export const authOptions: NextAuthOptions = {
       if (token && session.user) {
         const accountType = (token.accountType as string) ?? 'customer'
         session.user.accountType = accountType as any
+        session.user.fusionauthUserId = token.fusionauthUserId as string
+        session.user.singrUserId = token.singrUserId as string
 
         if (accountType === 'admin') {
-          session.user.id = (token.adminId as string) ?? (token['id'] as string)
+          session.user.id = (token.adminId as string) ?? (token.singrUserId as string)
           session.user.adminLevel = token.adminLevel as any
           session.user.adminId = token.adminId as string | undefined
         } else {
-          session.user.id = (token.userId as string) ?? (token['id'] as string)
+          session.user.id = (token.userId as string) ?? (token.singrUserId as string)
           session.user.adminLevel = undefined
           session.user.adminId = undefined
         }
 
         session.user.userId = token.userId as string | undefined
+        session.user.customerProfileId = token.customerProfileId as string | undefined
+        session.user.roles = (token.roles as string[]) || []
       }
       return session
     },
@@ -139,31 +133,9 @@ export const authOptions: NextAuthOptions = {
   },
   events: {
     async createUser({ user }) {
-      // Create Stripe customer when user is created
-      try {
-        const { stripe } = await import('@/lib/stripe')
-
-        const customer = await stripe.customers.create({
-          email: user.email!,
-          name: user.name || undefined,
-          metadata: {
-            userId: user.id,
-          },
-        })
-
-        await prisma.customer.create({
-          data: {
-            id: user.id,
-            stripeCustomerId: customer.id,
-          },
-        })
-
-        logger.info(
-          `Stripe customer created for user ${user.id}: ${customer.id}`
-        )
-      } catch (error) {
-        logger.error('Failed to create Stripe customer:', error)
-      }
+      // This event is called when a new user is created via the adapter
+      // For FusionAuth users, we handle user creation in the JWT callback instead
+      logger.info(`User event triggered for: ${user.id}`)
     },
   },
 }
