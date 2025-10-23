@@ -18,7 +18,7 @@ export const authOptions: NextAuthOptions = {
       id: 'fusionauth',
       name: 'FusionAuth',
       type: 'oauth',
-      wellKnown: `${process.env.FUSIONAUTH_ISSUER}/.well-known/openid-configuration`,
+      wellKnown: `${process.env.FUSIONAUTH_ISSUER}/${process.env.FUSIONAUTH_TENANT_ID}/.well-known/openid-configuration`,
       authorization: {
         params: {
           scope: 'openid email profile',

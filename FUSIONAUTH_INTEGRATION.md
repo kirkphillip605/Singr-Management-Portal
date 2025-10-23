@@ -39,13 +39,19 @@ The billing portal is configured as an application in FusionAuth with the follow
 **Application ID:** `9f1a576c-708f-4f05-a3cf-12096b314ca4`
 **Tenant ID:** `a5b3a747-c347-44d7-8557-a98e10432d82`
 
+#### Required FusionAuth Configuration
+
+1. **Application Roles:** Create a role named `customer_owner` in the FusionAuth application
+2. **JWT Configuration:** Ensure the JWT includes the `roles` claim
+3. **OAuth Scopes:** Application must support `openid`, `email`, and `profile` scopes
+
 #### OAuth 2.0 Endpoints
 
 - **Authorization Endpoint:** `https://auth.singrkaraoke.com/oauth2/authorize`
 - **Token Endpoint:** `https://auth.singrkaraoke.com/oauth2/token`
 - **UserInfo Endpoint:** `https://auth.singrkaraoke.com/oauth2/userinfo`
 - **Logout Endpoint:** `https://auth.singrkaraoke.com/oauth2/logout`
-- **OIDC Discovery:** `https://auth.singrkaraoke.com/.well-known/openid-configuration`
+- **OIDC Discovery:** `https://auth.singrkaraoke.com/a5b3a747-c347-44d7-8557-a98e10432d82/.well-known/openid-configuration`
 
 #### Authorized Redirect URLs
 
@@ -99,6 +105,18 @@ The profile type is determined during the JWT callback based on existing profile
 ### Required Role
 
 Users must have the `customer_owner` role in the FusionAuth "Singr Billing Portal" application to access the billing portal.
+
+### Configuring Roles in FusionAuth
+
+To ensure roles are included in the authentication flow:
+
+1. **Navigate to Applications** in the FusionAuth admin panel
+2. **Select the Singr Billing Portal application**
+3. **Go to the JWT tab**
+4. **Enable "Populate lambda"** or ensure roles are included in the ID token
+5. **Add the roles claim** to the JWT configuration
+
+Alternatively, configure the application to return roles in the ID token by default.
 
 ### Role Checking
 
