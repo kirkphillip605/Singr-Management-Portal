@@ -14,6 +14,15 @@ datasource db {
    ENUMS
    ============================================ */
 
+enum AccountType {
+  admin
+  customer
+  support
+
+  @@map("accounttype")
+  @@schema("public")
+}
+
 enum ApiKeyStatus {
   active
   revoked
@@ -21,6 +30,14 @@ enum ApiKeyStatus {
   suspended
 
   @@map("apikeystatus")
+  @@schema("public")
+}
+
+enum AdminLevel {
+  super_admin
+  support
+
+  @@map("admin_level")
   @@schema("public")
 }
 
@@ -42,87 +59,111 @@ enum PricingInterval {
   @@schema("public")
 }
 
+enum TicketStatus {
+  open
+  pending_customer
+  pending_support
+  resolved
+  closed
+
+  @@map("ticket_status")
+  @@schema("public")
+}
+
+enum TicketPriority {
+  low
+  normal
+  high
+  urgent
+
+  @@map("ticket_priority")
+  @@schema("public")
+}
+
+enum MessageVisibility {
+  public
+  internal
+
+  @@map("message_visibility")
+  @@schema("public")
+}
+
 /* ============================================
    CORE AUTH / SESSION
    ============================================ */
 
-model SingrUser {
-  id                String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid @map("singr_users_id")
-  fusionauthUserId  String?      @unique @map("fusionauth_user_id") @db.Uuid
-  name              String
-  email             String       @unique
-  emailVerified     DateTime?    @map("email_verified") @db.Timestamptz(6)
-  image             String?
-  phoneNumber       String?      @map("phone_number")
-  createdAt         DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt         DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+model User {
+  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name           String
+  email          String        @unique
+  emailVerified  DateTime?     @map("email_verified") @db.Timestamptz(6)
+  image          String?
+  createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  passwordHash   String        @map("password_hash")
+  accountType    AccountType   @default(customer) @map("accounttype")
+  adminLevel     AdminLevel?   @map("admin_level")
+  businessName   String?       @map("businessname")
+  phoneNumber    String?       @map("phonenumber")
 
-  adminProfile      AdminProfile?
-  customerProfile   CustomerProfile?
-  singerProfile     SingerProfile?
-  sessions          Session[]
+  accounts       Account[]
+  customers      Customer[]
+  apiKeys        ApiKey[]
+  sessions       Session[]
+  subscriptions  Subscription[]
+  venues         Venue[]
+  systems        System[]
+  songDb         SongDb[]
+  state          State?
+  userNotesAbout UserNote[]    @relation("NotesAboutUser")
+  userNotesBy    UserNote[]    @relation("NotesAuthoredBy")
 
-  @@index([email], map: "idx_singr_users_email")
-  @@map("singr_users")
+  ticketsRequested SupportTicket[] @relation("RequestedTickets")
+  ticketsCreated   SupportTicket[] @relation("CreatedTickets")
+  ticketsAssigned  SupportTicket[] @relation("AssignedTickets")
+  ticketMessages   SupportTicketMessage[]
+  ticketAudits     SupportTicketAudit[]
+
+  @@index([email], map: "idx_users_email")
+  @@map("users")
   @@schema("public")
 }
 
-model AdminProfile {
-  id          String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid @map("admin_profiles_id")
-  singrUserId String       @unique @map("singr_users_id") @db.Uuid
-  adminLevel  String       @map("admin_level")
-  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt   DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+model Account {
+  id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId             String   @map("user_id") @db.Uuid
+  type               String
+  provider           String
+  providerAccountId  String   @map("provider_account_id")
+  refreshToken       String?  @map("refresh_token")
+  accessToken        String?  @map("access_token")
+  expiresAt          Int?     @map("expires_at")
+  tokenType          String?  @map("token_type")
+  scope              String?
+  idToken            String?  @map("id_token")
+  sessionState       String?  @map("session_state")
+  oauthTokenSecret   String?  @map("oauth_token_secret")
+  oauthToken         String?  @map("oauth_token")
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  singrUser   SingrUser    @relation(fields: [singrUserId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
 
-  @@map("admin_profiles")
-  @@schema("public")
-}
-
-model CustomerProfile {
-  id               String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid @map("customer_profiles_id")
-  singrUserId      String       @unique @map("singr_users_id") @db.Uuid
-  businessName     String?      @map("business_name")
-  stripeCustomerId String?      @unique @map("stripe_customer_id")
-  createdAt        DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt        DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-
-  singrUser        SingrUser    @relation(fields: [singrUserId], references: [id], onUpdate: Cascade, onDelete: Cascade)
-  apiKeys          ApiKey[]
-  customers        Customer[]
-  venues           Venue[]
-  systems          System[]
-  songDb           SongDb[]
-  state            State?
-  subscriptions    Subscription[]
-
-  @@map("customer_profiles")
-  @@schema("public")
-}
-
-model SingerProfile {
-  id          String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid @map("singer_profiles_id")
-  singrUserId String       @unique @map("singr_users_id") @db.Uuid
-  nickname    String?
-  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt   DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-
-  singrUser   SingrUser    @relation(fields: [singrUserId], references: [id], onUpdate: Cascade, onDelete: Cascade)
-
-  @@map("singer_profiles")
+  @@unique([provider, providerAccountId])
+  @@index([userId], map: "idx_accounts_user_id")
+  @@map("accounts")
   @@schema("public")
 }
 
 model Session {
-  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid @map("sessions_id")
-  sessionToken String    @unique @map("session_token")
-  singrUserId  String    @map("singr_users_id") @db.Uuid
-  expiresAt    DateTime  @map("expires_at") @db.Timestamptz(6)
-  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt    DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sessionToken String   @unique @map("sessiontoken")
+  userId       String   @map("userid") @db.Uuid
+  expires      DateTime @db.Timestamptz(6)
+  createdAt    DateTime @default(now()) @map("createdat") @db.Timestamptz(6)
+  updatedAt    DateTime @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
 
-  singrUser    SingrUser @relation(fields: [singrUserId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
 
   @@map("sessions")
   @@schema("public")
@@ -146,62 +187,71 @@ model VerificationToken {
    ============================================ */
 
 model Customer {
-  id                  String           @id @db.Uuid @map("customers_id")
-  stripeCustomerId    String           @unique @map("stripe_customer_id")
-  customerProfileId   String           @map("customer_profiles_id") @db.Uuid
-  createdAt           DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt           DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  email               String?
-  name                String?
-  phone               String?
-  description         String?
-  metadata            Json             @default("{}")
-  invoiceSettings     Json             @map("invoice_settings") @default("{}")
-  shipping            Json             @default("{}")
-  taxExempt           String?          @map("tax_exempt")
-  taxIds              Json             @map("tax_ids") @default("[]")
-  livemode            Boolean          @default(false)
+  id               String   @id @db.Uuid
+  stripeCustomerId String   @unique @map("stripe_customer_id")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  email            String?
+  name             String?
+  phone            String?
+  description      String?
+  metadata         Json     @default("{}")
+  invoiceSettings  Json     @map("invoice_settings") @default("{}")
+  shipping         Json     @default("{}")
+  taxExempt        String?  @map("tax_exempt")
+  taxIds           Json     @map("tax_ids") @default("[]")
+  livemode         Boolean  @default(false)
+  data             Json     @default("{}")
+  userId           String   @map("user_id") @db.Uuid
 
-  customerProfile     CustomerProfile  @relation(fields: [customerProfileId], references: [id], onUpdate: Cascade, onDelete: Cascade)
-  apiKeys             ApiKey[]
-  checkoutSessions    StripeCheckoutSession[]
+  user     User     @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  apiKeys  ApiKey[]
+  sessions StripeCheckoutSession[]
 
-  @@index([customerProfileId], map: "idx_customers_customer_profile_id")
+  @@index([userId], map: "idx_customers_user_id")
   @@map("customers")
   @@schema("public")
 }
 
 model ApiKey {
-  id                String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid @map("api_keys_id")
-  customerProfileId String       @map("customer_profiles_id") @db.Uuid
-  customerId        String       @map("customers_id") @db.Uuid
-  description       String?
-  apiKeyHash        String       @map("api_key_hash")
-  createdAt         DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
-  lastUsedAt        DateTime?    @map("last_used_at") @db.Timestamptz(6)
-  status            ApiKeyStatus @default(active)
-  revokedAt         DateTime?    @map("revoked_at") @db.Timestamptz(6)
-  updatedAt         DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id          String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  customerId  String       @map("customer_id") @db.Uuid
+  description String?
+  apiKeyHash  String       @map("api_key_hash")
+  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  lastUsedAt  DateTime?    @map("last_used_at") @db.Timestamptz(6)
+  status      ApiKeyStatus @default(active)
+  revokedAt   DateTime?    @map("revoked_at") @db.Timestamptz(6)
+  updatedAt   DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  userId      String       @map("user_id") @db.Uuid
 
-  customerProfile   CustomerProfile @relation(fields: [customerProfileId], references: [id], onUpdate: Cascade, onDelete: Cascade)
-  customer          Customer        @relation(fields: [customerId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  customer Customer @relation(fields: [customerId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
 
-  @@index([customerProfileId], map: "idx_api_keys_customer_profile_id")
   @@index([customerId], map: "idx_api_keys_customer_id")
+  @@index([userId], map: "idx_api_keys_user_id")
   @@map("api_keys")
   @@schema("public")
 }
 
 model StripeProduct {
-  id          String   @id @map("products_id")
-  name        String?
-  description String?
-  active      Boolean  @default(true)
-  metadata    Json     @default("{}")
-  images      String[] @default([])
-  livemode    Boolean  @default(false)
-  createdAt   DateTime @map("created_at") @db.Timestamptz(6)
-  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id                  String   @id
+  object              String?
+  active              Boolean  @default(true)
+  name                String?
+  description         String?
+  images              String[] @default([])
+  metadata            Json     @default("{}")
+  packageDimensions   Json?    @map("package_dimensions")
+  shippable           Boolean?
+  statementDescriptor String?  @map("statement_descriptor")
+  taxCode             String?  @map("tax_code")
+  unitLabel           String?  @map("unit_label")
+  url                 String?
+  createdAt           DateTime @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  livemode            Boolean  @default(false)
+  data                Json     @default("{}")
 
   prices StripePrice[]
 
@@ -211,21 +261,31 @@ model StripeProduct {
 }
 
 model StripePrice {
-  id         String   @id @map("prices_id")
-  productId  String   @map("product_id")
-  active     Boolean  @default(true)
-  currency   String   @db.Char(3)
-  type       String
-  recurring  Json?
-  unitAmount BigInt?  @map("unit_amount")
-  metadata   Json     @default("{}")
-  livemode   Boolean  @default(false)
-  createdAt  DateTime @map("created_at") @db.Timestamptz(6)
-  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id                String   @id
+  object            String?
+  active            Boolean  @default(true)
+  billingScheme     String?  @map("billing_scheme")
+  currency          String   @db.Char(3)
+  customUnitAmount  Json?    @map("custom_unit_amount")
+  livemode          Boolean  @default(false)
+  lookupKey         String?  @map("lookup_key")
+  metadata          Json     @default("{}")
+  nickname          String?
+  product           String
+  recurring         Json?
+  taxBehavior       String?  @map("tax_behavior")
+  tiersMode         String?  @map("tiers_mode")
+  transformQuantity Json?    @map("transform_quantity")
+  type              String
+  unitAmount        BigInt?  @map("unit_amount")
+  unitAmountDecimal String?  @map("unit_amount_decimal")
+  createdAt         DateTime @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  data              Json     @default("{}")
 
-  product StripeProduct @relation(fields: [productId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  productRel StripeProduct @relation(fields: [product], references: [id], onUpdate: Cascade, onDelete: Cascade)
 
-  @@index([productId], map: "idx_prices_product")
+  @@index([product], map: "idx_prices_product")
   @@index([active], map: "prices_active_idx")
   @@index([type], map: "prices_type_idx")
   @@map("prices")
@@ -233,35 +293,39 @@ model StripePrice {
 }
 
 model Subscription {
-  id                  String           @id @map("subscriptions_id")
-  customerProfileId   String           @map("customer_profiles_id") @db.Uuid
-  status              String
-  currentPeriodStart  DateTime         @map("current_period_start") @db.Timestamptz(6)
-  currentPeriodEnd    DateTime         @map("current_period_end") @db.Timestamptz(6)
-  cancelAtPeriodEnd   Boolean          @default(false) @map("cancel_at_period_end")
-  cancelAt            DateTime?        @map("cancel_at") @db.Timestamptz(6)
-  canceledAt          DateTime?        @map("canceled_at") @db.Timestamptz(6)
-  metadata            Json             @default("{}")
-  createdAt           DateTime         @map("created_at") @db.Timestamptz(6)
-  updatedAt           DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  livemode            Boolean          @default(false)
+  id                 String   @id
+  object             String?
+  userId             String   @map("user_id") @db.Uuid
+  status             String
+  currentPeriodStart DateTime @map("current_period_start") @db.Timestamptz(6)
+  currentPeriodEnd   DateTime @map("current_period_end") @db.Timestamptz(6)
+  cancelAtPeriodEnd  Boolean  @default(false) @map("cancel_at_period_end")
+  cancelAt           DateTime? @map("cancel_at") @db.Timestamptz(6)
+  canceledAt         DateTime? @map("canceled_at") @db.Timestamptz(6)
+  trialStart         DateTime? @map("trial_start") @db.Timestamptz(6)
+  trialEnd           DateTime? @map("trial_end") @db.Timestamptz(6)
+  metadata           Json      @default("{}")
+  createdAt          DateTime  @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime  @default(now()) @map("updated_at") @db.Timestamptz(6)
+  livemode           Boolean   @default(false)
+  data               Json      @default("{}")
 
-  customerProfile     CustomerProfile  @relation(fields: [customerProfileId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
 
-  @@index([customerProfileId], map: "idx_subscriptions_customer_profile_id")
+  @@index([userId], map: "idx_subscriptions_user_id")
   @@index([status], map: "idx_subscriptions_status")
   @@map("subscriptions")
   @@schema("public")
 }
 
 model StripeCheckoutSession {
-  id            String    @id @map("stripe_checkout_sessions_id")
-  customerId    String    @map("customers_id") @db.Uuid
-  paymentStatus String    @map("payment_status")
+  id            String   @id
+  customerId    String   @map("customer_id") @db.Uuid
+  paymentStatus String   @map("payment_status")
   mode          String
-  amountTotal   BigInt?   @map("amount_total")
+  amountTotal   BigInt?  @map("amount_total")
   currency      String
-  createdAt     DateTime  @map("created_at") @db.Timestamptz(6)
+  createdAt     DateTime @map("created_at") @db.Timestamptz(6)
   expiresAt     DateTime? @map("expires_at") @db.Timestamptz(6)
   url           String?
   metadata      Json      @default("{}")
@@ -274,17 +338,18 @@ model StripeCheckoutSession {
 }
 
 model StripeWebhookEvent {
-  id             Int       @id @default(autoincrement()) @map("stripe_webhook_events_id")
-  eventId        String    @unique @map("event_id")
-  eventType      String    @map("event_type")
+  id             Int      @id @default(autoincrement())
+  eventId        String   @unique @map("event_id")
   payload        Json
-  processed      Boolean   @default(false)
+  receivedAt     DateTime @default(now()) @map("received_at") @db.Timestamptz(6)
+  processed      Boolean  @default(false)
   processedAt    DateTime? @map("processed_at") @db.Timestamptz(6)
-  receivedAt     DateTime  @default(now()) @map("received_at") @db.Timestamptz(6)
-  livemode       Boolean   @default(false)
-  errorMessage   String?   @map("error_message")
-  requestId      String?   @map("request_id")
-  endpointSecret String?   @map("endpoint_secret")
+  errorMessage   String?  @map("error_message")
+  apiVersion     String?  @map("api_version")
+  eventType      String   @map("event_type")
+  livemode       Boolean  @default(false)
+  requestId      String?  @map("request_id")
+  endpointSecret String?  @map("endpoint_secret")
 
   @@map("stripe_webhook_events")
   @@schema("public")
@@ -295,76 +360,81 @@ model StripeWebhookEvent {
    ============================================ */
 
 model Venue {
-  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid @map("venues_id")
-  customerProfileId String   @map("customer_profiles_id") @db.Uuid
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId            String   @map("user_id") @db.Uuid
   openkjVenueId     Int      @map("openkj_venue_id")
-  urlName           String   @unique @map("url_name")
+  urlName           String   @map("url_name")
   acceptingRequests Boolean  @default(true) @map("accepting_requests")
+  herePlaceId       String?  @map("here_place_id")
   name              String
   address           String
   city              String
   state             String
-  postalCode        String   @map("postal_code")
+  stateCode         String?  @map("state_code") @db.VarChar(5)
+  postalCode        String   @map("postalcode")
   country           String?
-  phoneNumber       String?  @map("phone_number")
+  countryCode       String?  @map("country_code") @db.VarChar(3)
+  phoneNumber       String?  @map("phone_number") @db.VarChar(20)
   website           String?
-  latitude          Float?   @db.DoublePrecision
-  longitude         Float?   @db.DoublePrecision
+  latitude          Float?
+  longitude         Float?
   createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt         DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  accepting         Boolean  @default(false)
+  currentSystemId   Int      @default(1) @map("current_system_id")
 
-  customerProfile   CustomerProfile @relation(fields: [customerProfileId], references: [id], onUpdate: Cascade, onDelete: Cascade)
-  requests          Request[]
-  favorites         SingerFavoriteVenue[]
-  history           SingerRequestHistory[]
+  user    User     @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  requests Request[]
+  favorites SingerFavoriteVenue[]
+  history  SingerRequestHistory[]
 
-  @@index([customerProfileId], map: "idx_venues_customer_profile_id")
+  @@index([userId], map: "idx_venues_user_id")
   @@map("venues")
   @@schema("public")
 }
 
 model State {
-  customerProfileId String @id @map("customer_profiles_id") @db.Uuid
-  serial            BigInt @default(1)
+  userId String @id @map("user_id") @db.Uuid
+  serial BigInt @default(1)
 
-  customerProfile CustomerProfile @relation(fields: [customerProfileId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
 
   @@map("state")
   @@schema("public")
 }
 
 model System {
-  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid @map("systems_id")
-  customerProfileId String   @map("customer_profiles_id") @db.Uuid
-  openkjSystemId    Int      @map("openkj_system_id")
-  name              String
-  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt         DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  openkjSystemId Int      @map("openkj_system_id")
+  name           String
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  customerProfile CustomerProfile @relation(fields: [customerProfileId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
 
-  @@unique([customerProfileId, openkjSystemId])
-  @@index([customerProfileId, openkjSystemId], map: "systems_customer_openkj_idx")
+  @@unique([userId, openkjSystemId])
+  @@index([userId, openkjSystemId], map: "systems_user_openkj_idx")
   @@map("systems")
   @@schema("public")
 }
 
 model SongDb {
-  songId             BigInt   @id @default(autoincrement()) @map("songdb_id")
-  customerProfileId  String   @map("customer_profiles_id") @db.Uuid
+  songId             BigInt   @id @default(autoincrement()) @map("song_id")
+  userId             String   @map("user_id") @db.Uuid
   openkjSystemId     Int      @map("openkj_system_id")
-  artist             String
-  title              String
-  combined           String
-  normalizedCombined String   @map("normalized_combined")
+  artist             String   @db.VarChar(255)
+  title              String   @db.VarChar(255)
+  combined           String   @db.VarChar(255)
+  normalizedCombined String   @map("normalized_combined") @db.VarChar(255)
   createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt          DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  customerProfile CustomerProfile @relation(fields: [customerProfileId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
 
-  @@unique([customerProfileId, openkjSystemId, combined])
-  @@unique([customerProfileId, openkjSystemId, normalizedCombined])
-  @@index([customerProfileId, openkjSystemId, artist], map: "idx_songdb_customer_system_artist")
+  @@unique([userId, openkjSystemId, combined])
+  @@unique([userId, openkjSystemId, normalizedCombined])
+  @@index([userId, openkjSystemId, artist], map: "idx_songdb_user_system_artist")
   @@map("songdb")
   @@schema("public")
 }
@@ -389,26 +459,27 @@ model SingerUser {
 }
 
 model Request {
-  requestId        BigInt    @id @default(autoincrement()) @map("requests_id")
-  venueId          String    @map("venues_id") @db.Uuid
-  singerProfileId  String?   @map("singer_profiles_id") @db.Uuid
+  requestId        BigInt   @id @default(autoincrement()) @map("request_id")
+  venueId          String   @map("venue_id") @db.Uuid
   artist           String
   title            String
-  keyChange        Int       @default(0) @map("key_change")
-  processed        Boolean   @default(false)
-  requestedAt      DateTime  @default(now()) @map("requested_at") @db.Timestamptz(6)
-  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt        DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  singer           String?
+  keyChange        Int      @default(0) @map("key_change")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  processed        Boolean  @default(false)
+  requestedAt      DateTime @default(now()) @map("requested_at") @db.Timestamptz(6)
+  singerIdentityId String?  @map("singer_identity_id") @db.Uuid
+  updatedAt        DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   venue       Venue      @relation(fields: [venueId], references: [id], onUpdate: Cascade, onDelete: Cascade)
-  singerUser  SingerUser? @relation(fields: [singerProfileId], references: [id], onUpdate: Cascade, onDelete: SetNull)
+  singerUser  SingerUser? @relation(fields: [singerIdentityId], references: [id], onUpdate: Cascade, onDelete: SetNull)
 
   @@map("requests")
   @@schema("public")
 }
 
 model SingerFavoriteSong {
-  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid @map("singer_favorite_songs_id")
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   singerIdentityId String   @map("singer_identity_id") @db.Uuid
   artist           String?
   title            String?
@@ -425,7 +496,7 @@ model SingerFavoriteSong {
 model SingerRequestHistory {
   id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   singerIdentityId String   @map("singer_identity_id") @db.Uuid
-  venueId          String   @map("venues_id") @db.Uuid
+  venueId          String   @map("venue_id") @db.Uuid
   artist           String
   title            String
   keyChange        Int      @default(0) @map("key_change")
@@ -443,7 +514,7 @@ model SingerRequestHistory {
 
 model SingerFavoriteVenue {
   singerIdentityId String   @map("singer_identity_id") @db.Uuid
-  venueId          String   @map("venues_id") @db.Uuid
+  venueId          String   @map("venue_id") @db.Uuid
   createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   singer SingerUser @relation(fields: [singerIdentityId], references: [id], onUpdate: Cascade, onDelete: Cascade)
@@ -454,3 +525,103 @@ model SingerFavoriteVenue {
   @@schema("public")
 }
 
+model UserNote {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  createdBy  String   @map("created_by") @db.Uuid
+  important  Boolean  @default(false)
+  subject    String
+  note       String
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user   User @relation("NotesAboutUser", fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  author User @relation("NotesAuthoredBy", fields: [createdBy], references: [id], onUpdate: Cascade, onDelete: Restrict)
+
+  @@map("user_notes")
+  @@schema("public")
+}
+
+/* ============================================
+   SUPPORT / TICKETING SYSTEM (now in public)
+   ============================================ */
+
+model SupportTicket {
+  id                String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  requesterId       String         @map("requesterid") @db.Uuid
+  createdById       String         @map("createdby") @db.Uuid
+  assigneeId        String?        @map("assigneeid") @db.Uuid
+  subject           String
+  description       String?
+  status            TicketStatus   @default(open)
+  priority          TicketPriority @default(normal)
+  category          String?
+  externalReference String?        @map("externalreference")
+  closedAt          DateTime?      @map("closedat") @db.Timestamptz(6)
+  createdAt         DateTime       @default(now()) @map("createdat") @db.Timestamptz(6)
+  updatedAt         DateTime       @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
+
+  requester User @relation("RequestedTickets", fields: [requesterId], references: [id], onUpdate: Cascade, onDelete: Restrict)
+  creator   User @relation("CreatedTickets", fields: [createdById], references: [id], onUpdate: Cascade, onDelete: Restrict)
+  assignee  User? @relation("AssignedTickets", fields: [assigneeId], references: [id], onUpdate: Cascade, onDelete: SetNull)
+
+  messages SupportTicketMessage[]
+  audits   SupportTicketAudit[]
+
+  @@index([requesterId], map: "tickets_requester_id_idx")
+  @@index([assigneeId], map: "tickets_assignee_id_idx")
+  @@index([status], map: "tickets_status_idx")
+  @@index([priority], map: "tickets_priority_idx")
+  @@map("tickets")
+  @@schema("public")
+}
+
+model SupportTicketMessage {
+  id         String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ticketId   String            @map("ticketid") @db.Uuid
+  authorId   String            @map("authorid") @db.Uuid
+  visibility MessageVisibility @default(public)
+  body       String
+  editedAt   DateTime?         @map("editedat") @db.Timestamptz(6)
+  createdAt  DateTime          @default(now()) @map("createdat") @db.Timestamptz(6)
+
+  ticket SupportTicket @relation(fields: [ticketId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  author User          @relation(fields: [authorId], references: [id], onUpdate: Cascade, onDelete: Restrict)
+
+  attachments MessageAttachment[]
+
+  @@index([ticketId, createdAt], map: "ticket_messages_ticket_created_idx")
+  @@map("ticket_messages")
+  @@schema("public")
+}
+
+model MessageAttachment {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  messageId  String   @map("messageid") @db.Uuid
+  filename   String
+  mimetype   String?
+  bytesize   BigInt?
+  storageurl String
+  createdat  DateTime @default(now()) @map("createdat") @db.Timestamptz(6)
+
+  message SupportTicketMessage @relation(fields: [messageId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  @@index([messageId], map: "message_attachments_message_idx")
+  @@map("message_attachments")
+  @@schema("public")
+}
+
+model SupportTicketAudit {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ticketId  String   @map("ticketid") @db.Uuid
+  actorId   String   @map("actorid") @db.Uuid
+  action    String
+  oldValues Json?    @map("oldvalues")
+  newValues Json?    @map("newvalues")
+  createdAt DateTime @default(now()) @map("createdat") @db.Timestamptz(6)
+
+  ticket SupportTicket @relation(fields: [ticketId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  actor  User          @relation(fields: [actorId], references: [id], onUpdate: Cascade, onDelete: Restrict)
+
+  @@map("ticket_audits")
+  @@schema("public")
+}
