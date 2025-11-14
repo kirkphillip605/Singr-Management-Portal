@@ -283,7 +283,7 @@ model StripePrice {
   updatedAt         DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
   data              Json     @default("{}")
 
-  productRel StripeProduct @relation(fields: [product], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  productRel StripeProduct? @relation(fields: [product], references: [id], onUpdate: Cascade, onDelete: Cascade)
 
   @@index([product], map: "idx_prices_product")
   @@index([active], map: "prices_active_idx")
