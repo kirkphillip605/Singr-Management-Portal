@@ -115,7 +115,7 @@ async function createStripeData() {
           },
           create: {
             id: price.id,
-            productId: price.product,
+            product: price.product,
             active: price.active,
             currency: price.currency,
             type: price.type,
