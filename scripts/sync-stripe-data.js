@@ -58,7 +58,7 @@ async function syncStripeProducts() {
           unitLabel: product.unit_label,
           url: product.url,
           metadata: product.metadata || {},
-          updated: new Date(),
+          updatedAt: new Date(),        // ✔ FIXED
           data: product,
         },
         create: {
@@ -76,8 +76,8 @@ async function syncStripeProducts() {
           url: product.url,
           metadata: product.metadata || {},
           livemode: product.livemode,
-          created: new Date(product.created * 1000),
-          updated: new Date(),
+          createdAt: new Date(product.created * 1000),  // ✔ FIXED
+          updatedAt: new Date(),                        // ✔ FIXED
           data: product,
         },
       });
@@ -120,7 +120,7 @@ async function syncStripePrices() {
           unitAmount: price.unit_amount ? BigInt(price.unit_amount) : null,
           unitAmountDecimal: price.unit_amount_decimal,
           metadata: price.metadata || {},
-          updated: new Date(),
+          updatedAt: new Date(),       // ✔ FIXED
           data: price,
         },
         create: {
@@ -142,12 +142,11 @@ async function syncStripePrices() {
           type: price.type,
           unitAmount: price.unit_amount ? BigInt(price.unit_amount) : null,
           unitAmountDecimal: price.unit_amount_decimal,
-          created: new Date(price.created * 1000),
-          updated: new Date(),
+          createdAt: new Date(price.created * 1000),  // ✔ FIXED
+          updatedAt: new Date(),                      // ✔ FIXED
           data: price,
         },
       });
-
       const amount = price.unit_amount != null ? `$${(price.unit_amount / 100).toFixed(2)}` : 'Free';
       const interval = price.recurring?.interval ? `/${price.recurring.interval}` : '';
       console.log(`  ✅ Price synced: ${amount}${interval} (${price.id})`);
