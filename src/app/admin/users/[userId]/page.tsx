@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { formatDistanceToNow } from 'date-fns'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { ArrowLeft, ArrowUpRight } from 'lucide-react'
+import { ArrowLeft, ArrowUpRight, NotebookPen, Star } from 'lucide-react'
 import type { PageProps } from '@/types/global'
 
 function formatCount(value: number) {
@@ -34,7 +34,7 @@ export default async function AdminUserPage(props: PageProps<{ userId: string }>
   const adminLevel = session.user?.adminLevel ?? 'support'
   const { userId } = paramsResolved
 
-  const [user, venues, recentRequests, recentSongs] = await Promise.all([
+  const [user, venues, recentRequests, recentSongs, recentNotes] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
       include: {
@@ -105,6 +105,22 @@ export default async function AdminUserPage(props: PageProps<{ userId: string }>
         createdAt: true,
       },
     }),
+    (prisma as any).userNote.findMany({
+      where: { userId },
+      include: {
+        author: {
+          select: {
+            name: true,
+            email: true,
+          },
+        },
+      },
+      orderBy: [
+        { important: 'desc' },
+        { createdAt: 'desc' },
+      ],
+      take: 5,
+    }),
   ])
 
   if (!user) {
@@ -116,6 +132,15 @@ export default async function AdminUserPage(props: PageProps<{ userId: string }>
   const totalSongs = await prisma.songDb.count({ where: { userId } })
   const totalRequests = venues.reduce((acc, venue) => acc + venue._count.requests, 0)
   const primarySubscription = user.subscriptions[0]
+  const notesPreview = recentNotes.map((note: any) => ({
+    id: note.id,
+    subject: note.subject,
+    body: note.note.split('\n-----\n')[0] ?? note.note,
+    important: note.important,
+    createdAt: note.createdAt,
+    authorName: note.author?.name ?? note.author?.email ?? 'Support team',
+    authorEmail: note.author?.email,
+  }))
 
   const activityItems: ActivityItem[] = [
     ...venues.map((venue) => ({
@@ -216,6 +241,76 @@ export default async function AdminUserPage(props: PageProps<{ userId: string }>
               <span className="font-semibold">{formatCount(apiKeys.length)}</span>
             </div>
           </CardContent>
+        </Card>
+      </section>
+
+      <section id="notes" className="grid gap-4 lg:grid-cols-[minmax(0,1fr)]">
+        <Card>
+          <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2 text-xl">
+                <NotebookPen className="h-5 w-5 text-primary" aria-hidden="true" />
+                Recent customer notes
+              </CardTitle>
+              <CardDescription>Internal-only notes shared across support and admin teammates.</CardDescription>
+            </div>
+            <Button asChild variant="ghost" className="h-9 gap-2 text-sm">
+              <Link href={`/admin/users/${userId}/notes`}>
+                Manage notes
+                <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
+              </Link>
+            </Button>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {notesPreview.length ? (
+              <ul className="space-y-3">
+            {notesPreview.map((note: any) => {
+                  const trimmed = note.body.trim()
+                  const excerpt =
+                    trimmed.length > 260 ? `${trimmed.slice(0, 260).trimEnd()}…` : trimmed || '—'
+                  return (
+                    <li key={note.id}>
+                      <div
+                        className={`flex flex-col gap-2 rounded-lg border px-4 py-3 ${
+                          note.important
+                            ? 'border-amber-500/80 bg-amber-50/60'
+                            : 'border-border/60 bg-muted/40'
+                        }`}
+                      >
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-semibold text-foreground">{note.subject}</span>
+                          {note.important ? (
+                            <Badge variant="secondary" className="inline-flex items-center gap-1 bg-amber-500/90 text-white">
+                              <Star className="h-3 w-3" aria-hidden="true" /> Important
+                            </Badge>
+                          ) : null}
+                        </div>
+                        <p className="whitespace-pre-line text-sm text-muted-foreground">{excerpt}</p>
+                        <div className="text-xs uppercase tracking-wide text-muted-foreground">
+                          {note.authorName}
+                          {' • '}
+                          {formatDistanceToNow(note.createdAt, { addSuffix: true })}
+                        </div>
+                      </div>
+                    </li>
+                  )
+                })}
+              </ul>
+            ) : (
+              <div className="rounded-md border border-dashed border-border/60 bg-muted/30 px-4 py-10 text-center text-sm text-muted-foreground">
+                No notes recorded for this customer yet. Use the notes workspace to capture context for future support
+                interactions.
+              </div>
+            )}
+          </CardContent>
+          <CardFooter>
+            <Button asChild variant="outline">
+              <Link href={`/admin/users/${userId}/notes`} className="inline-flex items-center gap-2">
+                View full notes workspace
+                <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
+              </Link>
+            </Button>
+          </CardFooter>
         </Card>
       </section>
 
