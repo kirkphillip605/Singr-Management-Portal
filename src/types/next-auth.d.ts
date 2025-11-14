@@ -8,10 +8,6 @@ declare module 'next-auth' {
       adminLevel?: 'support' | 'super_admin'
       adminId?: string
       userId?: string
-      fusionauthUserId?: string
-      singrUserId?: string
-      customerProfileId?: string
-      roles?: string[]
     }
   }
 
@@ -27,9 +23,5 @@ declare module 'next-auth/jwt' {
     adminLevel?: 'support' | 'super_admin' | null
     adminId?: string | null
     userId?: string | null
-    fusionauthUserId?: string
-    singrUserId?: string
-    customerProfileId?: string
-    roles?: string[]
   }
 }

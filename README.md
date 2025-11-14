@@ -101,11 +101,8 @@ src/
 - **ORM**: [Prisma](https://www.prisma.io/)
 
 ### Authentication & Authorization
-- **Auth**: [NextAuth.js](https://next-auth.js.org/) with [FusionAuth](https://fusionauth.io/)
-- **Provider**: FusionAuth OAuth 2.0 / OpenID Connect
-- **Role-Based Access**: Customer owner role verification
-
-See [FUSIONAUTH_INTEGRATION.md](./FUSIONAUTH_INTEGRATION.md) for detailed authentication setup.
+- **Auth**: [NextAuth.js](https://next-auth.js.org/)
+- **Providers**: Credentials, Google OAuth
 
 ### UI & Styling
 - **Styling**: [Tailwind CSS](https://tailwindcss.com/)
@@ -234,13 +231,8 @@ See `.env.example` for required environment variables. Key variables include:
 - `DATABASE_URL` - PostgreSQL connection string
 - `NEXTAUTH_SECRET` - NextAuth secret (generate with `openssl rand -base64 32`)
 - `NEXTAUTH_URL` - Your app URL
-- `FUSIONAUTH_ISSUER` - FusionAuth server URL
-- `FUSIONAUTH_CLIENT_ID` - FusionAuth application client ID
-- `FUSIONAUTH_CLIENT_SECRET` - FusionAuth application client secret
-- `FUSIONAUTH_REQUIRED_ROLE` - Required role for billing portal access (default: `customer_owner`)
 - `STRIPE_SECRET_KEY` - Stripe secret key
-
-For complete FusionAuth configuration details, see [FUSIONAUTH_INTEGRATION.md](./FUSIONAUTH_INTEGRATION.md).
+- `GOOGLE_CLIENT_ID` - Google OAuth (optional)
 
 ## 🏗️ Production Deployment
 
