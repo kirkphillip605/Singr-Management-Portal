@@ -6,6 +6,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { useToast } from '@/components/ui/use-toast'
 import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { usePortalHref } from '@/components/portal-surface-context'
 
 interface VenueToggleProps {
   venueId: string
@@ -17,6 +18,7 @@ export function VenueToggle({ venueId, initialAccepting, hasActiveSubscription }
   const [accepting, setAccepting] = useState(initialAccepting)
   const [isUpdating, setIsUpdating] = useState(false)
   const { toast } = useToast()
+  const portalHref = usePortalHref()
 
   const handleToggle = async (checked: boolean) => {
     setIsUpdating(true)
@@ -76,7 +78,7 @@ export function VenueToggle({ venueId, initialAccepting, hasActiveSubscription }
           </TooltipContent>
         </Tooltip>
         <Button variant="outline" size="sm" className="text-xs" asChild>
-          <a href="/dashboard/billing/plans">Manage billing</a>
+          <a href={portalHref('/billing/plans')}>Manage billing</a>
         </Button>
       </div>
     )

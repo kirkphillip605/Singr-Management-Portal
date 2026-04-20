@@ -19,6 +19,9 @@ export async function PATCH(
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+  if (session.user.accountType !== 'customer') {
+    return NextResponse.json({ error: 'Forbidden', message: 'Customer (host) accounts only.' }, { status: 403 })
+  }
 
   try {
     const body = await request.json()
@@ -63,6 +66,9 @@ export async function DELETE(
 
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+  if (session.user.accountType !== 'customer') {
+    return NextResponse.json({ error: 'Forbidden', message: 'Customer (host) accounts only.' }, { status: 403 })
   }
 
   try {

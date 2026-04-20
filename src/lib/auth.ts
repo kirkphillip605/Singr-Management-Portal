@@ -115,7 +115,26 @@ const googleClientSecret =
   process.env.NEXT_PUBLIC_GOOGLE_CLIENT_SECRET ||
   ''
 
-export const auth = betterAuth({
+/**
+ * Per-surface cookie prefixes. Each public hostname (`host.`, `app.`,
+ * `admin.`, …) runs against its own Better Auth instance below so that the
+ * cookie *name* itself differs per surface — even if a future bug ever
+ * widens cookie scope to `.singrkaraoke.com`, a host-portal session will
+ * never be presented as an admin session and vice versa.
+ */
+export const SURFACE_COOKIE_PREFIXES = {
+  host: 'singr.host',
+  admin: 'singr.admin',
+  singer: 'singr.singer',
+  // Used on the apex marketing domain where only the support/admin
+  // sign-in entry runs. Distinct from the customer portal's prefix.
+  web: 'singr.web',
+} as const
+
+export type AuthSurface = keyof typeof SURFACE_COOKIE_PREFIXES
+
+function buildAuth(cookiePrefix: string) {
+  return betterAuth({
   appName: 'Singr Karaoke Connect',
   baseURL,
   secret,
@@ -126,6 +145,19 @@ export const auth = betterAuth({
   advanced: {
     database: {
       generateId: () => crypto.randomUUID(),
+    },
+    // Each surface (host portal, future admin portal, future singer app)
+    // gets its own cookie name so the browser cannot accidentally present
+    // a host-portal session on `app.singrkaraoke.com` or `admin.*` even if
+    // someone later widens the cookie scope to `.singrkaraoke.com`. The
+    // default attributes also leave the cookie host-only (no Domain set),
+    // which together with the per-surface name keeps the auth realms
+    // isolated even though every surface shares a single Postgres DB.
+    cookiePrefix,
+    defaultCookieAttributes: {
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+      httpOnly: true,
     },
   },
 
@@ -382,7 +414,77 @@ export const auth = betterAuth({
       : undefined,
     'http://localhost:5000',
     'http://0.0.0.0:5000',
+    // Production subdomains
+    'https://singrkaraoke.com',
+    'https://www.singrkaraoke.com',
+    'https://host.singrkaraoke.com',
+    'https://api.singrkaraoke.com',
+    'https://app.singrkaraoke.com',
+    'https://admin.singrkaraoke.com',
+    // Local subdomain aliases for development
+    'http://host.localhost:5000',
+    'http://api.localhost:5000',
+    'http://admin.localhost:5000',
   ].filter((u): u is string => !!u),
-})
+  })
+}
+
+/**
+ * Lazily-built per-surface Better Auth instances. They share the same
+ * Postgres-backed user table but each emits a different cookie name (see
+ * `SURFACE_COOKIE_PREFIXES`) so the browser can never accidentally present
+ * a host-portal session cookie on `app.` or `admin.`. Resolution happens
+ * at request time via `getAuthForHost()` below.
+ */
+const authBySurface = new Map<AuthSurface, ReturnType<typeof buildAuth>>()
+
+export function getAuthForSurface(
+  surface: AuthSurface
+): ReturnType<typeof buildAuth> {
+  let instance = authBySurface.get(surface)
+  if (!instance) {
+    instance = buildAuth(SURFACE_COOKIE_PREFIXES[surface])
+    authBySurface.set(surface, instance)
+  }
+  return instance
+}
+
+const HOSTNAME_TO_SURFACE: Record<string, AuthSurface> = {
+  'host.singrkaraoke.com': 'host',
+  'admin.singrkaraoke.com': 'admin',
+  'app.singrkaraoke.com': 'singer',
+  'singrkaraoke.com': 'web',
+  'www.singrkaraoke.com': 'web',
+  'api.singrkaraoke.com': 'host',
+  'host.localhost': 'host',
+  'admin.localhost': 'admin',
+  'app.localhost': 'singer',
+  'api.localhost': 'host',
+  'singrkaraoke.localhost': 'web',
+}
+
+/**
+ * Pick the right auth instance for an incoming request based on its host.
+ * Falls back to the host-portal surface on unknown hostnames so existing
+ * dev workflows (Replit preview, `localhost:5000`) keep working.
+ */
+export function getAuthForHost(hostHeader: string | null | undefined) {
+  const hostname = (hostHeader?.split(':')[0] || '').toLowerCase()
+  const explicit = process.env['SINGR_AUTH_SURFACE_OVERRIDE'] as
+    | AuthSurface
+    | undefined
+  const surface: AuthSurface =
+    (explicit && SURFACE_COOKIE_PREFIXES[explicit] ? explicit : undefined) ||
+    HOSTNAME_TO_SURFACE[hostname] ||
+    'host'
+  return getAuthForSurface(surface)
+}
+
+/**
+ * Default export remains the host-portal instance so existing imports
+ * (`import { auth } from '@/lib/auth'`) keep working unchanged. New code
+ * that needs surface-aware behavior should call `getAuthForHost()`.
+ */
+export const auth = getAuthForSurface('host')
 
 export type Auth = typeof auth

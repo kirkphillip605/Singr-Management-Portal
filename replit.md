@@ -17,6 +17,33 @@ A professional karaoke online request management platform with real-time request
 - Workflow: "Start application" → `npm run dev`
 - Sentry instrumentation is disabled — re-enable by restoring `src/instrumentation.ts` and `src/instrumentation-client.ts` and setting the `NEXT_PUBLIC_SENTRY_DSN` env var
 
+## URL topology (subdomain routing)
+
+In production a single Next.js process serves multiple public hostnames; a
+host-aware middleware (`src/middleware.ts`) rewrites each request:
+
+| Hostname                       | What it serves                          |
+|--------------------------------|------------------------------------------|
+| `singrkaraoke.com` / `www.`    | Marketing landing page (`src/app/page.tsx`) |
+| `host.singrkaraoke.com`        | Customer portal (internal `/dashboard/*`) |
+| `api.singrkaraoke.com`         | Public API (internal `/api/*`)            |
+| *future:* `app.singrkaraoke.com`   | Capacitor-built singer app — separate project, talks to `api.` |
+| `admin.singrkaraoke.com` | Internal admin console (`/admin/*`, prefix hidden) |
+
+Nginx Proxy Manager terminates TLS for each hostname and forwards every
+subdomain to the same upstream on port 5000.
+
+To exercise subdomain routing locally use `host.localhost:5000`,
+`api.localhost:5000`, etc. (`*.localhost` resolves automatically in modern
+browsers). Or set `SINGR_HOST_SURFACE_OVERRIDE=host` to force a single
+surface for the whole dev process.
+
+Auth realms are isolated per subdomain: cookies are host-only (no `Domain`
+attribute) and Better Auth uses a per-surface cookie prefix
+(`singr.host.*` today; `singr.admin.*` / `singr.singer.*` reserved for
+future surfaces). Set `SINGR_AUTH_COOKIE_PREFIX` to override the prefix
+for the current process if you ever run two surfaces side by side.
+
 ## Required Environment Variables
 
 | Variable | Description |

@@ -2,6 +2,75 @@
 
 Singr Karaoke Connect is a multi-tenant karaoke management platform. It provides a customer-facing admin dashboard for KJs and venue owners, a singer-facing web app for guests to browse songs and submit requests, and an OpenKJ-compatible HTTP API that lets the OpenKJ desktop application sync requests in real time.
 
+## URL topology
+
+In production every public hostname points at the same single Next.js
+process; a host-aware middleware (`src/middleware.ts`) inspects the `Host`
+header and rewrites each request into the right section of the app:
+
+| Hostname                         | Surface                          | Internal prefix |
+|----------------------------------|----------------------------------|-----------------|
+| `singrkaraoke.com` / `www.`      | Marketing landing page only      | `/`             |
+| `host.singrkaraoke.com`          | Customer (KJ / venue) portal     | `/dashboard/*`  |
+| `api.singrkaraoke.com`           | OpenKJ + webhook + auth API      | `/api/*`        |
+| *future:* `app.singrkaraoke.com` | Singer app (separate Capacitor build) — talks to `api.` | n/a |
+| `admin.singrkaraoke.com` | Internal staff console (`/admin/*`) | `/admin/*` (prefix hidden in the URL bar) |
+
+Nginx Proxy Manager terminates TLS for each subdomain and forwards every
+hostname to the same upstream (`<box>:5000`). No per-subdomain Next.js
+deployments are needed.
+
+The middleware also:
+
+- Strips the `/dashboard` prefix from `host.singrkaraoke.com/...` URLs (a
+  link to `/dashboard/venues` 308-redirects to `/venues` so the dashboard
+  prefix never leaks into the URL bar) and the `/admin` prefix from
+  `admin.singrkaraoke.com/...` URLs (same pattern).
+- Blocks **everything** on the apex domain except the marketing landing
+  (`/`) and `/legal/*`. Sign-in, the host portal, the admin console, and
+  the API each live on their own subdomain. The footer "Support login"
+  link on the landing page jumps directly to
+  `https://admin.singrkaraoke.com/auth/signin`.
+- Enforces an origin-bound authorization context on
+  `api.singrkaraoke.com`: browser requests whose `Origin` is not in
+  the allow-list get a 403 *before* hitting any route handler.
+  Server-to-server callers (OpenKJ clients, Stripe webhooks — no
+  `Origin` header) pass through untouched and authenticate with
+  bearer API keys / signed payloads as before.
+- Sets dynamic CORS on `api.singrkaraoke.com` — origins are echoed
+  against an allow-list and OPTIONS preflights are answered directly
+  from the middleware.
+- Falls through unchanged on Replit preview URLs and `localhost`, so the
+  existing single-port dev experience keeps working.
+
+To exercise the subdomain routing locally without owning the domain, use the
+`*.localhost` aliases (most browsers resolve these automatically):
+
+```
+http://host.localhost:5000     # customer portal
+http://api.localhost:5000      # public API
+http://admin.localhost:5000    # internal admin console
+http://localhost:5000          # apex landing
+```
+
+You can also force a surface via `SINGR_HOST_SURFACE_OVERRIDE=host npm run
+dev` for one-off testing.
+
+### Auth realm isolation
+
+Even though every surface shares one Postgres database, sessions are kept
+separate so a customer credential cannot silently grant access to the singer
+app or admin console:
+
+- Better Auth cookies are **host-only** (no `Domain` attribute) so a session
+  cookie on `host.singrkaraoke.com` is never sent to `api.`, `app.` or
+  `admin.`.
+- Each surface has a **distinct cookie name** (today: `singr.host.*`;
+  reserved for the future `singr.admin.*`, `singr.singer.*`).
+- Server-side route handlers and layouts re-check `accountType` /
+  `adminLevel` on every protected route, so even a forged cookie of the
+  wrong type is rejected with 401/403.
+
 ## Architecture
 
 The project is a single Next.js 15 (App Router) application that hosts three logically distinct surfaces:

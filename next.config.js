@@ -35,10 +35,12 @@ const nextConfig = {
             key: 'Permissions-Policy',
             value: 'geolocation=*'
           },
-          {
-            key: 'Access-Control-Allow-Origin',
-            value: '*',
-          },
+          // CORS for the public API surface is set per-request by the
+          // host-aware middleware in `src/middleware.ts` (it echoes the
+          // caller's origin against an allow-list and adds
+          // `Access-Control-Allow-Credentials`). A blanket
+          // `Access-Control-Allow-Origin: *` here would be incompatible
+          // with credentialed requests from the host portal.
           {
             key: 'X-Content-Type-Options',
             value: 'nosniff',

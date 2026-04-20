@@ -14,6 +14,9 @@ export async function POST(_request: NextRequest) {
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    if (session.user.accountType !== 'customer') {
+      return NextResponse.json({ error: 'Forbidden', message: 'Customer (host) accounts only.' }, { status: 403 })
+    }
 
     // Get customer
     const customer = await prisma.customer.findUnique({

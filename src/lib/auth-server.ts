@@ -1,5 +1,5 @@
 import { headers } from 'next/headers'
-import { auth } from '@/lib/auth'
+import { getAuthForHost } from '@/lib/auth'
 
 /**
  * Returns a NextAuth-compatible session shape so legacy server components
@@ -8,7 +8,9 @@ import { auth } from '@/lib/auth'
  * Returns `null` when there is no signed-in user.
  */
 export async function getAuthSession() {
-  const data = await auth.api.getSession({ headers: await headers() })
+  const hdrs = await headers()
+  const auth = getAuthForHost(hdrs.get('host'))
+  const data = await auth.api.getSession({ headers: hdrs })
   if (!data?.user) return null
 
   const user = data.user as typeof data.user & {

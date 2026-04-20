@@ -22,6 +22,9 @@ export async function POST(request: NextRequest) {
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    if (session.user.accountType !== 'customer') {
+      return NextResponse.json({ error: 'Forbidden', message: 'Customer (host) accounts only.' }, { status: 403 })
+    }
 
     const body = await request.json()
     const { priceId, couponId, successUrl, cancelUrl } = checkoutSchema.parse(body)

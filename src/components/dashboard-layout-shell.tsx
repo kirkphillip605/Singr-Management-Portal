@@ -7,6 +7,7 @@ import { Menu, X } from 'lucide-react'
 
 import { DashboardNav } from '@/components/dashboard-nav'
 import { DashboardHeader } from '@/components/dashboard-header'
+import { usePortalHref } from '@/components/portal-surface-context'
 import { cn } from '@/lib/utils'
 
 type DashboardLayoutShellProps = {
@@ -34,6 +35,7 @@ export function DashboardLayoutShell({
   }, [isSidebarOpen])
 
   const closeSidebar = () => setIsSidebarOpen(false)
+  const portalHref = usePortalHref()
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-50">
@@ -49,7 +51,7 @@ export function DashboardLayoutShell({
               <Menu className="h-5 w-5" aria-hidden="true" />
             </button>
 
-            <Link href="/dashboard" className="flex items-center gap-2">
+            <Link href={portalHref('/')} className="flex items-center gap-2">
               <Image
                 src="/singr-icon.png"
                 alt="Singr Karaoke"

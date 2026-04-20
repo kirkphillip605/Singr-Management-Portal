@@ -51,7 +51,20 @@ function SignInForm() {
   const { data: session, isPending } = useSession()
   const router = useRouter()
   const searchParams = useSearchParams()
-  const callbackUrl = searchParams.get('callbackUrl') || '/dashboard'
+  // Default landing destination depends on which surface served the
+  // sign-in page: on `host.` and `admin.` the middleware strips the
+  // `/dashboard` (or `/admin`) prefix, so users want to land on `/`.
+  // On the apex / single-domain dev mode, the legacy `/dashboard` URL
+  // is still the right entry point.
+  const surfaceDefault =
+    typeof window !== 'undefined'
+      ? (() => {
+          const h = (window.location.host.split(':')[0] || '').toLowerCase()
+          if (h.startsWith('host.') || h.startsWith('admin.')) return '/'
+          return '/dashboard'
+        })()
+      : '/dashboard'
+  const callbackUrl = searchParams.get('callbackUrl') || surfaceDefault
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')

@@ -1,477 +1,173 @@
-'use client'
-
-import { useSession } from '@/lib/auth-client'
 import Link from 'next/link'
+import { headers } from 'next/headers'
+import { ArrowRight, Headphones, Mic2, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { CheckCircle, Shield, Users, Smartphone, Zap, MapPin, Search, Heart, Bell, Clock, MessageSquare, DollarSign, Star } from 'lucide-react'
+import { siblingSurfaceUrl } from '@/lib/portal-links'
 
-export default function HomePage() {
-  const { data: session } = useSession()
-  
-  const features = [
-    {
-      icon: Zap,
-      title: "Direct OpenKJ Integration",
-      description: "Seamlessly integrate with OpenKJ or use our lightweight companion app to receive requests"
-    },
-    {
-      icon: Users,
-      title: "FREE Implementation Support",
-      description: "We'll help you get started and ensure smooth deployment at your venue"
-    },
-    {
-      icon: Shield,
-      title: "Regular Updates & New Features",
-      description: "Continuous improvements and new features to keep your karaoke experience fresh"
-    },
-    {
-      icon: Smartphone,
-      title: "Custom Branded App Option",
-      description: "Get a custom branded app tailored to match your venue's unique brand and style"
-    }
-  ]
+export const metadata = {
+  title: 'Singr Karaoke — Choose your experience',
+  description:
+    'Singr Karaoke connects singers and karaoke hosts with a modern, real-time request platform. Choose your experience to get started.',
+}
 
-  const appFeatures = [
-    {
-      icon: Zap,
-      title: "Modern Architecture",
-      description: "Built with Node.js & React for lightning-fast performance"
-    },
-    {
-      icon: MapPin,
-      title: "Location Based Check In",
-      description: "Singers automatically connect to your venue when they arrive"
-    },
-    {
-      icon: Search,
-      title: "Advanced Song Search",
-      description: "FAST & ACCURATE search algorithm finds songs instantly"
-    },
-    {
-      icon: Heart,
-      title: "Submit & Save Favorites",
-      description: "Easy song submission with favorites for repeat customers"
-    }
-  ]
+const choices = [
+  {
+    role: 'Singer' as const,
+    href: 'https://app.singrkaraoke.com',
+    icon: Mic2,
+    tagline: 'For karaoke fans',
+    description:
+      'Find the karaoke night you\u2019re at, browse the song book, and send your request to the KJ from your phone.',
+    bullets: [
+      'Auto-check-in at participating venues',
+      'Lightning-fast song search & favorites',
+      'See where you are in the rotation',
+    ],
+    cta: 'I\u2019m here to sing',
+  },
+  {
+    role: 'Karaoke Host' as const,
+    href: 'https://host.singrkaraoke.com',
+    icon: Headphones,
+    tagline: 'For KJs & venue owners',
+    description:
+      'Run your karaoke night with a modern dashboard, real-time requests from singers, and a direct OpenKJ bridge.',
+    bullets: [
+      'Drop-in OpenKJ integration',
+      'Multi-venue management',
+      'Custom branding for your show',
+    ],
+    cta: 'I\u2019m running the show',
+  },
+]
 
-  const comingSoonFeatures = [
-    {
-      icon: Bell,
-      title: "In-App Singer Notifications",
-      description: "Real-time notifications when it's time to sing"
-    },
-    {
-      icon: Clock,
-      title: "In-App Rotation Timer",
-      description: "Singers can see exactly how long the wait is"
-    },
-    {
-      icon: MessageSquare,
-      title: "KJ/DJ Announcements",
-      description: "Push notifications for important venue announcements"
-    },
-    {
-      icon: DollarSign,
-      title: "Virtual Tip Jar",
-      description: "Easy digital tipping for performers and staff"
-    }
-  ]
-
+export default async function LandingPage() {
+  const hdrs = await headers()
+  const adminSignInHref = siblingSurfaceUrl(hdrs.get('host'), 'admin', '/auth/signin')
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white to-gray-50">
-      {/* Navigation */}
-      <nav className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <img
-                src="/singr-icon.png"
-                alt="Singr Karaoke"
-                className="h-10 w-auto"
-              />
-              <span className="ml-2 text-xl font-bold text-gray-900">Singr Karaoke Connect</span>
-            </div>
-            <div className="flex items-center space-x-4">
-              {session ? (
-                <Link href="/dashboard">
-                  <Button className="bg-primary hover:bg-primary/90">Dashboard</Button>
-                </Link>
-              ) : (
-                <>
-                  <Link href="/auth/signin">
-                    <Button variant="ghost" className="hover:bg-primary/10">Sign In</Button>
-                  </Link>
-                  <Link href="/auth/signup">
-                    <Button className="bg-primary hover:bg-primary/90">Get Started</Button>
-                  </Link>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      </nav>
+    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-slate-100">
+      {/* Decorative gradient blobs */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute -top-40 -left-40 h-[28rem] w-[28rem] rounded-full bg-fuchsia-500/20 blur-3xl" />
+        <div className="absolute top-1/3 -right-40 h-[32rem] w-[32rem] rounded-full bg-indigo-500/20 blur-3xl" />
+        <div className="absolute -bottom-40 left-1/3 h-[28rem] w-[28rem] rounded-full bg-cyan-400/10 blur-3xl" />
+      </div>
 
-      {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-r from-primary/5 to-primary/10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-28">
-          <div className="text-center">
-            <div className="flex justify-center mb-8">
-              <img 
-                src="/singr-logo-color.png"
-                alt="Singr Karaoke" 
-                className="h-24 w-auto"
-              />
-            </div>
-            <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
-              Transform Your Karaoke Experience with{' '}
-              <span className="text-primary">Singr Karaoke Connect</span>
-            </h1>
-            <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto leading-relaxed">
-              The modern karaoke management platform that bridges the gap between KJs and singers. 
-              Streamline song requests, engage your audience, and take your karaoke nights to the next level.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              {session ? (
-                <Link href="/dashboard">
-                  <Button 
-                    size="lg" 
-                    className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-lg px-8 py-3"
-                  >
-                    Go to Dashboard
-                  </Button>
-                </Link>
-              ) : (
-                <Link href="/auth/signup">
-                  <Button 
-                    size="lg" 
-                    className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-lg px-8 py-3"
-                  >
-                    Start Free Trial
-                  </Button>
-                </Link>
-              )}
-              <Button 
-                variant="outline" 
-                size="lg" 
-                className="w-full sm:w-auto text-lg px-8 py-3 border-primary text-primary hover:bg-primary/5"
-                onClick={() => {
-                  document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })
-                }}
-              >
-                Learn More
-              </Button>
-            </div>
-          </div>
-        </div>
-        
-        {/* Decorative gradient */}
-        <div className="absolute top-0 right-0 -mt-20 -mr-20 w-80 h-80 bg-primary/10 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-0 left-0 -mb-20 -ml-20 w-80 h-80 bg-primary/5 rounded-full blur-3xl"></div>
-      </section>
+      <header className="relative z-10 mx-auto flex max-w-7xl items-center justify-between px-6 py-6 sm:px-8">
+        <Link href="/" className="flex items-center gap-3">
+          <img
+            src="/singr-icon.png"
+            alt="Singr Karaoke"
+            className="h-9 w-9"
+          />
+          <span className="text-base font-semibold tracking-tight">
+            Singr Karaoke
+          </span>
+        </Link>
+        <a
+          href="https://host.singrkaraoke.com"
+          className="hidden text-sm font-medium text-slate-300 transition hover:text-white sm:inline-flex"
+        >
+          Host sign in
+          <ArrowRight className="ml-1 h-4 w-4" />
+        </a>
+      </header>
 
-      {/* Platform Features Section */}
-      <section id="features" className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Why Choose <span className="text-primary">Singr Karaoke Connect?</span>
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              We provide everything you need to modernize your karaoke operation and create unforgettable experiences for your customers.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
-            {features.map((feature, index) => (
-              <Card key={index} className="border-0 shadow-lg hover:shadow-xl transition-shadow duration-300 group">
-                <CardHeader className="text-center">
-                  <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
-                    <feature.icon className="h-8 w-8 text-primary" />
-                  </div>
-                  <CardTitle className="text-lg">{feature.title}</CardTitle>
-                  <CardDescription className="text-sm leading-relaxed">
-                    {feature.description}
-                  </CardDescription>
-                </CardHeader>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Singr Karaoke App Features */}
-      <section className="py-20 bg-gradient-to-br from-gray-50 to-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              <span className="text-primary">Singr Karaoke App</span> Features
-            </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Give your singers the ultimate karaoke experience with our feature-rich mobile app
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-            {appFeatures.map((feature, index) => (
-              <Card key={index} className="border-0 shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
-                <CardHeader>
-                  <feature.icon className="h-10 w-10 text-primary mb-3" />
-                  <CardTitle className="text-base">{feature.title}</CardTitle>
-                  <CardDescription className="text-sm">
-                    {feature.description}
-                  </CardDescription>
-                </CardHeader>
-              </Card>
-            ))}
-          </div>
-
-          {/* Coming Soon Section */}
-          <div className="bg-gradient-to-r from-primary/5 to-primary/10 rounded-2xl p-8">
-            <div className="text-center mb-8">
-              <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">
-                🚀 Coming Soon
-              </h3>
-              <p className="text-gray-600">
-                Exciting new features in development to make your karaoke experience even better
-              </p>
-            </div>
-            
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {comingSoonFeatures.map((feature, index) => (
-                <div key={index} className="text-center">
-                  <div className="mx-auto w-12 h-12 bg-white rounded-full flex items-center justify-center mb-3 shadow-md">
-                    <feature.icon className="h-6 w-6 text-primary" />
-                  </div>
-                  <h4 className="font-semibold text-gray-900 mb-2">{feature.title}</h4>
-                  <p className="text-sm text-gray-600">{feature.description}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Pricing Preview */}
-      <section className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Simple, Transparent Pricing
-            </h2>
-            <p className="text-xl text-gray-600">
-              Choose the plan that fits your venue's needs. All plans include full platform access.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            {[
-              { 
-                name: 'Monthly', 
-                price: '$15', 
-                interval: 'month', 
-                savings: null,
-                popular: false,
-                features: ['Full Platform Access', 'Email Support', 'Unlimited Venues', 'Real-time Song Requests'] 
-              },
-              { 
-                name: 'Semi-Annual', 
-                price: '$12.50', 
-                interval: 'month', 
-                savings: '17% savings',
-                popular: true,
-                features: ['Full Platform Access', 'Priority Support', 'Unlimited Venues', 'Real-time Song Requests', 'Custom Branding Available'] 
-              },
-              { 
-                name: 'Annual', 
-                price: '$11.25', 
-                interval: 'month', 
-                savings: '25% savings',
-                popular: false,
-                features: ['Full Platform Access', 'Priority Support', 'Unlimited Venues', 'Real-time Song Requests', 'Custom Branding Available', 'Free Setup Consultation'] 
-              },
-            ].map((plan) => (
-              <Card key={plan.name} className={`border-0 shadow-lg relative hover:shadow-xl transition-all duration-300 ${plan.popular ? 'ring-2 ring-primary transform scale-105' : ''}`}>
-                {plan.popular && (
-                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                    <span className="bg-primary text-primary px-4 py-1 rounded-full text-sm font-medium flex items-center">
-                      <Star className="h-3 w-3 mr-1" />
-                      Most Popular
-                    </span>
-                  </div>
-                )}
-                <CardHeader className="text-center pb-4">
-                  <CardTitle className="text-xl">{plan.name}</CardTitle>
-                  <div className="mt-4">
-                    <span className="text-4xl font-bold text-gray-900">{plan.price}</span>
-                    <span className="text-gray-600">/{plan.interval}</span>
-                  </div>
-                  {plan.savings && (
-                    <div className="mt-2">
-                      <span className="text-sm font-medium text-primary bg-primary/10 px-2 py-1 rounded-full">
-                        {plan.savings}
-                      </span>
-                    </div>
-                  )}
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-3 mb-6">
-                    {plan.features.map((feature) => (
-                      <li key={feature} className="flex items-center text-sm">
-                        <CheckCircle className="h-4 w-4 text-primary mr-3 flex-shrink-0" />
-                        <span>{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <Button 
-                    className="w-full" 
-                    variant={plan.popular ? "default" : "outline"}
-                    asChild
-                  >
-                    <Link href="/auth/signup">
-                      Choose {plan.name}
-                    </Link>
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          <div className="text-center mt-12">
-            {session ? (
-              <Link href="/dashboard/settings">
-                <Button 
-                  size="lg" 
-                  className="bg-primary hover:bg-primary/90 text-lg px-8 py-3"
-                >
-                  Manage System Settings
-                </Button>
-              </Link>
-            ) : (
-              <Link href="/auth/signup">
-                <Button 
-                  size="lg" 
-                  className="bg-primary hover:bg-primary/90 text-lg px-8 py-3"
-                >
-                  Start Your Free Trial Today
-                </Button>
-              </Link>
-            )}
-            <p className="text-sm text-gray-500 mt-3">
-              No credit card required • Cancel anytime • Setup support included
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-r from-primary to-primary/90">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">
-            Ready to Transform Your Karaoke Experience?
-          </h2>
-          <p className="text-xl text-white/90 mb-8 max-w-2xl mx-auto">
-            Join venues across the country who are already using Singr Karaoke Connect to create amazing karaoke experiences.
+      <main className="relative z-10 mx-auto flex max-w-7xl flex-col items-center px-6 pb-24 pt-8 sm:px-8 sm:pt-16">
+        <div className="mb-12 max-w-3xl text-center sm:mb-16">
+          <span className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium uppercase tracking-wider text-slate-300 backdrop-blur">
+            <Sparkles className="h-3.5 w-3.5 text-fuchsia-300" />
+            Karaoke, reimagined
+          </span>
+          <h1 className="text-balance text-4xl font-semibold leading-tight tracking-tight sm:text-5xl md:text-6xl">
+            One stage. Two ways in.
+          </h1>
+          <p className="mt-5 text-pretty text-base leading-relaxed text-slate-300 sm:text-lg">
+            Singr Karaoke brings singers and hosts together with a modern,
+            real-time request platform. Pick the door that&rsquo;s yours.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            {session ? (
-              <Link href="/dashboard">
-                <Button 
-                  size="lg" 
-                  variant="secondary" 
-                  className="w-full sm:w-auto text-lg px-8 py-3"
-                >
-                  Manage Settings
-                </Button>
-              </Link>
-            ) : (
-              <>
-                <Link href="/auth/signup">
-                  <Button 
-                    size="lg" 
-                    variant="secondary" 
-                    className="w-full sm:w-auto text-lg px-8 py-3"
-                  >
-                    Start Free Trial
-                  </Button>
-                </Link>
-                <Link href="/auth/signin">
-                  <Button size="lg" variant="outline" className="w-full sm:w-auto text-lg px-8 py-3 border-white text-primary hover:bg-white hover:text-primary">
-                    Sign In
-                  </Button>
-                </Link>
-              </>
-            )}
-          </div>
         </div>
-      </section>
 
-      {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid gap-8 md:grid-cols-3">
-            <div>
-              <div className="flex items-center">
-                <img
-                  src="/singr-icon.png"
-                  alt="Singr Karaoke"
-                  className="h-8 w-8"
-                />
-                <span className="ml-2 text-xl font-bold">
-                  Singr Karaoke Connect
+        <div className="grid w-full gap-6 sm:gap-8 md:grid-cols-2">
+          {choices.map((choice) => (
+            <a
+              key={choice.role}
+              href={choice.href}
+              className="group relative flex flex-col overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04] p-7 backdrop-blur-md transition duration-300 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 sm:p-9"
+            >
+              <div className="absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-white/30 to-transparent opacity-0 transition group-hover:opacity-100" />
+              <div className="mb-6 flex items-center justify-between">
+                <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-fuchsia-500/30 to-indigo-500/30 text-fuchsia-100 ring-1 ring-inset ring-white/10">
+                  <choice.icon className="h-6 w-6" />
+                </span>
+                <span className="text-xs font-medium uppercase tracking-wider text-slate-400">
+                  {choice.tagline}
                 </span>
               </div>
-              <p className="mt-3 text-sm text-gray-400">
-                A KirkNetworks, LLC product. Revolutionizing karaoke
-                experiences worldwide.
+              <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+                {choice.role}
+              </h2>
+              <p className="mt-3 text-sm leading-relaxed text-slate-300 sm:text-base">
+                {choice.description}
               </p>
-            </div>
-
-            <div>
-              <h4 className="text-sm font-semibold uppercase tracking-wider text-gray-300">
-                Legal
-              </h4>
-              <ul className="mt-3 space-y-2 text-sm">
-                <li>
-                  <Link href="/legal/privacy" className="text-gray-400 hover:text-white">
-                    Privacy Policy
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/legal/terms" className="text-gray-400 hover:text-white">
-                    Terms of Service
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/legal/refund" className="text-gray-400 hover:text-white">
-                    Refund Policy
-                  </Link>
-                </li>
+              <ul className="mt-6 space-y-2 text-sm text-slate-300">
+                {choice.bullets.map((b) => (
+                  <li key={b} className="flex items-start gap-2">
+                    <span className="mt-1.5 h-1.5 w-1.5 flex-none rounded-full bg-fuchsia-300" />
+                    <span>{b}</span>
+                  </li>
+                ))}
               </ul>
-            </div>
+              <div className="mt-8 flex-1" />
+              <Button
+                asChild
+                size="lg"
+                className="mt-2 w-full justify-between bg-white text-slate-900 hover:bg-slate-100"
+              >
+                <span>
+                  {choice.cta}
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </span>
+              </Button>
+              <div className="mt-3 text-xs text-slate-500">
+                {choice.href.replace('https://', '')}
+              </div>
+            </a>
+          ))}
+        </div>
 
-            <div>
-              <h4 className="text-sm font-semibold uppercase tracking-wider text-gray-300">
-                Contact
-              </h4>
-              <ul className="mt-3 space-y-1 text-sm text-gray-400">
-                <li>KirkNetworks, LLC dba Singr Karaoke</li>
-                <li>420 8th St SE, Watertown, SD 57201</li>
-                <li>(605) 760-8830</li>
-                <li>
-                  <a
-                    href="mailto:support@singrkaraoke.com"
-                    className="hover:text-white"
-                  >
-                    support@singrkaraoke.com
-                  </a>
-                </li>
-              </ul>
-            </div>
-          </div>
+        <p className="mt-12 max-w-xl text-center text-xs text-slate-500 sm:mt-16">
+          Not sure which one is for you? If you&rsquo;re running the
+          karaoke night, you&rsquo;re a Host. If you want to sing,
+          you&rsquo;re a Singer.
+        </p>
+      </main>
 
-          <div className="mt-10 border-t border-gray-800 pt-6 text-center text-xs text-gray-500">
-            © {new Date().getFullYear()} KirkNetworks, LLC. All rights reserved.
+      <footer className="relative z-10 border-t border-white/5">
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-6 py-6 text-xs text-slate-500 sm:flex-row sm:px-8">
+          <p>
+            &copy; {new Date().getFullYear()} KirkNetworks, LLC. All rights
+            reserved.
+          </p>
+          <div className="flex items-center gap-5">
+            <Link
+              href="/legal/privacy"
+              className="transition hover:text-slate-300"
+            >
+              Privacy
+            </Link>
+            <Link
+              href="/legal/terms"
+              className="transition hover:text-slate-300"
+            >
+              Terms
+            </Link>
+            <a
+              href={adminSignInHref}
+              className="transition hover:text-slate-300"
+            >
+              Support login
+            </a>
           </div>
         </div>
       </footer>
