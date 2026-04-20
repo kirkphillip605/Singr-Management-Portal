@@ -405,6 +405,7 @@ model Venue {
   favorites SingerFavoriteVenue[]
   history  SingerRequestHistory[]
 
+  @@unique([userId, openkjVenueId])
   @@index([userId], map: "idx_venues_user_id")
   @@map("venues")
   @@schema("public")
