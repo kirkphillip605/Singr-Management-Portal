@@ -285,10 +285,39 @@ export async function POST(request: NextRequest) {
         case 'customer.created':
         case 'customer.updated': {
           const customer = event.data.object as Stripe.Customer
-          const customerUserId = (customer.metadata as any)?.userId as string | undefined
+          let customerUserId = (customer.metadata as any)?.userId as string | undefined
 
           if (!customerUserId) {
-            logger.warn(`Customer ${customer.id} missing metadata.userId; skipping upsert`)
+            // Fallback: try to match an existing user by email so customers
+            // created outside the signup flow (Stripe dashboard, imports, etc.)
+            // are still linked correctly.
+            if (customer.email) {
+              const matchedUser = await prisma.user.findUnique({
+                where: { email: customer.email },
+                select: { id: true },
+              })
+
+              if (matchedUser) {
+                customerUserId = matchedUser.id
+                logger.info(
+                  `Customer ${customer.id} matched to user ${matchedUser.id} via email fallback`,
+                )
+              }
+            }
+          }
+
+          if (!customerUserId) {
+            // No metadata.userId and no email match — surface a monitored
+            // warning so support can investigate the orphaned Stripe customer.
+            logger.warn(
+              `stripe.customer.unlinked: unable to link Stripe customer to a user`,
+              {
+                stripeCustomerId: customer.id,
+                email: customer.email,
+                eventType: event.type,
+                eventId: event.id,
+              },
+            )
             break
           }
 
