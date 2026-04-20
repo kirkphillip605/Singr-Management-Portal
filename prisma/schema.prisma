@@ -379,7 +379,7 @@ model StripeWebhookEvent {
 model Venue {
   id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId            String   @map("user_id") @db.Uuid
-  openkjVenueId     Int      @map("openkj_venue_id")
+  openkjVenueId     Int      @unique @default(autoincrement()) @map("openkj_venue_id")
   urlName           String   @map("url_name")
   acceptingRequests Boolean  @default(true) @map("accepting_requests")
   herePlaceId       String?  @map("here_place_id")
@@ -405,7 +405,6 @@ model Venue {
   favorites SingerFavoriteVenue[]
   history  SingerRequestHistory[]
 
-  @@unique([userId, openkjVenueId])
   @@index([userId], map: "idx_venues_user_id")
   @@map("venues")
   @@schema("public")
@@ -488,10 +487,12 @@ model Request {
   requestedAt      DateTime @default(now()) @map("requested_at") @db.Timestamptz(6)
   singerIdentityId String?  @map("singer_identity_id") @db.Uuid
   updatedAt        DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  openkjVenueId    Int      @map("openkj_venue_id")
 
   venue       Venue      @relation(fields: [venueId], references: [id], onUpdate: Cascade, onDelete: Cascade)
   singerUser  SingerUser? @relation(fields: [singerIdentityId], references: [id], onUpdate: Cascade, onDelete: SetNull)
 
+  @@index([openkjVenueId, processed], map: "requests_openkj_venue_id_processed_idx")
   @@map("requests")
   @@schema("public")
 }

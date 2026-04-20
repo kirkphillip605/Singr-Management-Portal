@@ -253,7 +253,7 @@ async function verifyActiveSubscription(stripeCustomerId: string): Promise<boole
 
 function findVenue(venues: any[], venueId?: number) {
   if (!venueId) return null
-  return venues.find((v) => v.openKjVenueId === venueId)
+  return venues.find((v) => v.openkjVenueId === venueId)
 }
 
 /* ===========================
@@ -328,11 +328,19 @@ export async function POST(request: NextRequest) {
           )
         }
 
-        // Only unprocessed rows; order by createdAt (oldest first)
+        // Only unprocessed rows; order by createdAt (oldest first).
+        // Match either by the current venue uuid or by the snapshot of
+        // `openkj_venue_id` captured on the request row. Because
+        // `openkj_venue_id` is globally unique, the snapshot match is itself
+        // an ownership guarantee — we already verified `venue` belongs to the
+        // authenticated user above.
         const requests = await prisma.request.findMany({
           where: {
-            venueId: venue.id,
             processed: false,
+            OR: [
+              { venueId: venue.id },
+              { openkjVenueId: venue.openkjVenueId },
+            ],
           },
           orderBy: { createdAt: 'asc' },
         })
@@ -432,7 +440,11 @@ export async function POST(request: NextRequest) {
           )
         }
 
-        if (!hasActiveSubscription && validation.data.accepting) {
+        // Toggle: ignore the inbound `accepting` value and flip the venue's
+        // current state. The current state is sourced from `venue.accepting`.
+        const newAccepting = !venue.accepting
+
+        if (!hasActiveSubscription && newAccepting) {
           logger.warn(
             `Blocked setAccepting due to inactive subscription userId=${user.id} venueId=${venue.id}`
           )
@@ -448,15 +460,15 @@ export async function POST(request: NextRequest) {
         }
 
         const shouldBumpSerial =
-          venue.acceptingRequests !== validation.data.accepting ||
-          venue.accepting !== validation.data.accepting ||
+          venue.acceptingRequests !== newAccepting ||
+          venue.accepting !== newAccepting ||
           venue.currentSystemId !== system.openkjSystemId
 
         await prisma.venue.update({
           where: { id: venue.id },
           data: {
-            acceptingRequests: validation.data.accepting,
-            accepting: validation.data.accepting,
+            acceptingRequests: newAccepting,
+            accepting: newAccepting,
             currentSystemId: system.openkjSystemId,
           },
         })
@@ -467,16 +479,16 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json({
           command,
-          venue_id: validation.data.venue_id,
-          accepting: validation.data.accepting,
+          error: 'false',
+          venue_id: venue.openkjVenueId,
+          accepting: newAccepting,
           serial: newSerial,
-          error: false,
         })
       }
 
       case 'getVenues': {
         const venuesFormatted = venues.map((venue: any) => ({
-          venue_id: venue.openKjVenueId,
+          venue_id: venue.openkjVenueId,
           name: venue.name,
           url_name: venue.urlName,
           accepting:

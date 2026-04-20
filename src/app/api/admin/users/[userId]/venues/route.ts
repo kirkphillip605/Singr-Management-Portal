@@ -115,50 +115,38 @@ export async function POST(
       }
     }
 
-    // Create venue inside a serializable transaction so the read+create that
-    // computes `openkjVenueId` cannot race with another concurrent create for
-    // the same user. The unique (userId, openkjVenueId) constraint provides a
-    // hard guarantee even if isolation is downgraded.
-    const venue = await prisma.$transaction(
-      async (tx) => {
-        const venueAgg = await tx.venue.aggregate({
-          where: { userId },
-          _max: { openkjVenueId: true },
-        })
-        const nextOpenkjVenueId = (venueAgg._max?.openkjVenueId ?? 0) + 1
+    // `openkjVenueId` is assigned by a globally unique Postgres sequence
+    // (see Venue.openkjVenueId in prisma/schema.prisma).
+    const venue = await prisma.$transaction(async (tx) => {
+      const created = await tx.venue.create({
+        data: {
+          userId,
+          name: validatedData.name,
+          urlName: validatedData.urlName,
+          acceptingRequests: validatedData.acceptingRequests,
+          accepting: validatedData.acceptingRequests,
+          address: validatedData.address ?? '',
+          city: validatedData.city ?? '',
+          state: validatedData.state ?? '',
+          stateCode: validatedData.stateCode || null,
+          postalCode: validatedData.postalCode ?? '',
+          country: validatedData.country,
+          countryCode: validatedData.countryCode || null,
+          phoneNumber: validatedData.phoneNumber || undefined,
+          website: validatedData.website,
+          latitude: coordinates?.lat,
+          longitude: coordinates?.lng,
+        },
+      })
 
-        const created = await tx.venue.create({
-          data: {
-            userId,
-            openkjVenueId: nextOpenkjVenueId,
-            name: validatedData.name,
-            urlName: validatedData.urlName,
-            acceptingRequests: validatedData.acceptingRequests,
-            accepting: validatedData.acceptingRequests,
-            address: validatedData.address ?? '',
-            city: validatedData.city ?? '',
-            state: validatedData.state ?? '',
-            stateCode: validatedData.stateCode || null,
-            postalCode: validatedData.postalCode ?? '',
-            country: validatedData.country,
-            countryCode: validatedData.countryCode || null,
-            phoneNumber: validatedData.phoneNumber || undefined,
-            website: validatedData.website,
-            latitude: coordinates?.lat,
-            longitude: coordinates?.lng,
-          },
-        })
+      await tx.state.upsert({
+        where: { userId },
+        update: { serial: { increment: BigInt(1) } },
+        create: { userId, serial: BigInt(1) },
+      })
 
-        await tx.state.upsert({
-          where: { userId },
-          update: { serial: { increment: BigInt(1) } },
-          create: { userId, serial: BigInt(1) },
-        })
-
-        return created
-      },
-      { isolationLevel: 'Serializable' }
-    )
+      return created
+    })
 
     logger.info('Admin created venue on behalf of user', {
       adminId: session?.user?.adminId,
@@ -185,12 +173,10 @@ export async function POST(
       return NextResponse.json({ error: error.errors[0]?.message ?? 'Validation error' }, { status: 400 })
     }
 
-    // Unique constraint violation (rare race on (userId, openkjVenueId))
-    // or serializable transaction conflict — both are safely retriable.
     // @ts-expect-error Prisma error shape at runtime
-    if (error?.code === 'P2002' || error?.code === 'P2034') {
+    if (error?.code === 'P2002') {
       return NextResponse.json(
-        { error: 'Venue ID conflict, please retry.' },
+        { error: 'Venue conflict, please retry.' },
         { status: 409 }
       )
     }
