@@ -1,292 +1,157 @@
 # Singr Karaoke Connect
 
-Professional karaoke management platform with real-time requests, multi-venue support, and seamless OpenKJ integration. Built with Next.js 15 and optimized for production deployment.
+Singr Karaoke Connect is a multi-tenant karaoke management platform. It provides a customer-facing admin dashboard for KJs and venue owners, a singer-facing web app for guests to browse songs and submit requests, and an OpenKJ-compatible HTTP API that lets the OpenKJ desktop application sync requests in real time.
 
-## ✨ Features
+## Architecture
 
-- 🎤 Multi-venue karaoke management
-- 📱 Real-time song request system
-- 💳 Integrated Stripe billing
-- 🔗 OpenKJ desktop integration
-- 🎨 Custom branding options
-- 📊 Analytics and reporting
-- 🔐 Secure API key management
-- ⚡ Next.js 15 optimized performance
-- 🛡️ Type-safe with strict TypeScript
-- 🎯 Production-ready error handling
+The project is a single Next.js 15 (App Router) application that hosts three logically distinct surfaces:
 
-## 🚀 Quick Start
+- **Customer App** (`src/app/dashboard`, `src/app/auth`) — Where KJs and venue owners sign in to manage their venues, API keys, song book, branding, billing, and support tickets.
+- **Singer App** (`src/app/(public singer routes inside src/app)`) — Public, mobile-friendly pages where guests at a venue browse songs and submit requests.
+- **Admin Console** (`src/app/admin`) — Internal staff console for managing customers, subscriptions, and platform-wide support.
+- **OpenKJ API** (`src/app/api/openkj`) — JSON HTTP endpoint consumed by the OpenKJ desktop client. Authenticates via per-customer API keys and exposes the `getSerial`, `getRequests`, `setAccepting`, `addSongs`, etc. commands.
+
+Supporting pieces:
+
+- **Database** — PostgreSQL accessed through Prisma (`prisma/schema.prisma`).
+- **Auth** — [Better Auth](https://www.better-auth.com/) with email/password (Argon2 + bcrypt fallback), Google OAuth with account linking, Twilio phone OTP, and optional 2FA via TOTP / SMS / email.
+- **Payments** — Stripe Checkout + customer portal, with webhooks at `/api/webhooks/stripe`.
+- **Email/SMS** — SMTP (nodemailer) for transactional email; Twilio for SMS OTP.
+- **Monitoring** — Sentry (optional, opt-in via `NEXT_PUBLIC_SENTRY_DSN`).
+
+### User roles
+
+- **Customer / Host** — A KJ or venue owner. Signs up, subscribes, creates venues, generates OpenKJ API keys, and manages their song book and branding.
+- **Singer** — A guest at a venue. Uses the public singer pages to browse a venue's song book and submit requests; no account required.
+- **Admin** — Internal Singr staff. Has access to `/admin` for cross-customer management, support triage, and subscription operations.
+
+## Local development
 
 ### Prerequisites
 
-- Node.js 18+ 
-- PostgreSQL database
-- Stripe account (for billing)
+- Node.js 18+
+- npm 9+
+- PostgreSQL 14+ (local or hosted)
+- A Stripe account (test mode is fine)
+- Optional: Twilio, Google OAuth, HERE Maps, and SMTP credentials for the features that depend on them
 
-### Installation
+### Setup
 
-1. **Clone the repository**
+1. **Clone and install dependencies**
+
    ```bash
    git clone <repository-url>
-   cd singr-management-portal
-   ```
-
-2. **Install dependencies**
-   ```bash
+   cd singr-karaoke-connect
    npm install
    ```
 
-3. **Set up environment variables**
+2. **Configure environment variables**
+
    ```bash
    cp .env.example .env
-   # Edit .env with your configuration
    ```
 
-4. **Set up database**
+   Open `.env` and fill in at minimum `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, and the Stripe keys. See the [Environment variables](#environment-variables) section for the full reference.
+
+3. **Initialize the database**
+
    ```bash
-   npm run db:generate
-   npm run db:migrate
-   npm run db:seed
+   npm run db:generate          # generate Prisma client
+   npm run db:migrate           # apply migrations (creates tables)
+   npm run db:seed              # seed an admin + demo customer user
    ```
 
-5. **Set up Stripe products (optional)**
+4. **(Optional) Provision Stripe products**
+
    ```bash
-   npm run stripe:setup
+   npm run stripe:setup         # create the default products / prices
+   npm run stripe:sync          # mirror Stripe data into the local DB
    ```
 
-6. **Start development server**
+5. **Start the dev server**
+
    ```bash
    npm run dev
    ```
 
-Visit [http://localhost:3000](http://localhost:3000) to see your application.
+   The app listens on [http://localhost:5000](http://localhost:5000).
 
-## 📁 Project Structure
+### Stripe webhooks (local)
+
+Forward Stripe events to your local server using the Stripe CLI:
+
+```bash
+stripe listen --forward-to localhost:5000/api/webhooks/stripe
+```
+
+Copy the `whsec_…` secret it prints into `STRIPE_WEBHOOK_SECRET`.
+
+## Environment variables
+
+The full annotated list lives in [`.env.example`](./.env.example). The most important ones:
+
+| Variable | Required | Description |
+|---|---|---|
+| `DATABASE_URL` | yes | PostgreSQL connection string. |
+| `BETTER_AUTH_SECRET` | yes | Session signing secret. Generate with `openssl rand -base64 32`. |
+| `BETTER_AUTH_URL` | yes | Public base URL of the app (used for OAuth/email links). |
+| `STRIPE_SECRET_KEY` / `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | yes | Stripe API keys. |
+| `STRIPE_WEBHOOK_SECRET` | yes (for billing) | Signing secret for `/api/webhooks/stripe`. |
+| `HERE_API_KEY` | yes (for venue search) | HERE Maps API key for geocoding. |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | optional | Enables "Continue with Google". |
+| `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN` / `TWILIO_FROM_NUMBER` | optional | Enables SMS-based phone OTP and 2FA. |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` / `SMTP_FROM` | optional | Enables transactional email (password reset, verification, email 2FA). |
+| `NEXT_PUBLIC_SENTRY_DSN` / `SENTRY_AUTH_TOKEN` | optional | Enables Sentry error reporting. |
+| `SUPPORT_PHONE` / `SUPPORT_EMAIL` / `SUPPORT_DOCS` | optional | Contact info shown in the in-app support UI. |
+| `NEXTAUTH_SECRET` / `NEXTAUTH_URL` | legacy | Read as fallbacks during the migration to Better Auth. `NEXTAUTH_URL` is also still used by the Stripe billing return URLs and a few public-URL hints in the dashboard. New installs should set the `BETTER_AUTH_*` equivalents instead. |
+| `NEXT_PUBLIC_GOOGLE_CLIENT_SECRET` | legacy | Fallback only — older deploys sometimes stored the Google OAuth client secret under this name. New installs should leave it empty. |
+
+When optional credentials are missing the corresponding feature degrades gracefully (e.g. OTPs are logged to the server console instead of being sent over SMS).
+
+## npm scripts
+
+### Development
+- `npm run dev` — Start the dev server on port 5000.
+- `npm run lint` / `npm run lint:fix` — Run / auto-fix ESLint.
+- `npm run format` — Format with Prettier.
+- `npm run type-check` / `npm run type-check:watch` — Run TypeScript without emitting.
+
+### Database
+- `npm run db:generate` — Regenerate the Prisma client.
+- `npm run db:migrate` — Create + apply a new migration in development.
+- `npm run db:migrate:deploy` — Apply pending migrations in production.
+- `npm run db:push` — Push the schema without creating a migration.
+- `npm run db:seed` — Run `prisma/seed.ts`.
+- `npm run db:studio` — Open Prisma Studio.
+
+### Stripe
+- `npm run stripe:setup` — Create initial Stripe products / prices.
+- `npm run stripe:sync` — Sync Stripe data into the local DB.
+
+### Production
+- `npm run build` — Build the Next.js app.
+- `npm run start` — Start the production server on port 5000.
+- `npm run analyze` — Build with bundle analyzer enabled.
+- `npm run clean` — Remove `.next` and the npm cache.
+
+## Project structure
 
 ```
 src/
-├── app/                    # Next.js 15 App Router
-│   ├── api/               # API routes
-│   ├── dashboard/         # Dashboard pages
-│   ├── admin/             # Admin pages
-│   ├── auth/              # Authentication pages
-│   ├── layout.tsx         # Root layout with metadata
-│   ├── page.tsx           # Home page
-│   └── providers.tsx      # Client-side providers
-├── components/            # React components
-│   ├── ui/               # Reusable UI components
-│   ├── admin/            # Admin-specific components
-│   └── support/          # Support components
-├── lib/                   # Core libraries
-│   ├── auth.ts           # NextAuth configuration
-│   ├── prisma.ts         # Prisma client setup
-│   ├── stripe.ts         # Stripe integration
-│   └── utils.ts          # Utility functions
-├── utils/                 # Additional utilities
-│   ├── validation.ts     # Zod validation schemas
-│   └── helpers.ts        # Helper functions
-├── hooks/                 # Custom React hooks
-│   └── use-async.ts      # Async state management
-└── types/                 # TypeScript definitions
-    ├── global.d.ts       # Global type definitions
-    └── next-auth.d.ts    # NextAuth type extensions
+  app/                  # Next.js App Router pages and API routes
+    admin/              # Internal admin console
+    api/                # API route handlers (auth, billing, openkj, webhooks, ...)
+    auth/               # Sign-in / sign-up / password-reset pages
+    dashboard/          # Customer (KJ / venue owner) dashboard
+  components/           # Shared React components (UI primitives + features)
+  hooks/                # Custom React hooks
+  lib/                  # Server libs: prisma client, auth, stripe, logger, ...
+  types/                # TypeScript type definitions
+prisma/                 # Prisma schema, migrations, and seed script
+scripts/                # One-off scripts (Stripe sync, admin user creation)
+public/                 # Static assets
 ```
 
-## 🛠️ Tech Stack
-
-### Core
-- **Framework**: [Next.js 15](https://nextjs.org/) with App Router
-- **Language**: [TypeScript](https://www.typescriptlang.org/) (strict mode)
-- **Database**: [PostgreSQL](https://www.postgresql.org/)
-- **ORM**: [Prisma](https://www.prisma.io/)
-
-### Authentication & Authorization
-- **Auth**: [NextAuth.js](https://next-auth.js.org/)
-- **Providers**: Credentials, Google OAuth
-
-### UI & Styling
-- **Styling**: [Tailwind CSS](https://tailwindcss.com/)
-- **Components**: [Radix UI](https://www.radix-ui.com/)
-- **Icons**: [Lucide React](https://lucide.dev/)
-
-### Payments & Subscriptions
-- **Payment Processing**: [Stripe](https://stripe.com/)
-- **Webhooks**: Stripe webhooks for subscription management
-
-### Development & Quality
-- **Type Checking**: Strict TypeScript
-- **Linting**: ESLint with Next.js config
-- **Formatting**: Prettier with Tailwind plugin
-- **Validation**: Zod schemas
-- **Error Tracking**: Sentry (optional)
-
-## 📜 Available Scripts
-
-### Development
-- `npm run dev` - Start development server with Turbopack
-- `npm run type-check` - Run TypeScript type checking
-- `npm run type-check:watch` - Watch mode for type checking
-- `npm run lint` - Run ESLint
-- `npm run lint:fix` - Fix ESLint errors
-- `npm run format` - Format code with Prettier
-
-### Database
-- `npm run db:generate` - Generate Prisma client
-- `npm run db:push` - Push schema changes to database
-- `npm run db:migrate` - Run database migrations
-- `npm run db:migrate:deploy` - Deploy migrations to production
-- `npm run db:seed` - Seed database with initial data
-- `npm run db:studio` - Open Prisma Studio
-
-### Stripe
-- `npm run stripe:setup` - Create initial Stripe products
-- `npm run stripe:sync` - Sync Stripe data to database
-
-### Production
-- `npm run build` - Build for production
-- `npm run start` - Start production server
-- `npm run prebuild` - Pre-build checks (type checking)
-- `npm run analyze` - Analyze bundle size
-
-### Code Modification
-- `npm run codemod:next15-params` - Update route params for Next.js 15
-- `npm run codemod:next15-pages` - Update page params for Next.js 15
-
-### Utilities
-- `npm run clean` - Clean build artifacts
-
-## 🔧 New Utilities & Helpers
-
-### Validation Schemas (`src/utils/validation.ts`)
-Comprehensive Zod schemas for type-safe validation:
-- User authentication (signup, signin)
-- Venue management
-- API keys
-- Song requests
-- Support tickets
-- Subscriptions
-
-```typescript
-import { signInSchema } from '@/utils/validation'
-
-const result = signInSchema.parse({ email, password })
-```
-
-### Helper Functions (`src/utils/helpers.ts`)
-Common utility functions:
-- `cn()` - Tailwind class name merging
-- `formatCurrency()` - Currency formatting
-- `formatDate()` - Date formatting
-- `debounce()` - Debounce function calls
-- `slugify()` - Convert strings to slugs
-- And many more...
-
-```typescript
-import { cn, formatCurrency } from '@/utils/helpers'
-
-const className = cn('text-lg', isActive && 'font-bold')
-const price = formatCurrency(1500) // $15.00
-```
-
-### Async Hook (`src/hooks/use-async.ts`)
-Custom hook for async operations:
-
-```typescript
-import { useAsync } from '@/hooks/use-async'
-
-const { execute, data, isLoading, error } = useAsync(
-  async (userId: string) => {
-    const res = await fetch(`/api/users/${userId}`)
-    return res.json()
-  }
-)
-
-// Later...
-await execute('user-123')
-```
-
-### Error Boundary (`src/components/ui/error-boundary.tsx`)
-Graceful error handling:
-
-```typescript
-import { ErrorBoundary } from '@/components/ui/error-boundary'
-
-<ErrorBoundary>
-  <YourComponent />
-</ErrorBoundary>
-```
-
-### Global Types (`src/types/global.d.ts`)
-Next.js 15 compliant types:
-- `PageProps<TParams, TSearchParams>` - For page components
-- `LayoutProps<TParams>` - For layout components
-- `RouteContext<TParams>` - For API routes
-- Environment variables typing
-- API response types
-
-## 🔐 Environment Variables
-
-See `.env.example` for required environment variables. Key variables include:
-
-- `DATABASE_URL` - PostgreSQL connection string
-- `NEXTAUTH_SECRET` - NextAuth secret (generate with `openssl rand -base64 32`)
-- `NEXTAUTH_URL` - Your app URL
-- `STRIPE_SECRET_KEY` - Stripe secret key
-- `GOOGLE_CLIENT_ID` - Google OAuth (optional)
-
-## 🏗️ Production Deployment
-
-1. **Build the application**
-   ```bash
-   npm run build
-   ```
-
-2. **Run database migrations**
-   ```bash
-   npm run db:migrate:deploy
-   ```
-
-3. **Start production server**
-   ```bash
-   npm run start
-   ```
-
-### Recommended Platforms
-- [Vercel](https://vercel.com/) (Recommended for Next.js)
-- [Railway](https://railway.app/)
-- [Render](https://render.com/)
-- AWS, Google Cloud, Azure
-
-## 📝 Code Quality
-
-This project follows strict TypeScript and code quality standards:
-
-- ✅ Strict TypeScript mode enabled
-- ✅ ESLint with Next.js recommended rules
-- ✅ Prettier for consistent formatting
-- ✅ Type-safe environment variables
-- ✅ Comprehensive validation with Zod
-- ✅ Error boundaries for graceful failures
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## 📄 License
+## License
 
 ISC
-
-## 🆘 Support
-
-For support, please:
-- Create an issue in the repository
-- Visit [support.singr.io](https://support.singr.io)
-- Email support@singr.io
-
----
-
-Built with ❤️ by Singr Karaoke Team# Singr-Management-Portal
