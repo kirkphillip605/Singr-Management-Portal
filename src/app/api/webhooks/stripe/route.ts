@@ -1,9 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { Prisma } from '@prisma/client'
 import { stripe } from '@/lib/stripe'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import Stripe from 'stripe'
 export const runtime = 'nodejs'
+
+function toJson(value: unknown): Prisma.InputJsonValue {
+  return (value ?? {}) as Prisma.InputJsonValue
+}
+
+function toNullableJson(
+  value: unknown,
+): Prisma.InputJsonValue | typeof Prisma.JsonNull {
+  return value == null ? Prisma.JsonNull : (value as Prisma.InputJsonValue)
+}
 
 
 
@@ -156,7 +167,7 @@ export async function POST(request: NextRequest) {
           apiVersion: event.api_version,
           requestId: event.request?.id || null,
           endpointSecret: process.env.STRIPE_WEBHOOK_SECRET,
-          payload: event as any,
+          payload: toJson(event),
           receivedAt: new Date(),
           processed: false,
         },
@@ -179,15 +190,15 @@ export async function POST(request: NextRequest) {
               name: product.name,
               description: product.description,
               images: product.images || [],
-              metadata: product.metadata as any,
-              packageDimensions: product.package_dimensions as any,
+              metadata: toJson(product.metadata),
+              packageDimensions: toNullableJson(product.package_dimensions),
               shippable: product.shippable,
               statementDescriptor: product.statement_descriptor,
               taxCode: typeof product.tax_code === 'string' ? product.tax_code : null,
               unitLabel: product.unit_label,
               url: product.url,
               livemode: product.livemode,
-              data: product as any,
+              data: toJson(product),
               updatedAt: new Date(),
             },
             create: {
@@ -197,15 +208,15 @@ export async function POST(request: NextRequest) {
               name: product.name,
               description: product.description,
               images: product.images || [],
-              metadata: product.metadata as any,
-              packageDimensions: product.package_dimensions as any,
+              metadata: toJson(product.metadata),
+              packageDimensions: toNullableJson(product.package_dimensions),
               shippable: product.shippable,
               statementDescriptor: product.statement_descriptor,
               taxCode: typeof product.tax_code === 'string' ? product.tax_code : null,
               unitLabel: product.unit_label,
               url: product.url,
               livemode: product.livemode,
-              data: product as any,
+              data: toJson(product),
               createdAt: safeTimestampToDate(product.created) || new Date(),
               updatedAt: new Date(),
             },
@@ -226,19 +237,19 @@ export async function POST(request: NextRequest) {
               active: price.active,
               billingScheme: price.billing_scheme,
               currency: price.currency,
-              customUnitAmount: price.custom_unit_amount as any,
+              customUnitAmount: toNullableJson(price.custom_unit_amount),
               lookupKey: price.lookup_key,
               nickname: price.nickname,
-              recurring: price.recurring as any,
+              recurring: toNullableJson(price.recurring),
               taxBehavior: price.tax_behavior,
               tiersMode: price.tiers_mode,
-              transformQuantity: price.transform_quantity as any,
+              transformQuantity: toNullableJson(price.transform_quantity),
               type: price.type,
               unitAmount: safeBigInt(price.unit_amount),
               unitAmountDecimal: price.unit_amount_decimal,
-              metadata: price.metadata as any,
+              metadata: toJson(price.metadata),
               livemode: price.livemode,
-              data: price as any,
+              data: toJson(price),
               updatedAt: new Date(),
             },
             create: {
@@ -247,20 +258,20 @@ export async function POST(request: NextRequest) {
               active: price.active,
               billingScheme: price.billing_scheme,
               currency: price.currency,
-              customUnitAmount: price.custom_unit_amount as any,
+              customUnitAmount: toNullableJson(price.custom_unit_amount),
               livemode: price.livemode,
               lookupKey: price.lookup_key,
-              metadata: price.metadata as any,
+              metadata: toJson(price.metadata),
               nickname: price.nickname,
               product: typeof price.product === 'string' ? price.product : price.product.id,
-              recurring: price.recurring as any,
+              recurring: toNullableJson(price.recurring),
               taxBehavior: price.tax_behavior,
               tiersMode: price.tiers_mode,
-              transformQuantity: price.transform_quantity as any,
+              transformQuantity: toNullableJson(price.transform_quantity),
               type: price.type,
               unitAmount: safeBigInt(price.unit_amount),
               unitAmountDecimal: price.unit_amount_decimal,
-              data: price as any,
+              data: toJson(price),
               createdAt: safeTimestampToDate(price.created) || new Date(),
               updatedAt: new Date(),
             },
@@ -288,13 +299,13 @@ export async function POST(request: NextRequest) {
               name: customer.name,
               phone: customer.phone,
               description: customer.description,
-              metadata: customer.metadata as any,
-              invoiceSettings: customer.invoice_settings as any,
-              shipping: customer.shipping as any,
+              metadata: toJson(customer.metadata),
+              invoiceSettings: toJson(customer.invoice_settings),
+              shipping: toJson(customer.shipping),
               taxExempt: customer.tax_exempt,
-              taxIds: customer.tax_ids as any,
+              taxIds: toJson(customer.tax_ids),
               livemode: customer.livemode,
-              data: customer as any,
+              data: toJson(customer),
               updatedAt: new Date(),
             },
             create: {
@@ -305,13 +316,13 @@ export async function POST(request: NextRequest) {
               name: customer.name,
               phone: customer.phone,
               description: customer.description,
-              metadata: customer.metadata as any,
-              invoiceSettings: customer.invoice_settings as any,
-              shipping: customer.shipping as any,
+              metadata: toJson(customer.metadata),
+              invoiceSettings: toJson(customer.invoice_settings),
+              shipping: toJson(customer.shipping),
               taxExempt: customer.tax_exempt,
-              taxIds: customer.tax_ids as any,
+              taxIds: toJson(customer.tax_ids),
               livemode: customer.livemode,
-              data: customer as any,
+              data: toJson(customer),
               createdAt: safeTimestampToDate(customer.created) || new Date(),
               updatedAt: new Date(),
             },
@@ -338,7 +349,7 @@ export async function POST(request: NextRequest) {
                   update: {
                     paymentStatus: session.payment_status,
                     completedAt: new Date(),
-                    metadata: session.metadata as any,
+                    metadata: toJson(session.metadata),
                   },
                   create: {
                     id: session.id,
@@ -350,7 +361,7 @@ export async function POST(request: NextRequest) {
                     createdAt: new Date(session.created * 1000),
                     expiresAt: session.expires_at ? new Date(session.expires_at * 1000) : null,
                     url: session.url,
-                    metadata: session.metadata as any,
+                    metadata: toJson(session.metadata),
                     completedAt: new Date(),
                   },
                 })
@@ -384,7 +395,7 @@ export async function POST(request: NextRequest) {
                   where: { id: session.id },
                   data: {
                     paymentStatus: 'expired',
-                    metadata: session.metadata as any,
+                    metadata: toJson(session.metadata),
                   },
                 })
               }
@@ -413,7 +424,7 @@ export async function POST(request: NextRequest) {
                   data: {
                     paymentStatus: session.payment_status,
                     completedAt: new Date(),
-                    metadata: session.metadata as any,
+                    metadata: toJson(session.metadata),
                   },
                 })
 
@@ -444,7 +455,7 @@ export async function POST(request: NextRequest) {
                   where: { id: session.id },
                   data: {
                     paymentStatus: session.payment_status,
-                    metadata: session.metadata as any,
+                    metadata: toJson(session.metadata),
                   },
                 })
 
@@ -485,8 +496,8 @@ export async function POST(request: NextRequest) {
                     canceledAt: periods.canceledAt,
                     trialStart: periods.trialStart,
                     trialEnd: periods.trialEnd,
-                    metadata: subscription.metadata as any,
-                    data: subscription as any,
+                    metadata: toJson(subscription.metadata),
+                    data: toJson(subscription),
                     updatedAt: new Date(),
                   },
                   create: {
@@ -500,9 +511,9 @@ export async function POST(request: NextRequest) {
                     canceledAt: periods.canceledAt,
                     trialStart: periods.trialStart,
                     trialEnd: periods.trialEnd,
-                    metadata: subscription.metadata as any,
+                    metadata: toJson(subscription.metadata),
                     createdAt: periods.created || new Date(),
-                    data: subscription as any,
+                    data: toJson(subscription),
                     livemode: subscription.livemode,
                     user: {
                       connect: {
@@ -550,8 +561,8 @@ export async function POST(request: NextRequest) {
                     canceledAt: periods.canceledAt,
                     trialStart: periods.trialStart,
                     trialEnd: periods.trialEnd,
-                    metadata: subscription.metadata as any,
-                    data: subscription as any,
+                    metadata: toJson(subscription.metadata),
+                    data: toJson(subscription),
                     updatedAt: new Date(),
                   },
                   create: {
@@ -565,9 +576,9 @@ export async function POST(request: NextRequest) {
                     canceledAt: periods.canceledAt,
                     trialStart: periods.trialStart,
                     trialEnd: periods.trialEnd,
-                    metadata: subscription.metadata as any,
+                    metadata: toJson(subscription.metadata),
                     createdAt: periods.created || new Date(),
-                    data: subscription as any,
+                    data: toJson(subscription),
                     livemode: subscription.livemode,
                     user: {
                       connect: {
@@ -601,7 +612,7 @@ export async function POST(request: NextRequest) {
                 data: {
                   status: 'canceled',
                   canceledAt: new Date(),
-                  data: subscription as any,
+                  data: toJson(subscription),
                   updatedAt: new Date(),
                 },
               })
@@ -627,7 +638,7 @@ export async function POST(request: NextRequest) {
                 where: { id: subscription.id },
                 data: {
                   status: 'paused',
-                  data: subscription as any,
+                  data: toJson(subscription),
                   updatedAt: new Date(),
                 },
               })
@@ -653,7 +664,7 @@ export async function POST(request: NextRequest) {
                 where: { id: subscription.id },
                 data: {
                   status: subscription.status,
-                  data: subscription as any,
+                  data: toJson(subscription),
                   updatedAt: new Date(),
                 },
               })

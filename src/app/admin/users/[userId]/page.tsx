@@ -105,7 +105,7 @@ export default async function AdminUserPage(props: PageProps<{ userId: string }>
         createdAt: true,
       },
     }),
-    (prisma as any).userNote.findMany({
+    prisma.userNote.findMany({
       where: { userId },
       include: {
         author: {
@@ -132,7 +132,7 @@ export default async function AdminUserPage(props: PageProps<{ userId: string }>
   const totalSongs = await prisma.songDb.count({ where: { userId } })
   const totalRequests = venues.reduce((acc, venue) => acc + venue._count.requests, 0)
   const primarySubscription = user.subscriptions[0]
-  const notesPreview = recentNotes.map((note: any) => ({
+  const notesPreview = recentNotes.map((note) => ({
     id: note.id,
     subject: note.subject,
     body: note.note.split('\n-----\n')[0] ?? note.note,
@@ -175,7 +175,7 @@ export default async function AdminUserPage(props: PageProps<{ userId: string }>
       meta: `Status: ${key.status}`,
       timestamp: key.createdAt,
     })),
-    ...user.subscriptions.map((sub: any) => ({
+    ...user.subscriptions.map((sub) => ({
       id: `subscription-${sub.id}`,
       type: 'Subscription',
       detail: `${sub.status}`,
@@ -264,7 +264,7 @@ export default async function AdminUserPage(props: PageProps<{ userId: string }>
           <CardContent className="space-y-4">
             {notesPreview.length ? (
               <ul className="space-y-3">
-            {notesPreview.map((note: any) => {
+            {notesPreview.map((note) => {
                   const trimmed = note.body.trim()
                   const excerpt =
                     trimmed.length > 260 ? `${trimmed.slice(0, 260).trimEnd()}…` : trimmed || '—'
@@ -402,7 +402,7 @@ export default async function AdminUserPage(props: PageProps<{ userId: string }>
         </Card>
 
         <div className="grid gap-6">
-          {venues.map((venue: any) => (
+          {venues.map((venue) => (
             <Card key={venue.id}>
               <CardHeader className="flex flex-col gap-1">
                 <div className="flex items-center justify-between">
@@ -464,7 +464,7 @@ export default async function AdminUserPage(props: PageProps<{ userId: string }>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 text-sm">
-          {apiKeys.map((key: any) => (
+          {apiKeys.map((key) => (
                   <tr key={key.id}>
                     <td className="px-4 py-2 font-medium">{key.description || '—'}</td>
                     <td className="px-4 py-2">
@@ -517,7 +517,7 @@ export default async function AdminUserPage(props: PageProps<{ userId: string }>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
-          {recentRequests.map((request: any) => (
+          {recentRequests.map((request) => (
                   <tr key={request.requestId.toString()}>
                     <td className="px-4 py-2 font-medium">
                       {request.artist} – {request.title}
@@ -562,7 +562,7 @@ export default async function AdminUserPage(props: PageProps<{ userId: string }>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
-          {recentSongs.map((song: any) => (
+          {recentSongs.map((song) => (
                   <tr key={song.songId.toString()}>
                     <td className="px-4 py-2 font-medium">
                       {song.artist} – {song.title}
