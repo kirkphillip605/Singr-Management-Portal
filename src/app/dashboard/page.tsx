@@ -1,8 +1,7 @@
 export const runtime = 'nodejs' // keep Prisma/Stripe on Node
 
 import { redirect } from 'next/navigation'
-import { getServerSession } from 'next-auth/next'
-import { authOptions } from '@/lib/auth'
+import { getAuthSession } from '@/lib/auth-server'
 import { prisma } from '@/lib/prisma'
 import { stripe } from '@/lib/stripe'
 import { logger } from '@/lib/logger'
@@ -23,7 +22,7 @@ import {
 } from '@/lib/subscription-normalize'
 
 export default async function DashboardPage() {
-  const session = await getServerSession(authOptions)
+  const session = await getAuthSession()
   if (!session?.user?.id) redirect('/auth/signin')
 
   const user = await prisma.user.findUnique({

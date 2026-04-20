@@ -13,6 +13,10 @@ export default async function DashboardLayout({
     redirect('/auth/signin')
   }
 
+  if (session.user.mustSetPassword) {
+    redirect('/auth/set-password')
+  }
+
   return (
     <DashboardLayoutShell userEmail={session.user?.email}>
       {children}

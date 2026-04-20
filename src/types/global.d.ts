@@ -27,9 +27,25 @@ declare global {
       // Database
       DATABASE_URL: string
       
-      // NextAuth
-      NEXTAUTH_URL: string
-      NEXTAUTH_SECRET: string
+      // Better Auth
+      BETTER_AUTH_URL?: string
+      BETTER_AUTH_SECRET?: string
+      // Legacy NextAuth (still read as fallback during migration)
+      NEXTAUTH_URL?: string
+      NEXTAUTH_SECRET?: string
+
+      // Twilio (phone OTP)
+      TWILIO_ACCOUNT_SID?: string
+      TWILIO_AUTH_TOKEN?: string
+      TWILIO_FROM_NUMBER?: string
+
+      // SMTP transport for auth emails
+      SMTP_HOST?: string
+      SMTP_PORT?: string
+      SMTP_USER?: string
+      SMTP_PASS?: string
+      SMTP_FROM?: string
+      EMAIL_FROM?: string
       
       // Google OAuth
       GOOGLE_CLIENT_ID: string

@@ -1,6 +1,5 @@
 import { redirect } from 'next/navigation'
-import { getServerSession } from 'next-auth/next'
-import { authOptions } from '@/lib/auth'
+import { getAuthSession } from '@/lib/auth-server'
 import { prisma } from '@/lib/prisma'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -10,7 +9,7 @@ import { Music, Clock, User, MapPin, Trash2, CheckCircle, RefreshCw } from 'luci
 import { formatDistanceToNow } from 'date-fns'
 
 export default async function RequestsPage() {
-  const session = await getServerSession(authOptions)
+  const session = await getAuthSession()
 
   if (!session?.user?.id) {
     redirect('/auth/signin')

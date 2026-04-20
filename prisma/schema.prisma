@@ -93,23 +93,26 @@ enum MessageVisibility {
    ============================================ */
 
 model User {
-  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name           String
-  email          String        @unique
-  emailVerified  DateTime?     @map("email_verified") @db.Timestamptz(6)
-  image          String?
-  createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt      DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  passwordHash   String        @map("password_hash")
-  accountType    AccountType   @default(customer) @map("accounttype")
-  adminLevel     AdminLevel?   @map("admin_level")
-  businessName   String?       @map("businessname")
-  phoneNumber    String?       @map("phonenumber")
+  id                    String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                  String
+  email                 String        @unique
+  emailVerified         Boolean       @default(false) @map("email_verified")
+  image                 String?
+  createdAt             DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  accountType           AccountType   @default(customer) @map("accounttype")
+  adminLevel            AdminLevel?   @map("admin_level")
+  businessName          String?       @map("businessname")
+  phoneNumber           String?       @unique @map("phonenumber")
+  phoneNumberVerified   Boolean       @default(false) @map("phone_number_verified")
+  twoFactorEnabled      Boolean       @default(false) @map("two_factor_enabled")
+  mustSetPassword       Boolean       @default(false) @map("must_set_password")
 
   accounts       Account[]
   customers      Customer[]
   apiKeys        ApiKey[]
   sessions       Session[]
+  twoFactors     TwoFactor[]
   subscriptions  Subscription[]
   venues         Venue[]
   systems        System[]
@@ -130,55 +133,69 @@ model User {
 }
 
 model Account {
-  id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId             String   @map("user_id") @db.Uuid
-  type               String
-  provider           String
-  providerAccountId  String   @map("provider_account_id")
-  refreshToken       String?  @map("refresh_token")
-  accessToken        String?  @map("access_token")
-  expiresAt          Int?     @map("expires_at")
-  tokenType          String?  @map("token_type")
-  scope              String?
-  idToken            String?  @map("id_token")
-  sessionState       String?  @map("session_state")
-  oauthTokenSecret   String?  @map("oauth_token_secret")
-  oauthToken         String?  @map("oauth_token")
-  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt          DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId                String    @map("user_id") @db.Uuid
+  accountId             String    @map("account_id")
+  providerId            String    @map("provider_id")
+  accessToken           String?   @map("access_token")
+  refreshToken          String?   @map("refresh_token")
+  idToken               String?   @map("id_token")
+  accessTokenExpiresAt  DateTime? @map("access_token_expires_at") @db.Timestamptz(6)
+  refreshTokenExpiresAt DateTime? @map("refresh_token_expires_at") @db.Timestamptz(6)
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   user User @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
 
-  @@unique([provider, providerAccountId])
+  @@unique([providerId, accountId])
   @@index([userId], map: "idx_accounts_user_id")
   @@map("accounts")
   @@schema("public")
 }
 
 model Session {
-  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  sessionToken String   @unique @map("sessiontoken")
-  userId       String   @map("userid") @db.Uuid
-  expires      DateTime @db.Timestamptz(6)
-  createdAt    DateTime @default(now()) @map("createdat") @db.Timestamptz(6)
-  updatedAt    DateTime @default(now()) @updatedAt @map("updatedat") @db.Timestamptz(6)
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  token     String   @unique
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(6)
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   user User @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
 
+  @@index([userId], map: "idx_sessions_user_id")
   @@map("sessions")
   @@schema("public")
 }
 
-model VerificationToken {
+model Verification {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   identifier String
-  token      String   @unique
-  expires    DateTime @db.Timestamptz(6)
+  value      String
+  expiresAt  DateTime @map("expires_at") @db.Timestamptz(6)
   createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt  DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  @@id([identifier, token])
-  @@index([expires], map: "idx_verification_tokens_expires")
-  @@map("verification_tokens")
+  @@index([identifier], map: "idx_verifications_identifier")
+  @@index([expiresAt], map: "idx_verifications_expires_at")
+  @@map("verifications")
+  @@schema("public")
+}
+
+model TwoFactor {
+  id          String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String @map("user_id") @db.Uuid
+  secret      String
+  backupCodes String @map("backup_codes")
+
+  user User @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  @@index([userId], map: "idx_two_factors_user_id")
+  @@map("two_factors")
   @@schema("public")
 }
 

@@ -1,12 +1,11 @@
 import { redirect } from 'next/navigation'
-import { getServerSession } from 'next-auth/next'
-import { authOptions } from '@/lib/auth'
+import { getAuthSession } from '@/lib/auth-server'
 import { VenueSearchForm } from '@/components/venue-search-form'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Info } from 'lucide-react'
 
 export default async function NewVenuePage() {
-  const session = await getServerSession(authOptions)
+  const session = await getAuthSession()
 
   if (!session?.user?.id) {
     redirect('/auth/signin')

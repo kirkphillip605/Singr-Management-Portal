@@ -1,13 +1,12 @@
 import { redirect } from 'next/navigation'
-import { getServerSession } from 'next-auth/next'
-import { authOptions } from '@/lib/auth'
+import { getAuthSession } from '@/lib/auth-server'
 import { prisma } from '@/lib/prisma'
 import { SystemsManager, SystemSummary } from '@/components/systems-manager'
 
 export const runtime = 'nodejs'
 
 export default async function SystemsPage() {
-  const session = await getServerSession(authOptions)
+  const session = await getAuthSession()
 
   if (!session?.user?.id) {
     redirect('/auth/signin')

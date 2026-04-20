@@ -1,8 +1,7 @@
 export const runtime = 'nodejs';
 
 import { redirect } from 'next/navigation';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
+import { getAuthSession } from '@/lib/auth-server';
 import { prisma } from '@/lib/prisma';
 import { stripe } from '@/lib/stripe';
 import {
@@ -30,7 +29,7 @@ import Link from 'next/link';
  */
 
 export default async function VenuesPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getAuthSession();
 
   if (!session?.user?.id) {
     redirect('/auth/signin');

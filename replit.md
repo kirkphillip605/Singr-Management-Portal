@@ -6,7 +6,7 @@ A professional karaoke online request management platform with real-time request
 
 - **Framework**: Next.js 15 (App Router)
 - **Database ORM**: Prisma (PostgreSQL)
-- **Auth**: NextAuth.js v4 with Prisma adapter
+- **Auth**: Better Auth (email/password, Google OAuth with account linking, Twilio phone OTP, optional 2FA via TOTP/SMS/email, password reset)
 - **Payments**: Stripe
 - **Styling**: Tailwind CSS + Radix UI components
 - **Monitoring**: Sentry (optional, disabled by default)
@@ -23,7 +23,9 @@ A professional karaoke online request management platform with real-time request
 |---|---|
 | `DATABASE_URL` | PostgreSQL connection string |
 | `NEXTAUTH_URL` | Full public URL of the app (e.g. `https://your-app.replit.app`) |
-| `NEXTAUTH_SECRET` | Secret for NextAuth session encryption (generate with `openssl rand -base64 32`) |
+| `BETTER_AUTH_SECRET` (or legacy `NEXTAUTH_SECRET`) | Secret for Better Auth session encryption (generate with `openssl rand -base64 32`) |
+| `BETTER_AUTH_URL` (or legacy `NEXTAUTH_URL`) | Public base URL of the app, used for OAuth redirects and email links |
+| `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN` / `TWILIO_FROM_NUMBER` | Optional — required to send phone OTP codes via SMS |
 | `STRIPE_SECRET_KEY` | Stripe secret key (`sk_...`) |
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Stripe publishable key (`pk_...`) |
 | `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret (`whsec_...`) |
