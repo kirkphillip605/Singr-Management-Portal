@@ -1,0 +1,831 @@
+src/app/admin/activity/page.tsx:91:9 - error TS2561: Object literal may only specify known properties, but 'openKjSystemId' does not exist in type 'SongDbSelect<DefaultArgs>'. Did you mean to write 'openkjSystemId'?
+
+91         openKjSystemId: true,
+           ~~~~~~~~~~~~~~
+
+src/app/admin/activity/page.tsx:133:21 - error TS2339: Property 'user' does not exist on type '{ createdAt: Date; updatedAt: Date; userId: string; openkjSystemId: number; songId: bigint; artist: string; title: string; combined: string; normalizedCombined: string; }'.
+
+133       account: song.user.name || song.user.email,
+                        ~~~~
+
+src/app/admin/activity/page.tsx:133:39 - error TS2339: Property 'user' does not exist on type '{ createdAt: Date; updatedAt: Date; userId: string; openkjSystemId: number; songId: bigint; artist: string; title: string; combined: string; normalizedCombined: string; }'.
+
+133       account: song.user.name || song.user.email,
+                                          ~~~~
+
+src/app/admin/activity/page.tsx:134:28 - error TS2551: Property 'openKjSystemId' does not exist on type '{ createdAt: Date; updatedAt: Date; userId: string; openkjSystemId: number; songId: bigint; artist: string; title: string; combined: string; normalizedCombined: string; }'. Did you mean 'openkjSystemId'?
+
+134       meta: `System ${song.openKjSystemId}`,
+                               ~~~~~~~~~~~~~~
+
+src/app/admin/page.tsx:27:11 - error TS2561: Object literal may only specify known properties, but 'created' does not exist in type 'SubscriptionSelect<DefaultArgs>'. Did you mean to write 'createdAt'?
+
+27           created: true,
+             ~~~~~~~
+
+src/app/admin/page.tsx:29:20 - error TS2353: Object literal may only specify known properties, and 'created' does not exist in type 'SubscriptionOrderByWithRelationInput | SubscriptionOrderByWithRelationInput[]'.
+
+29         orderBy: { created: 'desc' },
+                      ~~~~~~~
+
+src/app/admin/page.tsx:54:20 - error TS2339: Property 'subscriptions' does not exist on type '{ name: string; id: string; email: string; emailVerified: Date | null; image: string | null; createdAt: Date; updatedAt: Date; passwordHash: string; accountType: AccountType; adminLevel: AdminLevel | null; businessName: string | null; phoneNumber: string | null; }'.
+
+54     (user) => user.subscriptions[0]?.status === 'active'
+                      ~~~~~~~~~~~~~
+
+src/app/admin/page.tsx:57:20 - error TS2339: Property 'subscriptions' does not exist on type '{ name: string; id: string; email: string; emailVerified: Date | null; image: string | null; createdAt: Date; updatedAt: Date; passwordHash: string; accountType: AccountType; adminLevel: AdminLevel | null; businessName: string | null; phoneNumber: string | null; }'.
+
+57     (user) => user.subscriptions[0]?.status === 'trialing'
+                      ~~~~~~~~~~~~~
+
+src/app/admin/page.tsx:59:62 - error TS2339: Property '_count' does not exist on type '{ name: string; id: string; email: string; emailVerified: Date | null; image: string | null; createdAt: Date; updatedAt: Date; passwordHash: string; accountType: AccountType; adminLevel: AdminLevel | null; businessName: string | null; phoneNumber: string | null; }'.
+
+59   const totalVenues = users.reduce((acc, user) => acc + user._count.venues, 0)
+                                                                ~~~~~~
+
+src/app/admin/page.tsx:151:49 - error TS2339: Property 'subscriptions' does not exist on type '{ name: string; id: string; email: string; emailVerified: Date | null; image: string | null; createdAt: Date; updatedAt: Date; passwordHash: string; accountType: AccountType; adminLevel: AdminLevel | null; businessName: string | null; phoneNumber: string | null; }'.
+
+151                 const subscriptionStatus = user.subscriptions[0]?.status ?? 'none'
+                                                    ~~~~~~~~~~~~~
+
+src/app/admin/page.tsx:152:44 - error TS2339: Property 'venues' does not exist on type '{ name: string; id: string; email: string; emailVerified: Date | null; image: string | null; createdAt: Date; updatedAt: Date; passwordHash: string; accountType: AccountType; adminLevel: AdminLevel | null; businessName: string | null; phoneNumber: string | null; }'.
+
+152                 const requestsCount = user.venues.reduce(
+                                               ~~~~~~
+
+src/app/admin/page.tsx:153:20 - error TS7006: Parameter 'sum' implicitly has an 'any' type.
+
+153                   (sum, venue) => sum + venue._count.requests,
+                       ~~~
+
+src/app/admin/page.tsx:153:25 - error TS7006: Parameter 'venue' implicitly has an 'any' type.
+
+153                   (sum, venue) => sum + venue._count.requests,
+                            ~~~~~
+
+src/app/admin/page.tsx:156:43 - error TS2339: Property 'customer' does not exist on type '{ name: string; id: string; email: string; emailVerified: Date | null; image: string | null; createdAt: Date; updatedAt: Date; passwordHash: string; accountType: AccountType; adminLevel: AdminLevel | null; businessName: string | null; phoneNumber: string | null; }'.
+
+156                 const apiKeysCount = user.customer?.apiKeys.length ?? 0
+                                              ~~~~~~~~
+
+src/app/admin/page.tsx:186:52 - error TS2339: Property '_count' does not exist on type '{ name: string; id: string; email: string; emailVerified: Date | null; image: string | null; createdAt: Date; updatedAt: Date; passwordHash: string; accountType: AccountType; adminLevel: AdminLevel | null; businessName: string | null; phoneNumber: string | null; }'.
+
+186                       {numberFormatter.format(user._count.venues)}
+                                                       ~~~~~~
+
+src/app/admin/page.tsx:189:52 - error TS2339: Property '_count' does not exist on type '{ name: string; id: string; email: string; emailVerified: Date | null; image: string | null; createdAt: Date; updatedAt: Date; passwordHash: string; accountType: AccountType; adminLevel: AdminLevel | null; businessName: string | null; phoneNumber: string | null; }'.
+
+189                       {numberFormatter.format(user._count.songDb)}
+                                                       ~~~~~~
+
+src/app/admin/users/[userId]/page.tsx:49:22 - error TS2353: Object literal may only specify known properties, and 'created' does not exist in type 'SubscriptionOrderByWithRelationInput | SubscriptionOrderByWithRelationInput[]'.
+
+49           orderBy: { created: 'desc' },
+                        ~~~~~~~
+
+src/app/admin/users/[userId]/page.tsx:104:9 - error TS2561: Object literal may only specify known properties, but 'openKjSystemId' does not exist in type 'SongDbSelect<DefaultArgs>'. Did you mean to write 'openkjSystemId'?
+
+104         openKjSystemId: true,
+            ~~~~~~~~~~~~~~
+
+src/app/admin/users/[userId]/page.tsx:130:24 - error TS2339: Property 'customer' does not exist on type '{ name: string; id: string; email: string; emailVerified: Date | null; image: string | null; createdAt: Date; updatedAt: Date; passwordHash: string; accountType: AccountType; adminLevel: AdminLevel | null; businessName: string | null; phoneNumber: string | null; }'.
+
+130   const apiKeys = user.customer?.apiKeys ?? []
+                           ~~~~~~~~
+
+src/app/admin/users/[userId]/page.tsx:134:36 - error TS2339: Property 'subscriptions' does not exist on type '{ name: string; id: string; email: string; emailVerified: Date | null; image: string | null; createdAt: Date; updatedAt: Date; passwordHash: string; accountType: AccountType; adminLevel: AdminLevel | null; businessName: string | null; phoneNumber: string | null; }'.
+
+134   const primarySubscription = user.subscriptions[0]
+                                       ~~~~~~~~~~~~~
+
+src/app/admin/users/[userId]/page.tsx:168:28 - error TS2551: Property 'openKjSystemId' does not exist on type '{ createdAt: Date; updatedAt: Date; userId: string; openkjSystemId: number; songId: bigint; artist: string; title: string; combined: string; normalizedCombined: string; }'. Did you mean 'openkjSystemId'?
+
+168       meta: `System ${song.openKjSystemId}`,
+                               ~~~~~~~~~~~~~~
+
+src/app/admin/users/[userId]/page.tsx:171:21 - error TS7006: Parameter 'key' implicitly has an 'any' type.
+
+171     ...apiKeys.map((key) => ({
+                        ~~~
+
+src/app/admin/users/[userId]/page.tsx:178:13 - error TS2339: Property 'subscriptions' does not exist on type '{ name: string; id: string; email: string; emailVerified: Date | null; image: string | null; createdAt: Date; updatedAt: Date; passwordHash: string; accountType: AccountType; adminLevel: AdminLevel | null; businessName: string | null; phoneNumber: string | null; }'.
+
+178     ...user.subscriptions.map((sub: any) => ({
+                ~~~~~~~~~~~~~
+
+src/app/api/admin/users/[userId]/api-keys/route.ts:49:7 - error TS2322: Type '{ id: string; stripeCustomerId: string; }' is not assignable to type '(Without<CustomerCreateInput, CustomerUncheckedCreateInput> & CustomerUncheckedCreateInput) | (Without<...> & CustomerCreateInput)'.
+  Type '{ id: string; stripeCustomerId: string; }' is not assignable to type 'Without<CustomerUncheckedCreateInput, CustomerCreateInput> & CustomerCreateInput'.
+    Property 'user' is missing in type '{ id: string; stripeCustomerId: string; }' but required in type 'CustomerCreateInput'.
+
+49       create: {
+         ~~~~~~
+
+  node_modules/.prisma/client/index.d.ts:36175:5
+    36175     user: UserCreateNestedOneWithoutCustomersInput
+              ~~~~
+    'user' is declared here.
+  node_modules/.prisma/client/index.d.ts:9570:5
+    9570     create: XOR<CustomerCreateInput, CustomerUncheckedCreateInput>
+             ~~~~~~
+    The expected type comes from property 'create' which is declared here on type '{ select?: CustomerSelect<DefaultArgs> | null | undefined; omit?: CustomerOmit<DefaultArgs> | null | undefined; include?: CustomerInclude<...> | ... 1 more ... | undefined; where: CustomerWhereUniqueInput; create: (Without<...> & CustomerUncheckedCreateInput) | (Without<...> & CustomerCreateInput); update: (Without<...'
+
+src/app/api/admin/users/[userId]/api-keys/route.ts:56:7 - error TS2322: Type '{ customerId: string; description: string; apiKeyHash: string; status: "active"; }' is not assignable to type '(Without<ApiKeyCreateInput, ApiKeyUncheckedCreateInput> & ApiKeyUncheckedCreateInput) | (Without<...> & ApiKeyCreateInput)'.
+  Type '{ customerId: string; description: string; apiKeyHash: string; status: "active"; }' is not assignable to type 'Without<ApiKeyCreateInput, ApiKeyUncheckedCreateInput> & ApiKeyUncheckedCreateInput'.
+    Property 'userId' is missing in type '{ customerId: string; description: string; apiKeyHash: string; status: "active"; }' but required in type 'ApiKeyUncheckedCreateInput'.
+
+56       data: {
+         ~~~~
+
+  node_modules/.prisma/client/index.d.ts:36322:5
+    36322     userId: string
+              ~~~~~~
+    'userId' is declared here.
+  node_modules/.prisma/client/index.d.ts:10615:5
+    10615     data: XOR<ApiKeyCreateInput, ApiKeyUncheckedCreateInput>
+              ~~~~
+    The expected type comes from property 'data' which is declared here on type '{ select?: ApiKeySelect<DefaultArgs> | null | undefined; omit?: ApiKeyOmit<DefaultArgs> | null | undefined; include?: ApiKeyInclude<DefaultArgs> | null | undefined; data: (Without<...> & ApiKeyUncheckedCreateInput) | (Without<...> & ApiKeyCreateInput); }'
+
+src/app/api/admin/users/[userId]/venues/route.ts:125:9 - error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+
+125         address: validatedData.address,
+            ~~~~~~~
+
+  node_modules/.prisma/client/index.d.ts:37066:5
+    37066     address: string
+              ~~~~~~~
+    The expected type comes from property 'address' which is declared here on type '(Without<VenueCreateInput, VenueUncheckedCreateInput> & VenueUncheckedCreateInput) | (Without<...> & VenueCreateInput)'
+
+src/app/api/admin/users/[userId]/venues/route.ts:126:9 - error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+
+126         city: validatedData.city,
+            ~~~~
+
+  node_modules/.prisma/client/index.d.ts:37067:5
+    37067     city: string
+              ~~~~
+    The expected type comes from property 'city' which is declared here on type '(Without<VenueCreateInput, VenueUncheckedCreateInput> & VenueUncheckedCreateInput) | (Without<...> & VenueCreateInput)'
+
+src/app/api/admin/users/[userId]/venues/route.ts:127:9 - error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+
+127         state: validatedData.state,
+            ~~~~~
+
+  node_modules/.prisma/client/index.d.ts:37068:5
+    37068     state: string
+              ~~~~~
+    The expected type comes from property 'state' which is declared here on type '(Without<VenueCreateInput, VenueUncheckedCreateInput> & VenueUncheckedCreateInput) | (Without<...> & VenueCreateInput)'
+
+src/app/api/admin/users/[userId]/venues/route.ts:129:9 - error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+
+129         postalCode: validatedData.postalCode,
+            ~~~~~~~~~~
+
+  node_modules/.prisma/client/index.d.ts:37070:5
+    37070     postalCode: string
+              ~~~~~~~~~~
+    The expected type comes from property 'postalCode' which is declared here on type '(Without<VenueCreateInput, VenueUncheckedCreateInput> & VenueUncheckedCreateInput) | (Without<...> & VenueCreateInput)'
+
+src/app/api/api-keys/route.ts:36:7 - error TS2322: Type '{ id: string; stripeCustomerId: string; }' is not assignable to type '(Without<CustomerCreateInput, CustomerUncheckedCreateInput> & CustomerUncheckedCreateInput) | (Without<...> & CustomerCreateInput)'.
+  Type '{ id: string; stripeCustomerId: string; }' is not assignable to type 'Without<CustomerUncheckedCreateInput, CustomerCreateInput> & CustomerCreateInput'.
+    Property 'user' is missing in type '{ id: string; stripeCustomerId: string; }' but required in type 'CustomerCreateInput'.
+
+36       create: {
+         ~~~~~~
+
+  node_modules/.prisma/client/index.d.ts:36175:5
+    36175     user: UserCreateNestedOneWithoutCustomersInput
+              ~~~~
+    'user' is declared here.
+  node_modules/.prisma/client/index.d.ts:9570:5
+    9570     create: XOR<CustomerCreateInput, CustomerUncheckedCreateInput>
+             ~~~~~~
+    The expected type comes from property 'create' which is declared here on type '{ select?: CustomerSelect<DefaultArgs> | null | undefined; omit?: CustomerOmit<DefaultArgs> | null | undefined; include?: CustomerInclude<...> | ... 1 more ... | undefined; where: CustomerWhereUniqueInput; create: (Without<...> & CustomerUncheckedCreateInput) | (Without<...> & CustomerCreateInput); update: (Without<...'
+
+src/app/api/api-keys/route.ts:44:7 - error TS2322: Type '{ customerId: string; description: string; apiKeyHash: string; status: "active"; }' is not assignable to type '(Without<ApiKeyCreateInput, ApiKeyUncheckedCreateInput> & ApiKeyUncheckedCreateInput) | (Without<...> & ApiKeyCreateInput)'.
+  Type '{ customerId: string; description: string; apiKeyHash: string; status: "active"; }' is not assignable to type 'Without<ApiKeyCreateInput, ApiKeyUncheckedCreateInput> & ApiKeyUncheckedCreateInput'.
+    Property 'userId' is missing in type '{ customerId: string; description: string; apiKeyHash: string; status: "active"; }' but required in type 'ApiKeyUncheckedCreateInput'.
+
+44       data: {
+         ~~~~
+
+  node_modules/.prisma/client/index.d.ts:36322:5
+    36322     userId: string
+              ~~~~~~
+    'userId' is declared here.
+  node_modules/.prisma/client/index.d.ts:10615:5
+    10615     data: XOR<ApiKeyCreateInput, ApiKeyUncheckedCreateInput>
+              ~~~~
+    The expected type comes from property 'data' which is declared here on type '{ select?: ApiKeySelect<DefaultArgs> | null | undefined; omit?: ApiKeyOmit<DefaultArgs> | null | undefined; include?: ApiKeyInclude<DefaultArgs> | null | undefined; data: (Without<...> & ApiKeyUncheckedCreateInput) | (Without<...> & ApiKeyCreateInput); }'
+
+src/app/api/auth/signup/route.ts:84:9 - error TS2322: Type '{ id: string; stripeCustomerId: string; }' is not assignable to type '(Without<CustomerCreateInput, CustomerUncheckedCreateInput> & CustomerUncheckedCreateInput) | (Without<...> & CustomerCreateInput)'.
+  Type '{ id: string; stripeCustomerId: string; }' is not assignable to type 'Without<CustomerUncheckedCreateInput, CustomerCreateInput> & CustomerCreateInput'.
+    Property 'user' is missing in type '{ id: string; stripeCustomerId: string; }' but required in type 'CustomerCreateInput'.
+
+84         data: {
+           ~~~~
+
+  node_modules/.prisma/client/index.d.ts:36175:5
+    36175     user: UserCreateNestedOneWithoutCustomersInput
+              ~~~~
+    'user' is declared here.
+  node_modules/.prisma/client/index.d.ts:9436:5
+    9436     data: XOR<CustomerCreateInput, CustomerUncheckedCreateInput>
+             ~~~~
+    The expected type comes from property 'data' which is declared here on type '{ select?: CustomerSelect<DefaultArgs> | null | undefined; omit?: CustomerOmit<DefaultArgs> | null | undefined; include?: CustomerInclude<...> | ... 1 more ... | undefined; data: (Without<...> & CustomerUncheckedCreateInput) | (Without<...> & CustomerCreateInput); }'
+
+src/app/api/auth/signup/route.ts:95:11 - error TS2561: Object literal may only specify known properties, but 'openKjSystemId' does not exist in type 'Without<SystemCreateInput, SystemUncheckedCreateInput> & SystemUncheckedCreateInput'. Did you mean to write 'openkjSystemId'?
+
+95           openKjSystemId: 1,
+             ~~~~~~~~~~~~~~
+
+  node_modules/.prisma/client/index.d.ts:20168:5
+    20168     data: XOR<SystemCreateInput, SystemUncheckedCreateInput>
+              ~~~~
+    The expected type comes from property 'data' which is declared here on type '{ select?: SystemSelect<DefaultArgs> | null | undefined; omit?: SystemOmit<DefaultArgs> | null | undefined; include?: SystemInclude<DefaultArgs> | null | undefined; data: (Without<...> & SystemUncheckedCreateInput) | (Without<...> & SystemCreateInput); }'
+
+src/app/api/billing/create-checkout-session/route.ts:100:11 - error TS2561: Object literal may only specify known properties, but 'created' does not exist in type 'Without<StripeCheckoutSessionCreateInput, StripeCheckoutSessionUncheckedCreateInput> & StripeCheckoutSessionUncheckedCreateInput'. Did you mean to write 'createdAt'?
+
+100           created: new Date(checkoutSession.created * 1000),
+              ~~~~~~~
+
+  node_modules/.prisma/client/index.d.ts:15483:5
+    15483     data: XOR<StripeCheckoutSessionCreateInput, StripeCheckoutSessionUncheckedCreateInput>
+              ~~~~
+    The expected type comes from property 'data' which is declared here on type '{ select?: StripeCheckoutSessionSelect<DefaultArgs> | null | undefined; omit?: StripeCheckoutSessionOmit<DefaultArgs> | null | undefined; include?: StripeCheckoutSessionInclude<...> | ... 1 more ... | undefined; data: (Without<...> & StripeCheckoutSessionUncheckedCreateInput) | (Without<...> & StripeCheckoutSessionC...'
+
+src/app/api/openkj/route.ts:590:15 - error TS2322: Type '{ userId: any; openKjSystemId: any; artist: string; title: string; combined: string; normalizedCombined: string; }[]' is not assignable to type 'SongDbCreateManyInput | SongDbCreateManyInput[]'.
+  Type '{ userId: any; openKjSystemId: any; artist: string; title: string; combined: string; normalizedCombined: string; }[]' is not assignable to type 'SongDbCreateManyInput[]'.
+    Property 'openkjSystemId' is missing in type '{ userId: any; openKjSystemId: any; artist: string; title: string; combined: string; normalizedCombined: string; }' but required in type 'SongDbCreateManyInput'.
+
+590               data: songsToAdd,
+                  ~~~~
+
+  node_modules/.prisma/client/index.d.ts:37363:5
+    37363     openkjSystemId: number
+              ~~~~~~~~~~~~~~
+    'openkjSystemId' is declared here.
+
+src/app/api/openkj/route.ts:634:37 - error TS2561: Object literal may only specify known properties, but 'openKjSystemId' does not exist in type 'SongDbWhereInput'. Did you mean to write 'openkjSystemId'?
+
+634           where: { userId: user.id, openKjSystemId: system.openKjSystemId },
+                                        ~~~~~~~~~~~~~~
+
+src/app/api/prices/[id]/route.ts:17:9 - error TS2561: Object literal may only specify known properties, but 'productRelation' does not exist in type 'StripePriceInclude<DefaultArgs>'. Did you mean to write 'productRel'?
+
+17         productRelation: true,
+           ~~~~~~~~~~~~~~~
+
+  node_modules/.prisma/client/index.d.ts:12906:5
+    12906     include?: StripePriceInclude<ExtArgs> | null
+              ~~~~~~~
+    The expected type comes from property 'include' which is declared here on type '{ select?: StripePriceSelect<DefaultArgs> | null | undefined; omit?: StripePriceOmit<DefaultArgs> | null | undefined; include?: StripePriceInclude<...> | ... 1 more ... | undefined; where: StripePriceWhereUniqueInput; }'
+
+src/app/api/systems/[id]/route.ts:80:18 - error TS2353: Object literal may only specify known properties, and 'openKjSystemId' does not exist in type 'SystemOrderByWithRelationInput | SystemOrderByWithRelationInput[]'.
+
+80       orderBy: { openKjSystemId: 'desc' },
+                    ~~~~~~~~~~~~~~
+
+src/app/api/systems/[id]/route.ts:92:43 - error TS2561: Object literal may only specify known properties, but 'openKjSystemId' does not exist in type 'SongDbWhereInput'. Did you mean to write 'openkjSystemId'?
+
+92         where: { userId: session.user.id, openKjSystemId: system.openKjSystemId },
+                                             ~~~~~~~~~~~~~~
+
+src/app/api/systems/[id]/route.ts:92:66 - error TS2551: Property 'openKjSystemId' does not exist on type '{ name: string; id: string; createdAt: Date; updatedAt: Date; userId: string; openkjSystemId: number; }'. Did you mean 'openkjSystemId'?
+
+92         where: { userId: session.user.id, openKjSystemId: system.openKjSystemId },
+                                                                    ~~~~~~~~~~~~~~
+
+src/app/api/systems/route.ts:36:19 - error TS2561: Object literal may only specify known properties, but 'openKjSystemId' does not exist in type 'SystemMaxAggregateInputType'. Did you mean to write 'openkjSystemId'?
+
+36           _max: { openKjSystemId: true },
+                     ~~~~~~~~~~~~~~
+
+  node_modules/.prisma/client/index.d.ts:19402:5
+    19402     _max?: SystemMaxAggregateInputType
+              ~~~~
+    The expected type comes from property '_max' which is declared here on type 'Subset<SystemAggregateArgs<DefaultArgs>, SystemAggregateArgs<DefaultArgs>>'
+
+src/app/api/systems/route.ts:38:25 - error TS18048: 'agg._max' is possibly 'undefined'.
+
+38         const nextId = (agg._max.openKjSystemId ?? 0) + 1
+                           ~~~~~~~~
+
+src/app/api/systems/route.ts:38:34 - error TS2551: Property 'openKjSystemId' does not exist on type '{ id?: string | null | undefined; userId?: string | null | undefined; openkjSystemId?: number | null | undefined; name?: string | null | undefined; createdAt?: Date | null | undefined; updatedAt?: Date | ... 1 more ... | undefined; }'. Did you mean 'openkjSystemId'?
+
+38         const nextId = (agg._max.openKjSystemId ?? 0) + 1
+                                    ~~~~~~~~~~~~~~
+
+src/app/api/systems/route.ts:44:13 - error TS2561: Object literal may only specify known properties, but 'openKjSystemId' does not exist in type 'Without<SystemCreateInput, SystemUncheckedCreateInput> & SystemUncheckedCreateInput'. Did you mean to write 'openkjSystemId'?
+
+44             openKjSystemId: nextId,
+               ~~~~~~~~~~~~~~
+
+  node_modules/.prisma/client/index.d.ts:20168:5
+    20168     data: XOR<SystemCreateInput, SystemUncheckedCreateInput>
+              ~~~~
+    The expected type comes from property 'data' which is declared here on type '{ select?: SystemSelect<DefaultArgs> | null | undefined; omit?: SystemOmit<DefaultArgs> | null | undefined; include?: SystemInclude<DefaultArgs> | null | undefined; data: (Without<...> & SystemUncheckedCreateInput) | (Without<...> & SystemCreateInput); }'
+
+src/app/api/venues/[id]/accepting/route.ts:64:13 - error TS2561: Object literal may only specify known properties, but 'customer' does not exist in type 'UserInclude<DefaultArgs>'. Did you mean to write 'customers'?
+
+64             customer: true,
+               ~~~~~~~~
+
+src/app/api/venues/[id]/accepting/route.ts:75:28 - error TS2339: Property 'user' does not exist on type '{ name: string; id: string; createdAt: Date; updatedAt: Date; phoneNumber: string | null; userId: string; openkjVenueId: number; urlName: string; acceptingRequests: boolean; herePlaceId: string | null; ... 11 more ...; currentSystemId: number; }'.
+
+75     if (accepting && venue.user.customer?.stripeCustomerId) {
+                              ~~~~
+
+src/app/api/venues/[id]/accepting/route.ts:76:65 - error TS2339: Property 'user' does not exist on type '{ name: string; id: string; createdAt: Date; updatedAt: Date; phoneNumber: string | null; userId: string; openkjVenueId: number; urlName: string; acceptingRequests: boolean; herePlaceId: string | null; ... 11 more ...; currentSystemId: number; }'.
+
+76       const hasSubscription = await hasActiveSubscription(venue.user.customer.stripeCustomerId)
+                                                                   ~~~~
+
+src/app/api/venues/[id]/requests/route.ts:38:9 - error TS2353: Object literal may only specify known properties, and 'requestTime' does not exist in type 'RequestOrderByWithRelationInput | RequestOrderByWithRelationInput[]'.
+
+38         requestTime: 'desc',
+           ~~~~~~~~~~~
+
+src/app/api/venues/[id]/route.ts:52:9 - error TS2322: Type 'string | null' is not assignable to type 'string | StringFieldUpdateOperationsInput | undefined'.
+  Type 'null' is not assignable to type 'string | StringFieldUpdateOperationsInput | undefined'.
+
+52         address: validatedData.address || null,
+           ~~~~~~~
+
+  node_modules/.prisma/client/index.d.ts:37122:5
+    37122     address?: StringFieldUpdateOperationsInput | string
+              ~~~~~~~
+    The expected type comes from property 'address' which is declared here on type '(Without<VenueUpdateInput, VenueUncheckedUpdateInput> & VenueUncheckedUpdateInput) | (Without<...> & VenueUpdateInput)'
+
+src/app/api/venues/[id]/route.ts:53:9 - error TS2322: Type 'string | null' is not assignable to type 'string | StringFieldUpdateOperationsInput | undefined'.
+  Type 'null' is not assignable to type 'string | StringFieldUpdateOperationsInput | undefined'.
+
+53         city: validatedData.city || null,
+           ~~~~
+
+  node_modules/.prisma/client/index.d.ts:37123:5
+    37123     city?: StringFieldUpdateOperationsInput | string
+              ~~~~
+    The expected type comes from property 'city' which is declared here on type '(Without<VenueUpdateInput, VenueUncheckedUpdateInput> & VenueUncheckedUpdateInput) | (Without<...> & VenueUpdateInput)'
+
+src/app/api/venues/[id]/route.ts:54:9 - error TS2322: Type 'string | null' is not assignable to type 'string | StringFieldUpdateOperationsInput | undefined'.
+  Type 'null' is not assignable to type 'string | StringFieldUpdateOperationsInput | undefined'.
+
+54         state: validatedData.state || null,
+           ~~~~~
+
+  node_modules/.prisma/client/index.d.ts:37124:5
+    37124     state?: StringFieldUpdateOperationsInput | string
+              ~~~~~
+    The expected type comes from property 'state' which is declared here on type '(Without<VenueUpdateInput, VenueUncheckedUpdateInput> & VenueUncheckedUpdateInput) | (Without<...> & VenueUpdateInput)'
+
+src/app/api/venues/[id]/route.ts:55:9 - error TS2322: Type 'string | null' is not assignable to type 'string | StringFieldUpdateOperationsInput | undefined'.
+  Type 'null' is not assignable to type 'string | StringFieldUpdateOperationsInput | undefined'.
+
+55         postalCode: validatedData.postalCode || null,
+           ~~~~~~~~~~
+
+  node_modules/.prisma/client/index.d.ts:37126:5
+    37126     postalCode?: StringFieldUpdateOperationsInput | string
+              ~~~~~~~~~~
+    The expected type comes from property 'postalCode' which is declared here on type '(Without<VenueUpdateInput, VenueUncheckedUpdateInput> & VenueUncheckedUpdateInput) | (Without<...> & VenueUpdateInput)'
+
+src/app/api/venues/route.ts:115:9 - error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+
+115         address: validatedData.address,
+            ~~~~~~~
+
+  node_modules/.prisma/client/index.d.ts:37066:5
+    37066     address: string
+              ~~~~~~~
+    The expected type comes from property 'address' which is declared here on type '(Without<VenueCreateInput, VenueUncheckedCreateInput> & VenueUncheckedCreateInput) | (Without<...> & VenueCreateInput)'
+
+src/app/api/venues/route.ts:116:9 - error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+
+116         city: validatedData.city,
+            ~~~~
+
+  node_modules/.prisma/client/index.d.ts:37067:5
+    37067     city: string
+              ~~~~
+    The expected type comes from property 'city' which is declared here on type '(Without<VenueCreateInput, VenueUncheckedCreateInput> & VenueUncheckedCreateInput) | (Without<...> & VenueCreateInput)'
+
+src/app/api/venues/route.ts:117:9 - error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+
+117         state: validatedData.state,
+            ~~~~~
+
+  node_modules/.prisma/client/index.d.ts:37068:5
+    37068     state: string
+              ~~~~~
+    The expected type comes from property 'state' which is declared here on type '(Without<VenueCreateInput, VenueUncheckedCreateInput> & VenueUncheckedCreateInput) | (Without<...> & VenueCreateInput)'
+
+src/app/api/venues/route.ts:119:9 - error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+
+119         postalCode: validatedData.postalCode,
+            ~~~~~~~~~~
+
+  node_modules/.prisma/client/index.d.ts:37070:5
+    37070     postalCode: string
+              ~~~~~~~~~~
+    The expected type comes from property 'postalCode' which is declared here on type '(Without<VenueCreateInput, VenueUncheckedCreateInput> & VenueUncheckedCreateInput) | (Without<...> & VenueCreateInput)'
+
+src/app/api/webhooks/stripe/route.ts:191:15 - error TS2561: Object literal may only specify known properties, but 'updated' does not exist in type '(Without<StripeProductUpdateInput, StripeProductUncheckedUpdateInput> & StripeProductUncheckedUpdateInput) | (Without<...> & StripeProductUpdateInput)'. Did you mean to write 'updatedAt'?
+
+191               updated: new Date(),
+                  ~~~~~~~
+
+  node_modules/.prisma/client/index.d.ts:11939:5
+    11939     update: XOR<StripeProductUpdateInput, StripeProductUncheckedUpdateInput>
+              ~~~~~~
+    The expected type comes from property 'update' which is declared here on type '{ select?: StripeProductSelect<DefaultArgs> | null | undefined; omit?: StripeProductOmit<DefaultArgs> | null | undefined; include?: StripeProductInclude<...> | ... 1 more ... | undefined; where: StripeProductWhereUniqueInput; create: (Without<...> & StripeProductUncheckedCreateInput) | (Without<...> & StripeProductC...'
+
+src/app/api/webhooks/stripe/route.ts:209:15 - error TS2561: Object literal may only specify known properties, but 'created' does not exist in type '(Without<StripeProductCreateInput, StripeProductUncheckedCreateInput> & StripeProductUncheckedCreateInput) | (Without<...> & StripeProductCreateInput)'. Did you mean to write 'createdAt'?
+
+209               created: safeTimestampToDate(product.created) || new Date(),
+                  ~~~~~~~
+
+  node_modules/.prisma/client/index.d.ts:11935:5
+    11935     create: XOR<StripeProductCreateInput, StripeProductUncheckedCreateInput>
+              ~~~~~~
+    The expected type comes from property 'create' which is declared here on type '{ select?: StripeProductSelect<DefaultArgs> | null | undefined; omit?: StripeProductOmit<DefaultArgs> | null | undefined; include?: StripeProductInclude<...> | ... 1 more ... | undefined; where: StripeProductWhereUniqueInput; create: (Without<...> & StripeProductUncheckedCreateInput) | (Without<...> & StripeProductC...'
+
+src/app/api/webhooks/stripe/route.ts:242:15 - error TS2561: Object literal may only specify known properties, but 'updated' does not exist in type '(Without<StripePriceUpdateInput, StripePriceUncheckedUpdateInput> & StripePriceUncheckedUpdateInput) | (Without<...> & StripePriceUpdateInput)'. Did you mean to write 'updatedAt'?
+
+242               updated: new Date(),
+                  ~~~~~~~
+
+  node_modules/.prisma/client/index.d.ts:13243:5
+    13243     update: XOR<StripePriceUpdateInput, StripePriceUncheckedUpdateInput>
+              ~~~~~~
+    The expected type comes from property 'update' which is declared here on type '{ select?: StripePriceSelect<DefaultArgs> | null | undefined; omit?: StripePriceOmit<DefaultArgs> | null | undefined; include?: StripePriceInclude<...> | ... 1 more ... | undefined; where: StripePriceWhereUniqueInput; create: (Without<...> & StripePriceUncheckedCreateInput) | (Without<...> & StripePriceCreateInput);...'
+
+src/app/api/webhooks/stripe/route.ts:264:15 - error TS2561: Object literal may only specify known properties, but 'created' does not exist in type 'Without<StripePriceCreateInput, StripePriceUncheckedCreateInput> & StripePriceUncheckedCreateInput'. Did you mean to write 'createdAt'?
+
+264               created: safeTimestampToDate(price.created) || new Date(),
+                  ~~~~~~~
+
+  node_modules/.prisma/client/index.d.ts:13239:5
+    13239     create: XOR<StripePriceCreateInput, StripePriceUncheckedCreateInput>
+              ~~~~~~
+    The expected type comes from property 'create' which is declared here on type '{ select?: StripePriceSelect<DefaultArgs> | null | undefined; omit?: StripePriceOmit<DefaultArgs> | null | undefined; include?: StripePriceInclude<...> | ... 1 more ... | undefined; where: StripePriceWhereUniqueInput; create: (Without<...> & StripePriceUncheckedCreateInput) | (Without<...> & StripePriceCreateInput);...'
+
+src/app/api/webhooks/stripe/route.ts:286:15 - error TS2561: Object literal may only specify known properties, but 'invoice_settings' does not exist in type '(Without<CustomerUpdateInput, CustomerUncheckedUpdateInput> & CustomerUncheckedUpdateInput) | (Without<...> & CustomerUpdateInput)'. Did you mean to write 'invoiceSettings'?
+
+286               invoice_settings: customer.invoice_settings as any,
+                  ~~~~~~~~~~~~~~~~
+
+  node_modules/.prisma/client/index.d.ts:9574:5
+    9574     update: XOR<CustomerUpdateInput, CustomerUncheckedUpdateInput>
+             ~~~~~~
+    The expected type comes from property 'update' which is declared here on type '{ select?: CustomerSelect<DefaultArgs> | null | undefined; omit?: CustomerOmit<DefaultArgs> | null | undefined; include?: CustomerInclude<...> | ... 1 more ... | undefined; where: CustomerWhereUniqueInput; create: (Without<...> & CustomerUncheckedCreateInput) | (Without<...> & CustomerCreateInput); update: (Without<...'
+
+src/app/api/webhooks/stripe/route.ts:302:15 - error TS2561: Object literal may only specify known properties, but 'invoice_settings' does not exist in type '(Without<CustomerCreateInput, CustomerUncheckedCreateInput> & CustomerUncheckedCreateInput) | (Without<...> & CustomerCreateInput)'. Did you mean to write 'invoiceSettings'?
+
+302               invoice_settings: customer.invoice_settings as any,
+                  ~~~~~~~~~~~~~~~~
+
+  node_modules/.prisma/client/index.d.ts:9570:5
+    9570     create: XOR<CustomerCreateInput, CustomerUncheckedCreateInput>
+             ~~~~~~
+    The expected type comes from property 'create' which is declared here on type '{ select?: CustomerSelect<DefaultArgs> | null | undefined; omit?: CustomerOmit<DefaultArgs> | null | undefined; include?: CustomerInclude<...> | ... 1 more ... | undefined; where: CustomerWhereUniqueInput; create: (Without<...> & CustomerUncheckedCreateInput) | (Without<...> & CustomerCreateInput); update: (Without<...'
+
+src/app/api/webhooks/stripe/route.ts:343:21 - error TS2561: Object literal may only specify known properties, but 'created' does not exist in type 'Without<StripeCheckoutSessionCreateInput, StripeCheckoutSessionUncheckedCreateInput> & StripeCheckoutSessionUncheckedCreateInput'. Did you mean to write 'createdAt'?
+
+343                     created: new Date(session.created * 1000),
+                        ~~~~~~~
+
+  node_modules/.prisma/client/index.d.ts:15617:5
+    15617     create: XOR<StripeCheckoutSessionCreateInput, StripeCheckoutSessionUncheckedCreateInput>
+              ~~~~~~
+    The expected type comes from property 'create' which is declared here on type '{ select?: StripeCheckoutSessionSelect<DefaultArgs> | null | undefined; omit?: StripeCheckoutSessionOmit<DefaultArgs> | null | undefined; include?: StripeCheckoutSessionInclude<...> | ... 1 more ... | undefined; where: StripeCheckoutSessionWhereUniqueInput; create: (Without<...> & StripeCheckoutSessionUncheckedCreat...'
+
+src/app/api/webhooks/stripe/route.ts:483:21 - error TS2561: Object literal may only specify known properties, but 'updated' does not exist in type '(Without<SubscriptionUpdateInput, SubscriptionUncheckedUpdateInput> & SubscriptionUncheckedUpdateInput) | (Without<...> & SubscriptionUpdateInput)'. Did you mean to write 'updatedAt'?
+
+483                     updated: new Date(),
+                        ~~~~~~~
+
+  node_modules/.prisma/client/index.d.ts:14455:5
+    14455     update: XOR<SubscriptionUpdateInput, SubscriptionUncheckedUpdateInput>
+              ~~~~~~
+    The expected type comes from property 'update' which is declared here on type '{ select?: SubscriptionSelect<DefaultArgs> | null | undefined; omit?: SubscriptionOmit<DefaultArgs> | null | undefined; include?: SubscriptionInclude<...> | ... 1 more ... | undefined; where: SubscriptionWhereUniqueInput; create: (Without<...> & SubscriptionUncheckedCreateInput) | (Without<...> & SubscriptionCreateI...'
+
+src/app/api/webhooks/stripe/route.ts:497:21 - error TS2561: Object literal may only specify known properties, but 'created' does not exist in type 'Without<SubscriptionUncheckedCreateInput, SubscriptionCreateInput> & SubscriptionCreateInput'. Did you mean to write 'createdAt'?
+
+497                     created: periods.created || new Date(),
+                        ~~~~~~~
+
+  node_modules/.prisma/client/index.d.ts:14451:5
+    14451     create: XOR<SubscriptionCreateInput, SubscriptionUncheckedCreateInput>
+              ~~~~~~
+    The expected type comes from property 'create' which is declared here on type '{ select?: SubscriptionSelect<DefaultArgs> | null | undefined; omit?: SubscriptionOmit<DefaultArgs> | null | undefined; include?: SubscriptionInclude<...> | ... 1 more ... | undefined; where: SubscriptionWhereUniqueInput; create: (Without<...> & SubscriptionUncheckedCreateInput) | (Without<...> & SubscriptionCreateI...'
+
+src/app/api/webhooks/stripe/route.ts:548:21 - error TS2561: Object literal may only specify known properties, but 'updated' does not exist in type '(Without<SubscriptionUpdateInput, SubscriptionUncheckedUpdateInput> & SubscriptionUncheckedUpdateInput) | (Without<...> & SubscriptionUpdateInput)'. Did you mean to write 'updatedAt'?
+
+548                     updated: new Date(),
+                        ~~~~~~~
+
+  node_modules/.prisma/client/index.d.ts:14455:5
+    14455     update: XOR<SubscriptionUpdateInput, SubscriptionUncheckedUpdateInput>
+              ~~~~~~
+    The expected type comes from property 'update' which is declared here on type '{ select?: SubscriptionSelect<DefaultArgs> | null | undefined; omit?: SubscriptionOmit<DefaultArgs> | null | undefined; include?: SubscriptionInclude<...> | ... 1 more ... | undefined; where: SubscriptionWhereUniqueInput; create: (Without<...> & SubscriptionUncheckedCreateInput) | (Without<...> & SubscriptionCreateI...'
+
+src/app/api/webhooks/stripe/route.ts:562:21 - error TS2561: Object literal may only specify known properties, but 'created' does not exist in type 'Without<SubscriptionUncheckedCreateInput, SubscriptionCreateInput> & SubscriptionCreateInput'. Did you mean to write 'createdAt'?
+
+562                     created: periods.created || new Date(),
+                        ~~~~~~~
+
+  node_modules/.prisma/client/index.d.ts:14451:5
+    14451     create: XOR<SubscriptionCreateInput, SubscriptionUncheckedCreateInput>
+              ~~~~~~
+    The expected type comes from property 'create' which is declared here on type '{ select?: SubscriptionSelect<DefaultArgs> | null | undefined; omit?: SubscriptionOmit<DefaultArgs> | null | undefined; include?: SubscriptionInclude<...> | ... 1 more ... | undefined; where: SubscriptionWhereUniqueInput; create: (Without<...> & SubscriptionUncheckedCreateInput) | (Without<...> & SubscriptionCreateI...'
+
+src/app/api/webhooks/stripe/route.ts:598:19 - error TS2561: Object literal may only specify known properties, but 'updated' does not exist in type '(Without<SubscriptionUpdateManyMutationInput, SubscriptionUncheckedUpdateManyInput> & SubscriptionUncheckedUpdateManyInput) | (Without<...> & SubscriptionUpdateManyMutationInput)'. Did you mean to write 'updatedAt'?
+
+598                   updated: new Date(),
+                      ~~~~~~~
+
+  node_modules/.prisma/client/index.d.ts:14387:5
+    14387     data: XOR<SubscriptionUpdateManyMutationInput, SubscriptionUncheckedUpdateManyInput>
+              ~~~~
+    The expected type comes from property 'data' which is declared here on type '{ data: (Without<SubscriptionUpdateManyMutationInput, SubscriptionUncheckedUpdateManyInput> & SubscriptionUncheckedUpdateManyInput) | (Without<...> & SubscriptionUpdateManyMutationInput); where?: SubscriptionWhereInput | undefined; limit?: number | undefined; }'
+
+src/app/api/webhooks/stripe/route.ts:624:19 - error TS2561: Object literal may only specify known properties, but 'updated' does not exist in type '(Without<SubscriptionUpdateManyMutationInput, SubscriptionUncheckedUpdateManyInput> & SubscriptionUncheckedUpdateManyInput) | (Without<...> & SubscriptionUpdateManyMutationInput)'. Did you mean to write 'updatedAt'?
+
+624                   updated: new Date(),
+                      ~~~~~~~
+
+  node_modules/.prisma/client/index.d.ts:14387:5
+    14387     data: XOR<SubscriptionUpdateManyMutationInput, SubscriptionUncheckedUpdateManyInput>
+              ~~~~
+    The expected type comes from property 'data' which is declared here on type '{ data: (Without<SubscriptionUpdateManyMutationInput, SubscriptionUncheckedUpdateManyInput> & SubscriptionUncheckedUpdateManyInput) | (Without<...> & SubscriptionUpdateManyMutationInput); where?: SubscriptionWhereInput | undefined; limit?: number | undefined; }'
+
+src/app/api/webhooks/stripe/route.ts:650:19 - error TS2561: Object literal may only specify known properties, but 'updated' does not exist in type '(Without<SubscriptionUpdateManyMutationInput, SubscriptionUncheckedUpdateManyInput> & SubscriptionUncheckedUpdateManyInput) | (Without<...> & SubscriptionUpdateManyMutationInput)'. Did you mean to write 'updatedAt'?
+
+650                   updated: new Date(),
+                      ~~~~~~~
+
+  node_modules/.prisma/client/index.d.ts:14387:5
+    14387     data: XOR<SubscriptionUpdateManyMutationInput, SubscriptionUncheckedUpdateManyInput>
+              ~~~~
+    The expected type comes from property 'data' which is declared here on type '{ data: (Without<SubscriptionUpdateManyMutationInput, SubscriptionUncheckedUpdateManyInput> & SubscriptionUncheckedUpdateManyInput) | (Without<...> & SubscriptionUpdateManyMutationInput); where?: SubscriptionWhereInput | undefined; limit?: number | undefined; }'
+
+src/app/dashboard/api-keys/page.tsx:22:7 - error TS2561: Object literal may only specify known properties, but 'customer' does not exist in type 'UserInclude<DefaultArgs>'. Did you mean to write 'customers'?
+
+22       customer: {
+         ~~~~~~~~
+
+  node_modules/.prisma/client/index.d.ts:4374:5
+    4374     include?: UserInclude<ExtArgs> | null
+             ~~~~~~~
+    The expected type comes from property 'include' which is declared here on type '{ select?: UserSelect<DefaultArgs> | null | undefined; omit?: UserOmit<DefaultArgs> | null | undefined; include?: UserInclude<DefaultArgs> | null | undefined; where: UserWhereUniqueInput; }'
+
+src/app/dashboard/api-keys/page.tsx:34:25 - error TS2339: Property 'customer' does not exist on type '{ name: string; id: string; email: string; emailVerified: Date | null; image: string | null; createdAt: Date; updatedAt: Date; passwordHash: string; accountType: AccountType; adminLevel: AdminLevel | null; businessName: string | null; phoneNumber: string | null; }'.
+
+34   const apiKeys = user?.customer?.apiKeys || []
+                           ~~~~~~~~
+
+src/app/dashboard/api-keys/page.tsx:78:25 - error TS7006: Parameter 'apiKey' implicitly has an 'any' type.
+
+78           {apiKeys.map((apiKey) => (
+                           ~~~~~~
+
+src/app/dashboard/billing/page.tsx:147:16 - error TS2561: Object literal may only specify known properties, but 'customer' does not exist in type 'UserInclude<DefaultArgs>'. Did you mean to write 'customers'?
+
+147     include: { customer: true },
+                   ~~~~~~~~
+
+  node_modules/.prisma/client/index.d.ts:4374:5
+    4374     include?: UserInclude<ExtArgs> | null
+             ~~~~~~~
+    The expected type comes from property 'include' which is declared here on type '{ select?: UserSelect<DefaultArgs> | null | undefined; omit?: UserOmit<DefaultArgs> | null | undefined; include?: UserInclude<DefaultArgs> | null | undefined; where: UserWhereUniqueInput; }'
+
+src/app/dashboard/billing/page.tsx:156:12 - error TS2339: Property 'customer' does not exist on type '{ name: string; id: string; email: string; emailVerified: Date | null; image: string | null; createdAt: Date; updatedAt: Date; passwordHash: string; accountType: AccountType; adminLevel: AdminLevel | null; businessName: string | null; phoneNumber: string | null; }'.
+
+156   if (user.customer?.stripeCustomerId) {
+               ~~~~~~~~
+
+src/app/dashboard/billing/page.tsx:159:24 - error TS2339: Property 'customer' does not exist on type '{ name: string; id: string; email: string; emailVerified: Date | null; image: string | null; createdAt: Date; updatedAt: Date; passwordHash: string; accountType: AccountType; adminLevel: AdminLevel | null; businessName: string | null; phoneNumber: string | null; }'.
+
+159         customer: user.customer.stripeCustomerId,
+                           ~~~~~~~~
+
+src/app/dashboard/billing/page.tsx:168:24 - error TS2339: Property 'customer' does not exist on type '{ name: string; id: string; email: string; emailVerified: Date | null; image: string | null; createdAt: Date; updatedAt: Date; passwordHash: string; accountType: AccountType; adminLevel: AdminLevel | null; businessName: string | null; phoneNumber: string | null; }'.
+
+168         customer: user.customer.stripeCustomerId,
+                           ~~~~~~~~
+
+src/app/dashboard/billing/page.tsx:174:24 - error TS2339: Property 'customer' does not exist on type '{ name: string; id: string; email: string; emailVerified: Date | null; image: string | null; createdAt: Date; updatedAt: Date; passwordHash: string; accountType: AccountType; adminLevel: AdminLevel | null; businessName: string | null; phoneNumber: string | null; }'.
+
+174         customer: user.customer.stripeCustomerId,
+                           ~~~~~~~~
+
+src/app/dashboard/billing/page.tsx:186:16 - error TS2353: Object literal may only specify known properties, and 'created' does not exist in type 'SubscriptionOrderByWithRelationInput | SubscriptionOrderByWithRelationInput[]'.
+
+186     orderBy: { created: 'desc' },
+                   ~~~~~~~
+
+src/app/dashboard/billing/plans/page.tsx:21:7 - error TS2561: Object literal may only specify known properties, but 'productRelation' does not exist in type 'StripePriceInclude<DefaultArgs>'. Did you mean to write 'productRel'?
+
+21       productRelation: true,
+         ~~~~~~~~~~~~~~~
+
+src/app/dashboard/page.tsx:39:43 - error TS2353: Object literal may only specify known properties, and 'requestTime' does not exist in type 'RequestOrderByWithRelationInput | RequestOrderByWithRelationInput[]'.
+
+39           requests: { take: 5, orderBy: { requestTime: 'desc' } },
+                                             ~~~~~~~~~~~
+
+src/app/dashboard/page.tsx:49:13 - error TS2339: Property 'customer' does not exist on type '{ name: string; id: string; email: string; emailVerified: Date | null; image: string | null; createdAt: Date; updatedAt: Date; passwordHash: string; accountType: AccountType; adminLevel: AdminLevel | null; businessName: string | null; phoneNumber: string | null; }'.
+
+49   if (user?.customer?.stripeCustomerId) {
+               ~~~~~~~~
+
+src/app/dashboard/page.tsx:52:24 - error TS2339: Property 'customer' does not exist on type '{ name: string; id: string; email: string; emailVerified: Date | null; image: string | null; createdAt: Date; updatedAt: Date; passwordHash: string; accountType: AccountType; adminLevel: AdminLevel | null; businessName: string | null; phoneNumber: string | null; }'.
+
+52         customer: user.customer.stripeCustomerId,
+                          ~~~~~~~~
+
+src/app/dashboard/page.tsx:66:28 - error TS2339: Property 'customer' does not exist on type '{ name: string; id: string; email: string; emailVerified: Date | null; image: string | null; createdAt: Date; updatedAt: Date; passwordHash: string; accountType: AccountType; adminLevel: AdminLevel | null; businessName: string | null; phoneNumber: string | null; }'.
+
+66             customer: user.customer.stripeCustomerId,
+                              ~~~~~~~~
+
+src/app/dashboard/page.tsx:109:56 - error TS2339: Property 'venues' does not exist on type '{ name: string; id: string; email: string; emailVerified: Date | null; image: string | null; createdAt: Date; updatedAt: Date; passwordHash: string; accountType: AccountType; adminLevel: AdminLevel | null; businessName: string | null; phoneNumber: string | null; }'.
+
+109             <div className="text-2xl font-bold">{user?.venues.length || 0}</div>
+                                                           ~~~~~~
+
+src/app/dashboard/page.tsx:145:56 - error TS2339: Property 'customer' does not exist on type '{ name: string; id: string; email: string; emailVerified: Date | null; image: string | null; createdAt: Date; updatedAt: Date; passwordHash: string; accountType: AccountType; adminLevel: AdminLevel | null; businessName: string | null; phoneNumber: string | null; }'.
+
+145             <div className="text-2xl font-bold">{user?.customer?.apiKeys.length || 0}</div>
+                                                           ~~~~~~~~
+
+src/app/dashboard/page.tsx:273:20 - error TS2339: Property 'venues' does not exist on type '{ name: string; id: string; email: string; emailVerified: Date | null; image: string | null; createdAt: Date; updatedAt: Date; passwordHash: string; accountType: AccountType; adminLevel: AdminLevel | null; businessName: string | null; phoneNumber: string | null; }'.
+
+273             {user?.venues.some(venue => venue.requests.length > 0) ? (
+                       ~~~~~~
+
+src/app/dashboard/page.tsx:273:32 - error TS7006: Parameter 'venue' implicitly has an 'any' type.
+
+273             {user?.venues.some(venue => venue.requests.length > 0) ? (
+                                   ~~~~~
+
+src/app/dashboard/page.tsx:275:23 - error TS2339: Property 'venues' does not exist on type '{ name: string; id: string; email: string; emailVerified: Date | null; image: string | null; createdAt: Date; updatedAt: Date; passwordHash: string; accountType: AccountType; adminLevel: AdminLevel | null; businessName: string | null; phoneNumber: string | null; }'.
+
+275                 {user.venues
+                          ~~~~~~
+
+src/app/dashboard/page.tsx:276:28 - error TS7006: Parameter 'venue' implicitly has an 'any' type.
+
+276                   .flatMap(venue => venue.requests.map(req => ({ ...req, venue })))
+                               ~~~~~
+
+src/app/dashboard/page.tsx:276:56 - error TS7006: Parameter 'req' implicitly has an 'any' type.
+
+276                   .flatMap(venue => venue.requests.map(req => ({ ...req, venue })))
+                                                           ~~~
+
+src/app/dashboard/page.tsx:278:25 - error TS7006: Parameter 'request' implicitly has an 'any' type.
+
+278                   .map((request) => (
+                            ~~~~~~~
+
+src/app/dashboard/requests/page.tsx:29:7 - error TS2353: Object literal may only specify known properties, and 'requestTime' does not exist in type 'RequestOrderByWithRelationInput | RequestOrderByWithRelationInput[]'.
+
+29       requestTime: 'desc',
+         ~~~~~~~~~~~
+
+src/app/dashboard/requests/page.tsx:55:18 - error TS2551: Property 'requestTime' does not exist on type '{ createdAt: Date; updatedAt: Date; artist: string; title: string; processed: boolean; requestId: bigint; venueId: string; singer: string | null; keyChange: number; requestedAt: Date; singerIdentityId: string | null; }'. Did you mean 'requestId'?
+
+55     new Date(req.requestTime).toDateString() === new Date().toDateString()
+                    ~~~~~~~~~~~
+
+src/app/dashboard/requests/page.tsx:189:36 - error TS2551: Property 'venue' does not exist on type '{ createdAt: Date; updatedAt: Date; artist: string; title: string; processed: boolean; requestId: bigint; venueId: string; singer: string | null; keyChange: number; requestedAt: Date; singerIdentityId: string | null; }'. Did you mean 'venueId'?
+
+189                           {request.venue.name}
+                                       ~~~~~
+
+src/app/dashboard/requests/page.tsx:193:65 - error TS2551: Property 'requestTime' does not exist on type '{ createdAt: Date; updatedAt: Date; artist: string; title: string; processed: boolean; requestId: bigint; venueId: string; singer: string | null; keyChange: number; requestedAt: Date; singerIdentityId: string | null; }'. Did you mean 'requestId'?
+
+193                           {formatDistanceToNow(new Date(request.requestTime), { addSuffix: true })}
+                                                                    ~~~~~~~~~~~
+
+src/app/dashboard/settings/page.tsx:39:20 - error TS2353: Object literal may only specify known properties, and 'created' does not exist in type 'SubscriptionOrderByWithRelationInput | SubscriptionOrderByWithRelationInput[]'.
+
+39         orderBy: { created: 'desc' },
+                      ~~~~~~~
+
+src/app/dashboard/settings/page.tsx:50:35 - error TS2339: Property 'subscriptions' does not exist on type '{ name: string; id: string; email: string; emailVerified: Date | null; image: string | null; createdAt: Date; updatedAt: Date; passwordHash: string; accountType: AccountType; adminLevel: AdminLevel | null; businessName: string | null; phoneNumber: string | null; }'.
+
+50   const activeSubscription = user.subscriptions.find(
+                                     ~~~~~~~~~~~~~
+
+src/app/dashboard/settings/page.tsx:51:6 - error TS7006: Parameter 'sub' implicitly has an 'any' type.
+
+51     (sub) => sub.status === 'active' || sub.status === 'trialing'
+        ~~~
+
+src/app/dashboard/systems/page.tsx:18:16 - error TS2353: Object literal may only specify known properties, and 'openKjSystemId' does not exist in type 'SystemOrderByWithRelationInput | SystemOrderByWithRelationInput[]'.
+
+18     orderBy: { openKjSystemId: 'asc' },
+                  ~~~~~~~~~~~~~~
+
+src/app/dashboard/systems/page.tsx:24:28 - error TS2551: Property 'openKjSystemId' does not exist on type '{ name: string; id: string; createdAt: Date; updatedAt: Date; userId: string; openkjSystemId: number; }'. Did you mean 'openkjSystemId'?
+
+24     openKjSystemId: system.openKjSystemId,
+                              ~~~~~~~~~~~~~~
+
+src/app/dashboard/venues/[id]/requests/page.tsx:43:7 - error TS2353: Object literal may only specify known properties, and 'requestTime' does not exist in type 'RequestOrderByWithRelationInput | RequestOrderByWithRelationInput[]'.
+
+43       requestTime: 'desc',
+         ~~~~~~~~~~~
+
+src/app/dashboard/venues/[id]/requests/page.tsx:56:18 - error TS2551: Property 'requestTime' does not exist on type '{ createdAt: Date; updatedAt: Date; artist: string; title: string; processed: boolean; requestId: bigint; venueId: string; singer: string | null; keyChange: number; requestedAt: Date; singerIdentityId: string | null; }'. Did you mean 'requestId'?
+
+56     new Date(req.requestTime).toDateString() === new Date().toDateString()
+                    ~~~~~~~~~~~
+
+src/app/dashboard/venues/[id]/requests/page.tsx:159:65 - error TS2551: Property 'requestTime' does not exist on type '{ createdAt: Date; updatedAt: Date; artist: string; title: string; processed: boolean; requestId: bigint; venueId: string; singer: string | null; keyChange: number; requestedAt: Date; singerIdentityId: string | null; }'. Did you mean 'requestId'?
+
+159                           {formatDistanceToNow(new Date(request.requestTime), { addSuffix: true })}
+                                                                    ~~~~~~~~~~~
+
+src/app/dashboard/venues/page.tsx:47:11 - error TS2353: Object literal may only specify known properties, and 'requestTime' does not exist in type 'RequestOrderByWithRelationInput | RequestOrderByWithRelationInput[]'.
+
+47           requestTime: 'desc',
+             ~~~~~~~~~~~
+
+src/app/dashboard/venues/page.tsx:160:34 - error TS2339: Property '_count' does not exist on type '{ name: string; id: string; createdAt: Date; updatedAt: Date; phoneNumber: string | null; userId: string; openkjVenueId: number; urlName: string; acceptingRequests: boolean; herePlaceId: string | null; ... 11 more ...; currentSystemId: number; }'.
+
+160                     <span>{venue._count.requests} total requests</span>
+                                     ~~~~~~
+
+src/app/dashboard/venues/page.tsx:165:24 - error TS2339: Property 'requests' does not exist on type '{ name: string; id: string; createdAt: Date; updatedAt: Date; phoneNumber: string | null; userId: string; openkjVenueId: number; urlName: string; acceptingRequests: boolean; herePlaceId: string | null; ... 11 more ...; currentSystemId: number; }'.
+
+165                 {venue.requests.length > 0 && (
+                           ~~~~~~~~
+
+src/app/dashboard/venues/page.tsx:169:30 - error TS2339: Property 'requests' does not exist on type '{ name: string; id: string; createdAt: Date; updatedAt: Date; phoneNumber: string | null; userId: string; openkjVenueId: number; urlName: string; acceptingRequests: boolean; herePlaceId: string | null; ... 11 more ...; currentSystemId: number; }'.
+
+169                       {venue.requests.slice(0, 3).map((request) => (
+                                 ~~~~~~~~
+
+src/app/dashboard/venues/page.tsx:169:56 - error TS7006: Parameter 'request' implicitly has an 'any' type.
+
+169                       {venue.requests.slice(0, 3).map((request) => (
+                                                           ~~~~~~~
+
+src/lib/auth.ts:155:11 - error TS2322: Type '{ id: string; stripeCustomerId: string; }' is not assignable to type '(Without<CustomerCreateInput, CustomerUncheckedCreateInput> & CustomerUncheckedCreateInput) | (Without<...> & CustomerCreateInput)'.
+  Type '{ id: string; stripeCustomerId: string; }' is not assignable to type 'Without<CustomerUncheckedCreateInput, CustomerCreateInput> & CustomerCreateInput'.
+    Property 'user' is missing in type '{ id: string; stripeCustomerId: string; }' but required in type 'CustomerCreateInput'.
+
+155           data: {
+              ~~~~
+
+  node_modules/.prisma/client/index.d.ts:36175:5
+    36175     user: UserCreateNestedOneWithoutCustomersInput
+              ~~~~
+    'user' is declared here.
+  node_modules/.prisma/client/index.d.ts:9436:5
+    9436     data: XOR<CustomerCreateInput, CustomerUncheckedCreateInput>
+             ~~~~
+    The expected type comes from property 'data' which is declared here on type '{ select?: CustomerSelect<DefaultArgs> | null | undefined; omit?: CustomerOmit<DefaultArgs> | null | undefined; include?: CustomerInclude<...> | ... 1 more ... | undefined; data: (Without<...> & CustomerUncheckedCreateInput) | (Without<...> & CustomerCreateInput); }'
+
+
+Found 110 errors in 27 files.
+
+Errors  Files
+     4  src/app/admin/activity/page.tsx:91
+    12  src/app/admin/page.tsx:27
+     7  src/app/admin/users/[userId]/page.tsx:49
+     2  src/app/api/admin/users/[userId]/api-keys/route.ts:49
+     4  src/app/api/admin/users/[userId]/venues/route.ts:125
+     2  src/app/api/api-keys/route.ts:36
+     2  src/app/api/auth/signup/route.ts:84
+     1  src/app/api/billing/create-checkout-session/route.ts:100
+     2  src/app/api/openkj/route.ts:590
+     1  src/app/api/prices/[id]/route.ts:17
+     3  src/app/api/systems/[id]/route.ts:80
+     4  src/app/api/systems/route.ts:36
+     3  src/app/api/venues/[id]/accepting/route.ts:64
+     1  src/app/api/venues/[id]/requests/route.ts:38
+     4  src/app/api/venues/[id]/route.ts:52
+     4  src/app/api/venues/route.ts:115
+    14  src/app/api/webhooks/stripe/route.ts:191
+     3  src/app/dashboard/api-keys/page.tsx:22
+     6  src/app/dashboard/billing/page.tsx:147
+     1  src/app/dashboard/billing/plans/page.tsx:21
+    12  src/app/dashboard/page.tsx:39
+     4  src/app/dashboard/requests/page.tsx:29
+     3  src/app/dashboard/settings/page.tsx:39
+     2  src/app/dashboard/systems/page.tsx:18
+     3  src/app/dashboard/venues/[id]/requests/page.tsx:43
+     5  src/app/dashboard/venues/page.tsx:47
+     1  src/lib/auth.ts:155

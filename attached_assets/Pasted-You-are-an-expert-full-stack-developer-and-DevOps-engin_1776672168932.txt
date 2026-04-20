@@ -1,0 +1,62 @@
+You are an expert full-stack developer and DevOps engineer. Your goal is to review, refactor, and restructure the "Singr Karaoke Platform" codebase. You must resolve existing TypeScript and Prisma schema issues, upgrade the authentication architecture, and reorganize the project into a monorepo-style structure deployable via a single Docker Compose command. Read the entire prompt carefully and execute the requested changes systematically.
+
+1. System Architecture & Modules
+The Singr ecosystem is divided into three distinct modules connected to a unified API.
+
+Customer App: A web-based management dashboard for karaoke business owners to manage venues, subscriptions, and system integrations.
+
+Singer App: A PWA and native mobile app (built with React and Capacitor) for karaoke singers to find venues, browse songbooks, and submit requests.
+
+API & OpenKJ Integration: The central data handler. It currently integrates with OpenKJ software. Critical Constraint: Existing OpenKJ endpoints and request/response handling must remain exactly as they are to avoid breaking existing software integrations. Additional background logic can be added, but the external-facing contract must not change.
+
+Admin/Support App (Future): A centralized dashboard for platform staff to provide support to both Customers and Singers.
+
+2. Authentication Overhaul (Better Auth)
+We are migrating away from a shared NextAuth system. Singers, Customers, and Admins are distinct user groups and must be strictly isolated to prevent cross-portal access, even if the same person registers in multiple portals using the same email or social login. Implement Better Auth with the following rigorous requirements:
+
+Core Methods: Support Email/Password, Google Auth, and Mobile Phone Login via Twilio OTP.
+
+Google Auth Handling: Pull the user's name from their Google profile. If the email matches an existing account, link it as an additional login method. Users signing up via Google must still be prompted to set a password.
+
+Mobile Auth Handling: Users can only log in via mobile after adding and verifying the number via OTP in their profile.
+
+Registration Data: Customer registration requires name, email, password, and business name.
+
+Two-Factor Authentication (2FA): Must be optional and toggleable by the user. Support Authenticator Apps, SMS OTP, and Email OTP.
+
+Self-Service UI: Build intuitive UI pages/dialogs for users to manage their profiles, update settings, handle password resets, and configure 2FA.
+
+3. User Workflows to Support
+Customer Workflow:
+
+Users browse the landing page, sign up, and select a Stripe subscription (monthly, quarterly, bi-annually, or annually) utilizing Stripe's free trial functionality.
+
+Users create venues manually or pre-populate data using the HERE API.
+
+Users generate unique OpenKJ system records and API keys for their instances.
+
+Singer Workflow:
+
+Unauthenticated users can view active nearby venues, browse the songbook, and submit song requests.
+
+Authenticated users can do the above, plus save favorite songs.
+
+Favorites are saved strictly by Artist and Title, allowing the user's favorite list to remain persistent and usable regardless of which venue they join.
+
+4. Codebase Audit & Refactoring Tasks
+Dependency Management: Evaluate all packages. Update to the latest stable versions while ensuring 100% compatibility. Resolve any broken peer dependencies without introducing breaking changes.
+
+Type Safety & Schema: Thoroughly check and fix all TypeScript errors and ensure the Prisma schema accurately reflects the new isolated user roles and database relationships.
+
+Environment Variables: Review the .env.example file. Ensure all necessary secrets/variables are present, correctly documented, and that sensitive data is adequately protected.
+
+File Cleanup: Delete all unused or unnecessary files, including outdated markdown documents.
+
+Documentation: Completely rewrite the README.md. It must contain only accurate, up-to-date information on the project architecture, configuration steps, and explicit copy-paste commands for deployment.
+
+5. DevOps & Deployment
+Reorganize the file structure so the Customer App, Singer App, API, and future Admin App can exist cohesively.
+
+Tailor the project for a scalable production environment using Docker Compose.
+
+Provide a configuration that allows a developer to define their .env values and start the entire ecosystem using a single docker-compose up command.
