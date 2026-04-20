@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Allow Replit's proxied preview origin for cross-origin requests
+  allowedDevOrigins: ['*.replit.dev', '*.replit.app', '*.riker.replit.dev'],
+
   // Next.js 15 optimizations
   reactStrictMode: true,
   poweredByHeader: false,
@@ -11,11 +14,6 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: '2mb',
     },
-  },
-
-  env: {
-    NEXT_PUBLIC_GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
-    NEXT_PUBLIC_GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
   },
 
   // Image optimization
