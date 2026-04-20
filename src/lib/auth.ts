@@ -154,6 +154,7 @@ export const authOptions: NextAuthOptions = {
         await prisma.customer.create({
           data: {
             id: user.id,
+            userId: user.id,
             stripeCustomerId: customer.id,
           },
         })

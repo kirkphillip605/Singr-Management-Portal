@@ -29,27 +29,29 @@ export default async function DashboardPage() {
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
     include: {
-      customer: {
+      customers: {
         include: {
           apiKeys: { where: { status: 'active' } },
         },
       },
       venues: {
         include: {
-          requests: { take: 5, orderBy: { requestTime: 'desc' } },
+          requests: { take: 5, orderBy: { createdAt: 'desc' } },
         },
       },
       songDb: { take: 1, orderBy: { createdAt: 'desc' } },
     },
   })
 
+  const customerRecord = user?.customers[0]
+
   let activeSubscription: any = null
   let nextInvoice: any = null
 
-  if (user?.customer?.stripeCustomerId) {
+  if (customerRecord?.stripeCustomerId) {
     try {
       const subsResponse = await stripe.subscriptions.list({
-        customer: user.customer.stripeCustomerId,
+        customer: customerRecord.stripeCustomerId,
         status: 'all',
         limit: 10,
         // expand first item price so plan naming is reliable
@@ -63,7 +65,7 @@ export default async function DashboardPage() {
       if (activeSubscription) {
         try {
           nextInvoice = await stripe.invoices.createPreview({
-            customer: user.customer.stripeCustomerId,
+            customer: customerRecord.stripeCustomerId,
             subscription: activeSubscription.id,
           })
         } catch (error) {
@@ -106,7 +108,7 @@ export default async function DashboardPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{user?.venues.length || 0}</div>
+            <div className="text-2xl font-bold">{user?.venues?.length || 0}</div>
           </CardContent>
         </Card>
 
@@ -142,7 +144,7 @@ export default async function DashboardPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{user?.customer?.apiKeys.length || 0}</div>
+            <div className="text-2xl font-bold">{customerRecord?.apiKeys.length || 0}</div>
           </CardContent>
         </Card>
       </div>
@@ -270,10 +272,10 @@ export default async function DashboardPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {user?.venues.some(venue => venue.requests.length > 0) ? (
+            {user?.venues?.some((venue) => venue.requests.length > 0) ? (
               <div className="space-y-3">
                 {user.venues
-                  .flatMap(venue => venue.requests.map(req => ({ ...req, venue })))
+                  .flatMap((venue) => venue.requests.map((req) => ({ ...req, venue })))
                   .slice(0, 5)
                   .map((request) => (
                     <div key={request.requestId.toString()} className="flex justify-between items-start">
@@ -284,7 +286,7 @@ export default async function DashboardPage() {
                         </p>
                       </div>
                       <span className="text-sm text-muted-foreground">
-                        {new Date(request.requestTime).toLocaleDateString()}
+                        {new Date(request.createdAt).toLocaleDateString()}
                       </span>
                     </div>
                   ))}

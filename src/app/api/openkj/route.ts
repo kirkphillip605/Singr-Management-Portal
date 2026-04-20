@@ -419,7 +419,7 @@ export async function POST(request: NextRequest) {
         }
 
         const system = systems.find(
-          (s: any) => s.openKjSystemId === validation.data.system_id
+          (s: any) => s.openkjSystemId === validation.data.system_id
         )
         if (!system) {
           return NextResponse.json(
@@ -450,14 +450,14 @@ export async function POST(request: NextRequest) {
         const shouldBumpSerial =
           venue.acceptingRequests !== validation.data.accepting ||
           venue.accepting !== validation.data.accepting ||
-          venue.currentSystemId !== system.openKjSystemId
+          venue.currentSystemId !== system.openkjSystemId
 
         await prisma.venue.update({
           where: { id: venue.id },
           data: {
             acceptingRequests: validation.data.accepting,
             accepting: validation.data.accepting,
-            currentSystemId: system.openKjSystemId,
+            currentSystemId: system.openkjSystemId,
           },
         })
 
@@ -540,7 +540,7 @@ export async function POST(request: NextRequest) {
         }
 
         const { songs, system_id } = validation.data
-        const system = systems.find((s: any) => s.openKjSystemId === system_id)
+        const system = systems.find((s: any) => s.openkjSystemId === system_id)
         if (!system) {
           return NextResponse.json(
             {
@@ -576,7 +576,7 @@ export async function POST(request: NextRequest) {
             lastTitle = title
             return {
               userId: user.id,
-              openKjSystemId: system.openKjSystemId,
+              openkjSystemId: system.openkjSystemId,
               artist,
               title,
               combined,
@@ -618,7 +618,7 @@ export async function POST(request: NextRequest) {
 
       case 'clearDatabase': {
         const system_id: number = Number(body.system_id ?? 0)
-        const system = systems.find((s: any) => s.openKjSystemId === system_id)
+        const system = systems.find((s: any) => s.openkjSystemId === system_id)
         if (!system) {
           return NextResponse.json(
             {
@@ -631,7 +631,7 @@ export async function POST(request: NextRequest) {
         }
 
         await prisma.songDb.deleteMany({
-          where: { userId: user.id, openKjSystemId: system.openKjSystemId },
+          where: { userId: user.id, openkjSystemId: system.openkjSystemId },
         })
 
         const serial = await getOrCreateUserSerial(user.id)

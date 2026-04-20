@@ -34,9 +34,9 @@ export default async function SettingsPage() {
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
     include: {
-      customer: true,
+      customers: true,
       subscriptions: {
-        orderBy: { created: 'desc' },
+        orderBy: { createdAt: 'desc' },
       },
       // If you later add relations like apiKeys or checkoutSessions on User,
       // you can include them here as well.

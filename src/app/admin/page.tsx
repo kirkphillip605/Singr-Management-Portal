@@ -12,7 +12,7 @@ export default async function AdminHomePage() {
   const users = await prisma.user.findMany({
     orderBy: { createdAt: 'desc' },
     include: {
-      customer: {
+      customers: {
         include: {
           apiKeys: {
             select: {
@@ -24,9 +24,9 @@ export default async function AdminHomePage() {
       subscriptions: {
         select: {
           status: true,
-          created: true,
+          createdAt: true,
         },
-        orderBy: { created: 'desc' },
+        orderBy: { createdAt: 'desc' },
         take: 1,
       },
       venues: {
@@ -153,7 +153,7 @@ export default async function AdminHomePage() {
                   (sum, venue) => sum + venue._count.requests,
                   0
                 )
-                const apiKeysCount = user.customer?.apiKeys.length ?? 0
+                const apiKeysCount = user.customers[0]?.apiKeys.length ?? 0
 
                 return (
                   <tr key={user.id} className="hover:bg-slate-50">

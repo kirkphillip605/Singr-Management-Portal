@@ -77,7 +77,7 @@ export async function DELETE(
 
     const lastSystem = await prisma.system.findFirst({
       where: { userId: session.user.id },
-      orderBy: { openKjSystemId: 'desc' },
+      orderBy: { openkjSystemId: 'desc' },
     })
 
     if (!lastSystem || lastSystem.id !== system.id) {
@@ -89,7 +89,7 @@ export async function DELETE(
 
     await prisma.$transaction([
       prisma.songDb.deleteMany({
-        where: { userId: session.user.id, openKjSystemId: system.openKjSystemId },
+        where: { userId: session.user.id, openkjSystemId: system.openkjSystemId },
       }),
       prisma.system.delete({ where: { id: system.id } }),
       prisma.state.upsert({

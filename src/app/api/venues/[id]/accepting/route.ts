@@ -61,7 +61,7 @@ export async function PATCH(
       include: {
         user: {
           include: {
-            customer: true,
+            customers: true,
           },
         },
       },
@@ -71,9 +71,11 @@ export async function PATCH(
       return NextResponse.json({ error: 'Venue not found' }, { status: 404 })
     }
 
+    const venueCustomer = venue.user.customers[0]
+
     // If trying to enable accepting, check subscription status
-    if (accepting && venue.user.customer?.stripeCustomerId) {
-      const hasSubscription = await hasActiveSubscription(venue.user.customer.stripeCustomerId)
+    if (accepting && venueCustomer?.stripeCustomerId) {
+      const hasSubscription = await hasActiveSubscription(venueCustomer.stripeCustomerId)
       if (!hasSubscription) {
         return NextResponse.json(
           { error: 'You must have an active subscription to accept requests.' },

@@ -15,13 +15,13 @@ export default async function SystemsPage() {
 
   const systems = await prisma.system.findMany({
     where: { userId: session.user.id },
-    orderBy: { openKjSystemId: 'asc' },
+    orderBy: { openkjSystemId: 'asc' },
   })
 
   const serializedSystems: SystemSummary[] = systems.map((system) => ({
     id: system.id,
     name: system.name,
-    openKjSystemId: system.openKjSystemId,
+    openKjSystemId: system.openkjSystemId,
     createdAt: system.createdAt.toISOString(),
     updatedAt: system.updatedAt.toISOString(),
   }))

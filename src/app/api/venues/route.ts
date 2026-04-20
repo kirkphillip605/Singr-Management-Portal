@@ -103,20 +103,28 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Compute next openkjVenueId for this user
+    const venueAgg = await prisma.venue.aggregate({
+      where: { userId: session.user.id },
+      _max: { openkjVenueId: true },
+    })
+    const nextOpenkjVenueId = (venueAgg._max?.openkjVenueId ?? 0) + 1
+
     // Create venue
     const venue = await prisma.venue.create({
       data: {
         userId: session.user.id,
+        openkjVenueId: nextOpenkjVenueId,
         name: validatedData.name,
         urlName: validatedData.urlName,
         acceptingRequests: validatedData.acceptingRequests,
         accepting: validatedData.acceptingRequests,
-        hereplaceid: validatedData.herePlaceId,
-        address: validatedData.address,
-        city: validatedData.city,
-        state: validatedData.state,
+        herePlaceId: validatedData.herePlaceId,
+        address: validatedData.address ?? '',
+        city: validatedData.city ?? '',
+        state: validatedData.state ?? '',
         stateCode: validatedData.stateCode || null,
-        postalCode: validatedData.postalCode,
+        postalCode: validatedData.postalCode ?? '',
         country: validatedData.country,
         countryCode: validatedData.countryCode || null,
         phoneNumber: validatedData.phoneNumber,

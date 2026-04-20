@@ -115,18 +115,25 @@ export async function POST(
       }
     }
 
+    const venueAgg = await prisma.venue.aggregate({
+      where: { userId },
+      _max: { openkjVenueId: true },
+    })
+    const nextOpenkjVenueId = (venueAgg._max?.openkjVenueId ?? 0) + 1
+
     const venue = await prisma.venue.create({
       data: {
         userId,
+        openkjVenueId: nextOpenkjVenueId,
         name: validatedData.name,
         urlName: validatedData.urlName,
         acceptingRequests: validatedData.acceptingRequests,
         accepting: validatedData.acceptingRequests,
-        address: validatedData.address,
-        city: validatedData.city,
-        state: validatedData.state,
+        address: validatedData.address ?? '',
+        city: validatedData.city ?? '',
+        state: validatedData.state ?? '',
         stateCode: validatedData.stateCode || null,
-        postalCode: validatedData.postalCode,
+        postalCode: validatedData.postalCode ?? '',
         country: validatedData.country,
         countryCode: validatedData.countryCode || null,
         phoneNumber: validatedData.phoneNumber || undefined,

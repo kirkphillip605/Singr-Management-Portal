@@ -48,6 +48,7 @@ export async function POST(
       update: {},
       create: {
         id: userId,
+        userId,
         stripeCustomerId: `temp_${userId}`,
       },
     })
@@ -55,6 +56,7 @@ export async function POST(
     const apiKeyRecord = await prisma.apiKey.create({
       data: {
         customerId: customer.id,
+        userId,
         description,
         apiKeyHash,
         status: 'active',

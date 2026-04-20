@@ -44,7 +44,7 @@ export default async function VenuesPage() {
         take: 5,
         orderBy: {
           // Preserve existing logic as requested; ensure column exists in your schema
-          requestTime: 'desc',
+          createdAt: 'desc',
         },
       },
       _count: {

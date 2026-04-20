@@ -40,7 +40,7 @@ export default async function VenueRequestsPage(props: PageProps) {
       venueId: venue.id,
     },
     orderBy: {
-      requestTime: 'desc',
+      createdAt: 'desc',
     },
     take: 100,
   })
@@ -53,7 +53,7 @@ export default async function VenueRequestsPage(props: PageProps) {
 
   const recentRequests = requests.slice(0, 50)
   const todayRequests = requests.filter(req => 
-    new Date(req.requestTime).toDateString() === new Date().toDateString()
+    new Date(req.createdAt).toDateString() === new Date().toDateString()
   )
 
   return (
@@ -156,7 +156,7 @@ export default async function VenueRequestsPage(props: PageProps) {
                         </div>
                         <div className="flex items-center gap-1">
                           <Clock className="h-3 w-3" />
-                          {formatDistanceToNow(new Date(request.requestTime), { addSuffix: true })}
+                          {formatDistanceToNow(new Date(request.createdAt), { addSuffix: true })}
                         </div>
                       </div>
                     </div>

@@ -1,7 +1,7 @@
 // src/app/api/auth/signup/route.ts
 // ───────────────────────────────────────────────────────────────────────────────
 // Creates a new user, Stripe customer, initial Customer row, the user's first
-// System with openKjSystemId=1, and initializes State.
+// System with openkjSystemId=1, and initializes State.
 // Includes robust validation and pinned Stripe API version.
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -84,6 +84,7 @@ export async function POST(request: NextRequest) {
         data: {
           // If your Customer PK differs, adjust accordingly.
           id: user.id,
+          userId: user.id,
           stripeCustomerId: customer.id,
         },
       }),
@@ -92,7 +93,7 @@ export async function POST(request: NextRequest) {
           userId: user.id,
           name: 'Main System',
           // FIRST system is always 1 for that user.
-          openKjSystemId: 1,
+          openkjSystemId: 1,
         },
       }),
       prisma.state.create({

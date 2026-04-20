@@ -35,7 +35,7 @@ export async function GET(
         venueId: paramsResolved.id,
       },
       orderBy: {
-        requestTime: 'desc',
+        createdAt: 'desc',
       },
       take: 100,
     })

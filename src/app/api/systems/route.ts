@@ -30,18 +30,18 @@ export async function POST(request: NextRequest) {
 
     const system = await prisma.$transaction(
       async (tx) => {
-        // Find the next per-user sequential openKjSystemId
+        // Find the next per-user sequential openkjSystemId
         const agg = await tx.system.aggregate({
           where: { userId },
-          _max: { openKjSystemId: true },
+          _max: { openkjSystemId: true },
         })
-        const nextId = (agg._max.openKjSystemId ?? 0) + 1
+        const nextId = (agg._max?.openkjSystemId ?? 0) + 1
 
         const created = await tx.system.create({
           data: {
             userId,
             name,
-            openKjSystemId: nextId,
+            openkjSystemId: nextId,
           },
         })
 

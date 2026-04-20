@@ -19,7 +19,7 @@ export default async function ApiKeysPage() {
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
     include: {
-      customer: {
+      customers: {
         include: {
           apiKeys: {
             orderBy: {
@@ -31,7 +31,7 @@ export default async function ApiKeysPage() {
     },
   })
 
-  const apiKeys = user?.customer?.apiKeys || []
+  const apiKeys = user?.customers[0]?.apiKeys || []
 
   return (
     <div className="space-y-6">

@@ -14,7 +14,7 @@ export async function GET(
     const price = await prisma.stripePrice.findUnique({
       where: { id: paramsResolved.id },
       include: {
-        productRelation: true,
+        productRel: true,
       },
     })
 

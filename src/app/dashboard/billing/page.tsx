@@ -144,19 +144,21 @@ async function BillingPage() {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    include: { customer: true },
+    include: { customers: true },
   });
   if (!user) redirect('/auth/signin');
+
+  const customerRecord = user.customers[0];
 
   // Live Stripe
   let subscriptions: any[] = [];
   let paymentMethods: any[] = [];
   let invoices: any[] = [];
 
-  if (user.customer?.stripeCustomerId) {
+  if (customerRecord?.stripeCustomerId) {
     try {
       const subs = await stripe.subscriptions.list({
-        customer: user.customer.stripeCustomerId,
+        customer: customerRecord.stripeCustomerId,
         status: 'all',
         limit: 10,
         // expand price so we can build a good "Plan" label
@@ -165,13 +167,13 @@ async function BillingPage() {
       subscriptions = subs.data ?? [];
 
       const pms = await stripe.paymentMethods.list({
-        customer: user.customer.stripeCustomerId,
+        customer: customerRecord.stripeCustomerId,
         limit: 10,
       });
       paymentMethods = pms.data ?? [];
 
       const invs = await stripe.invoices.list({
-        customer: user.customer.stripeCustomerId,
+        customer: customerRecord.stripeCustomerId,
         limit: 10,
       });
       invoices = invs.data ?? [];
@@ -183,7 +185,7 @@ async function BillingPage() {
   // DB fallback
   const dbSub = await prisma.subscription.findFirst({
     where: { userId: user.id, status: { in: ['active', 'trialing'] } },
-    orderBy: { created: 'desc' },
+    orderBy: { createdAt: 'desc' },
   });
 
   // Prefer live subscription if present

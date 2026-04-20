@@ -35,6 +35,7 @@ export async function POST(request: NextRequest) {
       update: {},
       create: {
         id: session.user.id,
+        userId: session.user.id,
         stripeCustomerId: `temp_${session.user.id}`, // Will be updated when Stripe customer is created
       },
     })
@@ -43,6 +44,7 @@ export async function POST(request: NextRequest) {
     const apiKeyRecord = await prisma.apiKey.create({
       data: {
         customerId: customer.id,
+        userId: session.user.id,
         description,
         apiKeyHash,
         status: 'active',

@@ -188,7 +188,7 @@ export async function POST(request: NextRequest) {
               url: product.url,
               livemode: product.livemode,
               data: product as any,
-              updated: new Date(),
+              updatedAt: new Date(),
             },
             create: {
               id: product.id,
@@ -206,8 +206,8 @@ export async function POST(request: NextRequest) {
               url: product.url,
               livemode: product.livemode,
               data: product as any,
-              created: safeTimestampToDate(product.created) || new Date(),
-              updated: new Date(),
+              createdAt: safeTimestampToDate(product.created) || new Date(),
+              updatedAt: new Date(),
             },
           })
           
@@ -239,7 +239,7 @@ export async function POST(request: NextRequest) {
               metadata: price.metadata as any,
               livemode: price.livemode,
               data: price as any,
-              updated: new Date(),
+              updatedAt: new Date(),
             },
             create: {
               id: price.id,
@@ -261,8 +261,8 @@ export async function POST(request: NextRequest) {
               unitAmount: safeBigInt(price.unit_amount),
               unitAmountDecimal: price.unit_amount_decimal,
               data: price as any,
-              created: safeTimestampToDate(price.created) || new Date(),
-              updated: new Date(),
+              createdAt: safeTimestampToDate(price.created) || new Date(),
+              updatedAt: new Date(),
             },
           })
           
@@ -274,7 +274,13 @@ export async function POST(request: NextRequest) {
         case 'customer.created':
         case 'customer.updated': {
           const customer = event.data.object as Stripe.Customer
-          
+          const customerUserId = (customer.metadata as any)?.userId as string | undefined
+
+          if (!customerUserId) {
+            logger.warn(`Customer ${customer.id} missing metadata.userId; skipping upsert`)
+            break
+          }
+
           await prisma.customer.upsert({
             where: { stripeCustomerId: customer.id },
             update: {
@@ -283,26 +289,27 @@ export async function POST(request: NextRequest) {
               phone: customer.phone,
               description: customer.description,
               metadata: customer.metadata as any,
-              invoice_settings: customer.invoice_settings as any,
+              invoiceSettings: customer.invoice_settings as any,
               shipping: customer.shipping as any,
-              tax_exempt: customer.tax_exempt,
-              tax_ids: customer.tax_ids as any,
+              taxExempt: customer.tax_exempt,
+              taxIds: customer.tax_ids as any,
               livemode: customer.livemode,
               data: customer as any,
               updatedAt: new Date(),
             },
             create: {
-              id: crypto.randomUUID(),
+              id: customerUserId,
+              userId: customerUserId,
               stripeCustomerId: customer.id,
               email: customer.email,
               name: customer.name,
               phone: customer.phone,
               description: customer.description,
               metadata: customer.metadata as any,
-              invoice_settings: customer.invoice_settings as any,
+              invoiceSettings: customer.invoice_settings as any,
               shipping: customer.shipping as any,
-              tax_exempt: customer.tax_exempt,
-              tax_ids: customer.tax_ids as any,
+              taxExempt: customer.tax_exempt,
+              taxIds: customer.tax_ids as any,
               livemode: customer.livemode,
               data: customer as any,
               createdAt: safeTimestampToDate(customer.created) || new Date(),
@@ -340,7 +347,7 @@ export async function POST(request: NextRequest) {
                     mode: session.mode!,
                     amountTotal: session.amount_total ? BigInt(session.amount_total) : null,
                     currency: session.currency || 'usd',
-                    created: new Date(session.created * 1000),
+                    createdAt: new Date(session.created * 1000),
                     expiresAt: session.expires_at ? new Date(session.expires_at * 1000) : null,
                     url: session.url,
                     metadata: session.metadata as any,
@@ -480,7 +487,7 @@ export async function POST(request: NextRequest) {
                     trialEnd: periods.trialEnd,
                     metadata: subscription.metadata as any,
                     data: subscription as any,
-                    updated: new Date(),
+                    updatedAt: new Date(),
                   },
                   create: {
                     id: subscription.id,
@@ -494,7 +501,7 @@ export async function POST(request: NextRequest) {
                     trialStart: periods.trialStart,
                     trialEnd: periods.trialEnd,
                     metadata: subscription.metadata as any,
-                    created: periods.created || new Date(),
+                    createdAt: periods.created || new Date(),
                     data: subscription as any,
                     livemode: subscription.livemode,
                     user: {
@@ -545,7 +552,7 @@ export async function POST(request: NextRequest) {
                     trialEnd: periods.trialEnd,
                     metadata: subscription.metadata as any,
                     data: subscription as any,
-                    updated: new Date(),
+                    updatedAt: new Date(),
                   },
                   create: {
                     id: subscription.id,
@@ -559,7 +566,7 @@ export async function POST(request: NextRequest) {
                     trialStart: periods.trialStart,
                     trialEnd: periods.trialEnd,
                     metadata: subscription.metadata as any,
-                    created: periods.created || new Date(),
+                    createdAt: periods.created || new Date(),
                     data: subscription as any,
                     livemode: subscription.livemode,
                     user: {
@@ -595,7 +602,7 @@ export async function POST(request: NextRequest) {
                   status: 'canceled',
                   canceledAt: new Date(),
                   data: subscription as any,
-                  updated: new Date(),
+                  updatedAt: new Date(),
                 },
               })
 
@@ -621,7 +628,7 @@ export async function POST(request: NextRequest) {
                 data: {
                   status: 'paused',
                   data: subscription as any,
-                  updated: new Date(),
+                  updatedAt: new Date(),
                 },
               })
 
@@ -647,7 +654,7 @@ export async function POST(request: NextRequest) {
                 data: {
                   status: subscription.status,
                   data: subscription as any,
-                  updated: new Date(),
+                  updatedAt: new Date(),
                 },
               })
 

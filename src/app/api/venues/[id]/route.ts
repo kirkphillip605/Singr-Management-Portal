@@ -49,10 +49,10 @@ export async function PATCH(
     const updatedVenue = await prisma.venue.update({
       where: { id: paramsResolved.id },
       data: {
-        address: validatedData.address || null,
-        city: validatedData.city || null,
-        state: validatedData.state || null,
-        postalCode: validatedData.postalCode || null,
+        ...(validatedData.address !== undefined ? { address: validatedData.address } : {}),
+        ...(validatedData.city !== undefined ? { city: validatedData.city } : {}),
+        ...(validatedData.state !== undefined ? { state: validatedData.state } : {}),
+        ...(validatedData.postalCode !== undefined ? { postalCode: validatedData.postalCode } : {}),
         phoneNumber: validatedData.phoneNumber || null,
         website: validatedData.website || null,
         updatedAt: new Date(),

@@ -38,7 +38,7 @@ export default async function AdminUserPage(props: PageProps<{ userId: string }>
     prisma.user.findUnique({
       where: { id: userId },
       include: {
-        customer: {
+        customers: {
           include: {
             apiKeys: {
               orderBy: { createdAt: 'desc' },
@@ -46,7 +46,7 @@ export default async function AdminUserPage(props: PageProps<{ userId: string }>
           },
         },
         subscriptions: {
-          orderBy: { created: 'desc' },
+          orderBy: { createdAt: 'desc' },
           take: 3,
         },
       },
@@ -101,7 +101,7 @@ export default async function AdminUserPage(props: PageProps<{ userId: string }>
         songId: true,
         artist: true,
         title: true,
-        openKjSystemId: true,
+        openkjSystemId: true,
         createdAt: true,
       },
     }),
@@ -127,7 +127,7 @@ export default async function AdminUserPage(props: PageProps<{ userId: string }>
     notFound()
   }
 
-  const apiKeys = user.customer?.apiKeys ?? []
+  const apiKeys = user.customers[0]?.apiKeys ?? []
   const totalVenues = venues.length
   const totalSongs = await prisma.songDb.count({ where: { userId } })
   const totalRequests = venues.reduce((acc, venue) => acc + venue._count.requests, 0)
@@ -165,7 +165,7 @@ export default async function AdminUserPage(props: PageProps<{ userId: string }>
       id: `song-${song.songId.toString()}`,
       type: 'Catalog update',
       detail: `${song.artist} – ${song.title}`,
-      meta: `System ${song.openKjSystemId}`,
+      meta: `System ${song.openkjSystemId}`,
       timestamp: song.createdAt,
     })),
     ...apiKeys.map((key) => ({
@@ -180,7 +180,7 @@ export default async function AdminUserPage(props: PageProps<{ userId: string }>
       type: 'Subscription',
       detail: `${sub.status}`,
       meta: `Current period ${sub.currentPeriodStart.toLocaleDateString()} – ${sub.currentPeriodEnd.toLocaleDateString()}`,
-      timestamp: sub.created,
+      timestamp: sub.createdAt,
     })),
   ]
     .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
@@ -567,7 +567,7 @@ export default async function AdminUserPage(props: PageProps<{ userId: string }>
                     <td className="px-4 py-2 font-medium">
                       {song.artist} – {song.title}
                     </td>
-                    <td className="px-4 py-2 text-muted-foreground">{song.openKjSystemId}</td>
+                    <td className="px-4 py-2 text-muted-foreground">{song.openkjSystemId}</td>
                     <td className="px-4 py-2 text-muted-foreground">
                       {formatDistanceToNow(song.createdAt, { addSuffix: true })}
                     </td>
