@@ -34,25 +34,35 @@ export function PricingPlans({ prices }: PricingPlansProps) {
     setError('')
 
     try {
-      const response = await fetch('/api/billing/create-checkout-session', {
+      // Better Auth Stripe plugin owns checkout. Each price the page
+      // surfaces is either the monthly cadence or the annual-discount
+      // cadence of the single `host` plan, so we infer `annual` from the
+      // price metadata and let the plugin pick the right Stripe price.
+      const matched = prices.find((p) => p.id === priceId)
+      const isAnnual =
+        matched?.metadata?.['plan_name'] === 'annual' ||
+        matched?.recurring?.interval === 'year'
+
+      const response = await fetch('/api/auth/subscription/upgrade', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          priceId,
+          plan: 'host',
+          annual: !!isAnnual,
           successUrl: `${window.location.origin}/dashboard/billing?success=true`,
           cancelUrl: `${window.location.origin}/dashboard/billing`,
         }),
       })
 
       if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.error || 'Failed to create checkout session')
+        const data = await response.json().catch(() => ({}))
+        throw new Error(data.error?.message || data.error || 'Failed to start checkout')
       }
 
-      const { url } = await response.json()
-      window.location.href = url
+      const data = await response.json()
+      const checkoutUrl = data.url || data.redirect || data.checkoutUrl
+      if (!checkoutUrl) throw new Error('No checkout URL returned')
+      window.location.href = checkoutUrl
     } catch (error) {
       setError(error instanceof Error ? error.message : 'An error occurred')
     } finally {

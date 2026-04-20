@@ -21,21 +21,23 @@ export function CustomerPortalButton({
     setIsLoading(true)
     
     try {
-      const response = await fetch('/api/billing/customer-portal', {
+      // Better Auth Stripe plugin owns the billing portal session.
+      const response = await fetch('/api/auth/subscription/billing-portal', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          returnUrl: `${window.location.origin}/dashboard/billing`,
+        }),
       })
 
       if (!response.ok) {
         throw new Error('Failed to create portal session')
       }
 
-      const { url } = await response.json()
-      
-      // Redirect to Stripe billing portal
-      window.location.href = url
+      const data = await response.json()
+      const portalUrl = data.url || data.redirect || data.portalUrl
+      if (!portalUrl) throw new Error('No portal URL returned')
+      window.location.href = portalUrl
     } catch (error) {
       console.error('Error redirecting to customer portal:', error)
       setIsLoading(false)

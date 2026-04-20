@@ -359,15 +359,48 @@ plugins.push(
 
     const roles = computeRoles(dbUser)
 
+    // Pull the host's most recent subscription so the UI can gate
+    // billing-paywalled features without an extra round trip. We
+    // surface the raw status (active|trialing|past_due|canceled|
+    // unpaid|incomplete|null) plus a derived `isActive` boolean.
+    let subscriptionStatus: string | null = null
+    let subscriptionPlan: string | null = null
+    let subscriptionPeriodEnd: Date | null = null
+    if (roles.includes('host')) {
+      const sub = await prisma.baSubscription
+        .findFirst({
+          where: { referenceId: user.id },
+          orderBy: { periodStart: 'desc' },
+          select: { status: true, plan: true, periodEnd: true },
+        })
+        .catch(() => null)
+      if (sub) {
+        subscriptionStatus = sub.status ?? null
+        subscriptionPlan = sub.plan ?? null
+        subscriptionPeriodEnd = sub.periodEnd ?? null
+      }
+    }
+    const isActive =
+      subscriptionStatus === 'active' || subscriptionStatus === 'trialing'
+
+    // Legacy `accountType` exposed on the session must mirror the same
+    // safety rule as `auth-server.ts`: only return `'customer'` (the
+    // host bucket) when the user actually has the host role, so
+    // singer-only sessions never satisfy host-only legacy guards.
+    const legacyAccountType: 'customer' | 'admin' | 'support' | null =
+      roles.includes('super_admin')
+        ? 'admin'
+        : roles.includes('support')
+          ? 'support'
+          : roles.includes('host')
+            ? 'customer'
+            : null
+
     return {
       user: {
         ...user,
         roles,
-        // Legacy fields kept for back-compat with existing route
-        // handlers and React components. New code should read `roles`.
-        accountType:
-          dbUser?.accountType ??
-          (roles.includes('host') ? 'customer' : roles[0] ?? 'customer'),
+        accountType: dbUser?.accountType ?? legacyAccountType,
         adminLevel: dbUser?.adminLevel ?? undefined,
         businessName: dbUser?.businessName ?? undefined,
         displayName: dbUser?.displayName ?? undefined,
@@ -375,6 +408,12 @@ plugins.push(
         mustSetPassword: !!dbUser?.mustSetPassword,
         stripeCustomerId: dbUser?.stripeCustomerId ?? undefined,
         banned: !!dbUser?.banned,
+        subscription: {
+          status: subscriptionStatus,
+          plan: subscriptionPlan,
+          periodEnd: subscriptionPeriodEnd,
+          isActive,
+        },
       },
       session,
     }
@@ -422,7 +461,12 @@ export const auth = betterAuth({
       ? { enabled: true, domain: cookieDomain }
       : { enabled: false },
     defaultCookieAttributes: {
-      sameSite: 'lax',
+      // Cross-subdomain + Capacitor (iOS/Android WebView) require
+      // SameSite=None; Secure in production so the cookie can flow
+      // between host./app./admin./api.singrkaraoke.com surfaces and
+      // the native shells. Local dev keeps `lax` so we don't need
+      // HTTPS to log in on http://localhost.
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       secure: process.env.NODE_ENV === 'production',
       httpOnly: true,
       ...(cookieDomain ? { domain: cookieDomain } : {}),
