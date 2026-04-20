@@ -93,6 +93,7 @@ async function seedAdminUser() {
       passwordHash: adminPasswordHash,
       accountType: 'admin',
       adminLevel: 'super_admin',
+      roles: ['super_admin'],
     },
   })
   return admin
@@ -110,6 +111,7 @@ async function seedCustomerUser() {
       businessName: 'Test Singr Venue',
       phoneNumber: '+1-605-555-0123',
       accountType: 'customer',
+      roles: ['host'],
     },
   })
 

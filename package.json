@@ -26,6 +26,7 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
+    "@better-auth/stripe": "^1.6.5",
     "@headlessui/react": "^2.1.8",
     "@heroicons/react": "^2.1.5",
     "@prisma/client": "^6.13.0",
@@ -50,6 +51,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
+    "jose": "^6.2.2",
     "lucide-react": "^0.447.0",
     "next": "^15.5.15",
     "nodemailer": "^8.0.5",

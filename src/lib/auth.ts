@@ -1,11 +1,42 @@
 import { betterAuth } from 'better-auth'
 import { prismaAdapter } from 'better-auth/adapters/prisma'
-import { twoFactor, phoneNumber, emailOTP } from 'better-auth/plugins'
+import {
+  twoFactor,
+  phoneNumber,
+  emailOTP,
+  magicLink,
+  oneTap,
+  bearer,
+  customSession,
+  admin as adminPlugin,
+} from 'better-auth/plugins'
 import { nextCookies } from 'better-auth/next-js'
+import { stripe as stripePlugin } from '@better-auth/stripe'
+import Stripe from 'stripe'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import twilio from 'twilio'
 import nodemailer from 'nodemailer'
+
+/* ============================================================
+ * Singr Karaoke Connect — unified Better Auth instance
+ * ============================================================
+ *
+ * One Better Auth instance backs every public surface
+ * (`singrkaraoke.com`, `host.*`, `app.*`, `admin.*`, `api.*`)
+ * via a cookie scoped to `.singrkaraoke.com` so a session minted
+ * on any subdomain is recognised on every other one. Per-surface
+ * authorisation is enforced by middleware + the role-based guards
+ * in `src/lib/host-auth.ts` / `src/lib/admin-auth.ts` reading the
+ * `roles` array exposed on the session.
+ *
+ * Capacitor mobile clients live at `capacitor://localhost` /
+ * `http://localhost` / `singr://*`; those origins are pre-trusted
+ * below and the Bearer plugin lets the native app present its
+ * session token via `Authorization: Bearer …`.
+ */
+
+/* ---------- Twilio (SMS / phone OTP) ---------- */
 
 const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID
 const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN
@@ -18,31 +49,23 @@ const twilioClient =
 
 async function sendSms(to: string, body: string) {
   if (!twilioClient || !TWILIO_FROM_NUMBER) {
-    logger.warn(
-      `Twilio not configured; would have sent SMS to ${to}: ${body}`
-    )
+    logger.warn(`Twilio not configured; would have sent SMS to ${to}: ${body}`)
     return
   }
   try {
-    await twilioClient.messages.create({
-      to,
-      from: TWILIO_FROM_NUMBER,
-      body,
-    })
+    await twilioClient.messages.create({ to, from: TWILIO_FROM_NUMBER, body })
   } catch (err) {
     logger.error(
       `Failed to send SMS to ${to}: ${
         err instanceof Error ? err.message : String(err)
-      }`
+      }`,
     )
     throw err
   }
 }
 
-// Lazily-built SMTP transporter. Configured via standard SMTP_* env vars so
-// any provider (SendGrid, Postmark, SES, Mailgun, plain SMTP) works without
-// code changes. If the env is incomplete we degrade to logger output and
-// emit a single warning per process so devs know why messages aren't sent.
+/* ---------- SMTP (email — Mailjet/SendGrid/SES/etc) ---------- */
+
 const SMTP_HOST = process.env.SMTP_HOST
 const SMTP_PORT = process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : 587
 const SMTP_USER = process.env.SMTP_USER
@@ -66,7 +89,7 @@ async function sendEmail(to: string, subject: string, body: string) {
   if (!mailTransport) {
     if (!warnedNoTransport) {
       logger.warn(
-        'SMTP_HOST/SMTP_USER/SMTP_PASS not configured — auth emails will be logged instead of sent.'
+        'SMTP_HOST/SMTP_USER/SMTP_PASS not configured — auth emails will be logged instead of sent.',
       )
       warnedNoTransport = true
     }
@@ -84,11 +107,13 @@ async function sendEmail(to: string, subject: string, body: string) {
     logger.error(
       `Failed to send email to ${to}: ${
         err instanceof Error ? err.message : String(err)
-      }`
+      }`,
     )
     throw err
   }
 }
+
+/* ---------- Base URL & secret ---------- */
 
 const baseURL =
   process.env.BETTER_AUTH_URL ||
@@ -100,13 +125,21 @@ const baseURL =
 
 const secret = process.env.BETTER_AUTH_SECRET || process.env.NEXTAUTH_SECRET
 if (!secret) {
-  // Fail closed: never allow a known/static fallback secret in any
-  // environment. Sessions sealed with a default secret would be trivially
-  // forgeable by anyone reading the code.
   throw new Error(
-    'BETTER_AUTH_SECRET (or legacy NEXTAUTH_SECRET) must be set. Generate one with `openssl rand -base64 32`.'
+    'BETTER_AUTH_SECRET (or legacy NEXTAUTH_SECRET) must be set. Generate one with `openssl rand -base64 32`.',
   )
 }
+
+/* ---------- Cookie domain (cross-subdomain SSO) ---------- */
+
+// In production every subdomain of singrkaraoke.com shares one session
+// cookie. In local development we leave the domain unset so the cookie
+// stays host-only, which matches how `*.localhost` is handled by browsers.
+const cookieDomain =
+  process.env['SINGR_COOKIE_DOMAIN'] ||
+  (process.env.NODE_ENV === 'production' ? '.singrkaraoke.com' : undefined)
+
+/* ---------- Social provider config (env-conditional) ---------- */
 
 const googleClientId =
   process.env.GOOGLE_CLIENT_ID || process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || ''
@@ -115,75 +148,307 @@ const googleClientSecret =
   process.env.NEXT_PUBLIC_GOOGLE_CLIENT_SECRET ||
   ''
 
-/**
- * Per-surface cookie prefixes. Each public hostname (`host.`, `app.`,
- * `admin.`, …) runs against its own Better Auth instance below so that the
- * cookie *name* itself differs per surface — even if a future bug ever
- * widens cookie scope to `.singrkaraoke.com`, a host-portal session will
- * never be presented as an admin session and vice versa.
- */
-export const SURFACE_COOKIE_PREFIXES = {
-  host: 'singr.host',
-  admin: 'singr.admin',
-  singer: 'singr.singer',
-  // Used on the apex marketing domain where only the support/admin
-  // sign-in entry runs. Distinct from the customer portal's prefix.
-  web: 'singr.web',
-} as const
+const facebookClientId = process.env['FACEBOOK_CLIENT_ID'] || ''
+const facebookClientSecret = process.env['FACEBOOK_CLIENT_SECRET'] || ''
 
-export type AuthSurface = keyof typeof SURFACE_COOKIE_PREFIXES
+const appleClientId = process.env['APPLE_CLIENT_ID'] || ''
+const appleClientSecret = process.env['APPLE_CLIENT_SECRET'] || ''
+const appleAppBundleIdentifier =
+  process.env['APPLE_APP_BUNDLE_IDENTIFIER'] || 'com.singrkaraoke.app'
 
-function buildAuth(cookiePrefix: string) {
-  return betterAuth({
+const socialProviders: Record<string, unknown> = {}
+if (googleClientId && googleClientSecret) {
+  socialProviders['google'] = {
+    clientId: googleClientId,
+    clientSecret: googleClientSecret,
+  }
+}
+if (facebookClientId && facebookClientSecret) {
+  socialProviders['facebook'] = {
+    clientId: facebookClientId,
+    clientSecret: facebookClientSecret,
+  }
+}
+if (appleClientId && appleClientSecret) {
+  socialProviders['apple'] = {
+    clientId: appleClientId,
+    clientSecret: appleClientSecret,
+    appBundleIdentifier: appleAppBundleIdentifier,
+  }
+}
+
+/* ---------- Stripe client + plan catalogue ---------- */
+
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY || ''
+const stripeWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET || ''
+
+const stripeClient = stripeSecretKey
+  ? new Stripe(stripeSecretKey, { apiVersion: '2024-06-20' as Stripe.LatestApiVersion })
+  : null
+
+// Plan catalogue. Each KJ ("host") gets one subscription that gates the
+// whole portal. Override the price IDs by env so the same code works in
+// test and live mode.
+const hostPriceId = process.env['STRIPE_PRICE_HOST_MONTHLY'] || ''
+const hostAnnualPriceId = process.env['STRIPE_PRICE_HOST_ANNUAL'] || ''
+
+const stripePlans = hostPriceId
+  ? [
+      {
+        name: 'host',
+        priceId: hostPriceId,
+        annualDiscountPriceId: hostAnnualPriceId || undefined,
+        freeTrial: { days: 7 },
+        limits: { venues: 50 },
+      },
+    ]
+  : []
+
+/* ---------- Build the unified auth instance ---------- */
+
+const plugins: unknown[] = [
+  adminPlugin({
+    // The Better Auth admin plugin enforces its own role validation —
+    // any role you pass here must already be declared in the plugin's
+    // roles config. We don't use that path: every admin/host/support
+    // gate in this app reads `session.user.roles` (see
+    // `src/lib/admin-auth.ts` and `src/lib/customer-auth.ts`). Leaving
+    // the plugin on its defaults keeps its built-in admin endpoints
+    // (ban/unban/list-users) usable for the future support console
+    // without dragging extra role validation in.
+    defaultRole: 'host',
+  }),
+  twoFactor({
+    issuer: 'Singr Karaoke Connect',
+    otpOptions: {
+      async sendOTP({ user, otp }) {
+        const u = user as {
+          email: string
+          phoneNumber?: string | null
+          phoneNumberVerified?: boolean
+        }
+        if (u.phoneNumber && u.phoneNumberVerified) {
+          await sendSms(
+            u.phoneNumber,
+            `Your Singr verification code is: ${otp}`,
+          )
+          return
+        }
+        await sendEmail(
+          u.email,
+          'Your Singr verification code',
+          `Your verification code is: ${otp}`,
+        )
+      },
+    },
+  }),
+  phoneNumber({
+    sendOTP: async ({ phoneNumber: to, code }) => {
+      await sendSms(to, `Your Singr verification code is: ${code}`)
+    },
+  }),
+  emailOTP({
+    sendVerificationOTP: async ({ email, otp, type }) => {
+      await sendEmail(
+        email,
+        type === 'sign-in'
+          ? 'Your Singr sign-in code'
+          : type === 'forget-password'
+            ? 'Your Singr password reset code'
+            : 'Your Singr verification code',
+        `Your code is: ${otp}`,
+      )
+    },
+  }),
+  magicLink({
+    sendMagicLink: async ({ email, url }) => {
+      await sendEmail(
+        email,
+        'Sign in to Singr Karaoke',
+        `Tap this link to sign in:\n\n${url}\n\nIt expires in 5 minutes.`,
+      )
+    },
+  }),
+  oneTap(),
+  bearer(),
+]
+
+if (stripeClient && stripeWebhookSecret) {
+  plugins.push(
+    stripePlugin({
+      stripeClient,
+      stripeWebhookSecret,
+      createCustomerOnSignUp: true,
+      // Hosts only — singers + admins don't get a Stripe customer.
+      getCustomerCreateParams: async (user: {
+        id: string
+        name?: string | null
+      }) => {
+        return {
+          name: user.name || undefined,
+          metadata: { source: 'singr-karaoke', userId: user.id },
+        }
+      },
+      subscription: {
+        enabled: true,
+        plans: stripePlans,
+        // When a host's subscription lapses, flip every venue they own
+        // off so singers stop being able to submit requests. The host
+        // billing UI surfaces a banner explaining the lapse.
+        onSubscriptionDeleted: async ({ subscription }: { subscription: { id: string; plan: string; referenceId: string } }) => {
+          await prisma.venue
+            .updateMany({
+              where: { userId: subscription.referenceId },
+              data: { accepting: false, acceptingRequests: false },
+            })
+            .catch((err) =>
+              logger.error(
+                `Failed to disable venues on subscription cancel: ${err}`,
+              ),
+            )
+          await prisma.auditLog
+            .create({
+              data: {
+                actorId: subscription.referenceId,
+                action: 'subscription.deleted',
+                resource: 'subscription',
+                resourceId: subscription.id,
+                surface: 'system',
+                metadata: { plan: subscription.plan },
+              },
+            })
+            .catch(() => undefined)
+        },
+        onSubscriptionUpdate: async ({ subscription }: { subscription: { id: string; status: string; referenceId: string } }) => {
+          if (
+            subscription.status === 'past_due' ||
+            subscription.status === 'unpaid' ||
+            subscription.status === 'canceled'
+          ) {
+            await prisma.venue
+              .updateMany({
+                where: { userId: subscription.referenceId },
+                data: { accepting: false },
+              })
+              .catch(() => undefined)
+          }
+        },
+      },
+    }) as unknown,
+  )
+}
+
+// Custom session must run last so it can read the data added by the
+// plugins above and merge our own claims (roles, businessName, etc.).
+plugins.push(
+  customSession(async ({ user, session }) => {
+    const dbUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: {
+        roles: true,
+        accountType: true,
+        adminLevel: true,
+        businessName: true,
+        displayName: true,
+        avatarUrl: true,
+        mustSetPassword: true,
+        stripeCustomerId: true,
+        banned: true,
+      },
+    })
+
+    const roles = computeRoles(dbUser)
+
+    return {
+      user: {
+        ...user,
+        roles,
+        // Legacy fields kept for back-compat with existing route
+        // handlers and React components. New code should read `roles`.
+        accountType:
+          dbUser?.accountType ??
+          (roles.includes('host') ? 'customer' : roles[0] ?? 'customer'),
+        adminLevel: dbUser?.adminLevel ?? undefined,
+        businessName: dbUser?.businessName ?? undefined,
+        displayName: dbUser?.displayName ?? undefined,
+        avatarUrl: dbUser?.avatarUrl ?? undefined,
+        mustSetPassword: !!dbUser?.mustSetPassword,
+        stripeCustomerId: dbUser?.stripeCustomerId ?? undefined,
+        banned: !!dbUser?.banned,
+      },
+      session,
+    }
+  }) as unknown,
+)
+
+plugins.push(nextCookies())
+
+function computeRoles(
+  dbUser:
+    | {
+        roles: string[]
+        accountType: string | null
+        adminLevel: string | null
+      }
+    | null
+    | undefined,
+): string[] {
+  if (!dbUser) return ['host']
+  if (dbUser.roles && dbUser.roles.length > 0) return dbUser.roles
+
+  // Backfill: derive roles from the legacy enums for users that
+  // existed before the rename migration.
+  const r = new Set<string>()
+  if (dbUser.accountType === 'customer') r.add('host')
+  if (dbUser.accountType === 'support') r.add('support')
+  if (dbUser.accountType === 'admin') {
+    r.add('support')
+    if (dbUser.adminLevel === 'super_admin') r.add('super_admin')
+  }
+  if (r.size === 0) r.add('host')
+  return Array.from(r)
+}
+
+export const auth = betterAuth({
   appName: 'Singr Karaoke Connect',
   baseURL,
   secret,
   database: prismaAdapter(prisma, { provider: 'postgresql' }),
 
-  // Postgres `id` columns are UUIDs in our schema; tell Better Auth to
-  // generate UUIDs instead of its default nanoid-style strings.
   advanced: {
-    database: {
-      generateId: () => crypto.randomUUID(),
-    },
-    // Each surface (host portal, future admin portal, future singer app)
-    // gets its own cookie name so the browser cannot accidentally present
-    // a host-portal session on `app.singrkaraoke.com` or `admin.*` even if
-    // someone later widens the cookie scope to `.singrkaraoke.com`. The
-    // default attributes also leave the cookie host-only (no Domain set),
-    // which together with the per-surface name keeps the auth realms
-    // isolated even though every surface shares a single Postgres DB.
-    cookiePrefix,
+    database: { generateId: () => crypto.randomUUID() },
+    cookiePrefix: 'singr',
+    crossSubDomainCookies: cookieDomain
+      ? { enabled: true, domain: cookieDomain }
+      : { enabled: false },
     defaultCookieAttributes: {
       sameSite: 'lax',
       secure: process.env.NODE_ENV === 'production',
       httpOnly: true,
+      ...(cookieDomain ? { domain: cookieDomain } : {}),
     },
   },
 
   user: {
     additionalFields: {
-      accountType: {
-        type: 'string',
-        required: false,
-        defaultValue: 'customer',
-        input: false,
-      },
-      adminLevel: {
-        type: 'string',
-        required: false,
-        input: false,
-      },
-      businessName: {
-        type: 'string',
-        required: false,
-      },
+      accountType: { type: 'string', required: false, input: false },
+      adminLevel: { type: 'string', required: false, input: false },
+      businessName: { type: 'string', required: false },
+      displayName: { type: 'string', required: false },
+      avatarUrl: { type: 'string', required: false },
       mustSetPassword: {
         type: 'boolean',
         required: false,
         defaultValue: false,
         input: false,
       },
+      stripeCustomerId: { type: 'string', required: false, input: false },
+      banned: { type: 'boolean', required: false, input: false },
+      banReason: { type: 'string', required: false, input: false },
+      lastLoginAt: { type: 'date', required: false, input: false },
+      lastLoginMethod: { type: 'string', required: false, input: false },
+      // `roles` is a Postgres text[]; we surface it as JSON in the
+      // session via the customSession plugin above.
     },
     changeEmail: {
       enabled: true,
@@ -197,7 +462,7 @@ function buildAuth(cookiePrefix: string) {
         await sendEmail(
           newEmail,
           'Confirm your new email address',
-          `Click the link to confirm: ${url}`
+          `Click the link to confirm: ${url}`,
         )
       },
     },
@@ -212,7 +477,7 @@ function buildAuth(cookiePrefix: string) {
       await sendEmail(
         user.email,
         'Reset your password',
-        `Click the link to reset your password: ${url}`
+        `Click the link to reset your password: ${url}`,
       )
     },
   },
@@ -223,38 +488,27 @@ function buildAuth(cookiePrefix: string) {
       await sendEmail(
         user.email,
         'Verify your email',
-        `Click the link to verify your email: ${url}`
+        `Click the link to verify your email: ${url}`,
       )
     },
   },
 
-  socialProviders: googleClientId && googleClientSecret
-    ? {
-        google: {
-          clientId: googleClientId,
-          clientSecret: googleClientSecret,
-        },
-      }
-    : undefined,
+  socialProviders:
+    Object.keys(socialProviders).length > 0
+      ? (socialProviders as Parameters<typeof betterAuth>[0]['socialProviders'])
+      : undefined,
 
   account: {
     accountLinking: {
-      // Allow Google to link onto an existing email/password account when
-      // the verified email matches. `credential` is the provider id Better
-      // Auth uses for email+password accounts (matching the `account.create`
-      // hook below and the settings UI's `hasCredential` check).
       enabled: true,
-      trustedProviders: ['google', 'credential'],
+      trustedProviders: ['google', 'facebook', 'apple', 'credential'],
     },
   },
 
   session: {
-    expiresIn: 60 * 60 * 24 * 30, // 30 days
-    updateAge: 60 * 60 * 24, // 1 day
-    cookieCache: {
-      enabled: true,
-      maxAge: 60 * 5, // 5 minutes
-    },
+    expiresIn: 60 * 60 * 24 * 30,
+    updateAge: 60 * 60 * 24,
+    cookieCache: { enabled: true, maxAge: 60 * 5 },
   },
 
   databaseHooks: {
@@ -262,25 +516,20 @@ function buildAuth(cookiePrefix: string) {
       create: {
         after: async (user) => {
           try {
-            const { stripe } = await import('@/lib/stripe')
-            const customer = await stripe.customers.create({
-              email: user.email,
-              name: user.name || undefined,
-              metadata: { userId: user.id },
-            })
-
-            await prisma.customer.upsert({
+            // Default new sign-ups to the host role unless explicitly
+            // marked otherwise. The signer/onboarding flow in task #26
+            // promotes singer-app sign-ups to ['singer'] before the
+            // first session is issued.
+            await prisma.user.update({
               where: { id: user.id },
-              update: { stripeCustomerId: customer.id },
-              create: {
-                id: user.id,
-                userId: user.id,
-                stripeCustomerId: customer.id,
+              data: {
+                roles: { set: ['host'] },
+                accountType: 'customer',
               },
             })
 
-            // Initialize System and State if not present (parallel to legacy
-            // signup flow). These are idempotent due to unique constraints.
+            // Initialize System and State for hosts so the venue editor
+            // works on first login (idempotent via unique constraints).
             await prisma.system
               .create({
                 data: {
@@ -290,7 +539,6 @@ function buildAuth(cookiePrefix: string) {
                 },
               })
               .catch(() => undefined)
-
             await prisma.state
               .upsert({
                 where: { userId: user.id },
@@ -299,14 +547,23 @@ function buildAuth(cookiePrefix: string) {
               })
               .catch(() => undefined)
 
-            logger.info(
-              `Stripe customer + initial system created for user ${user.id}`
-            )
+            await prisma.auditLog
+              .create({
+                data: {
+                  actorId: user.id,
+                  action: 'user.created',
+                  resource: 'user',
+                  resourceId: user.id,
+                  surface: 'system',
+                  metadata: { email: user.email },
+                },
+              })
+              .catch(() => undefined)
           } catch (err) {
             logger.error(
               `Failed to provision new user ${user.id}: ${
                 err instanceof Error ? err.message : String(err)
-              }`
+              }`,
             )
           }
         },
@@ -317,21 +574,12 @@ function buildAuth(cookiePrefix: string) {
         after: async (account) => {
           try {
             if (account.providerId === 'credential') {
-              // The user just gained an email+password credential — they no
-              // longer need the "set your password" prompt. This runs on the
-              // trusted server side via Better Auth's databaseHooks, which
-              // is the only reliable way to mutate fields configured with
-              // `input: false` like `mustSetPassword`.
               await prisma.user.update({
                 where: { id: account.userId },
                 data: { mustSetPassword: false },
               })
               return
             }
-
-            // OAuth (e.g. Google) account created. If this user has no
-            // credential account yet, flag them so the dashboard layout
-            // routes them through `/auth/set-password` on next visit.
             const credential = await prisma.account.findFirst({
               where: { userId: account.userId, providerId: 'credential' },
               select: { id: true },
@@ -346,65 +594,27 @@ function buildAuth(cookiePrefix: string) {
             logger.error(
               `Failed to update mustSetPassword for ${account.userId}: ${
                 err instanceof Error ? err.message : String(err)
-              }`
+              }`,
             )
           }
         },
       },
     },
-  },
-
-  plugins: [
-    twoFactor({
-      issuer: 'Singr Karaoke Connect',
-      otpOptions: {
-        // Channel selection: if the user has a verified phone number we
-        // deliver the 2FA OTP via SMS (Twilio); otherwise we fall back to
-        // email. Authenticator-app TOTP is independent and handled by the
-        // plugin's verifyTotp endpoint. The user picks the channel they
-        // want at the /auth/2fa challenge page (TOTP / OTP / Backup).
-        async sendOTP({ user, otp }) {
-          const u = user as { email: string; phoneNumber?: string | null; phoneNumberVerified?: boolean }
-          if (u.phoneNumber && u.phoneNumberVerified) {
-            await sendSms(
-              u.phoneNumber,
-              `Your Singr verification code is: ${otp}`
-            )
-            return
-          }
-          await sendEmail(
-            u.email,
-            'Your Singr verification code',
-            `Your verification code is: ${otp}`
-          )
+    session: {
+      create: {
+        after: async (session) => {
+          await prisma.user
+            .update({
+              where: { id: session.userId },
+              data: { lastLoginAt: new Date() },
+            })
+            .catch(() => undefined)
         },
       },
-    }),
-    phoneNumber({
-      // Phone is a *login method only* for users who have already signed up
-      // with name/email/password/businessName and verified a phone number
-      // on their profile. We deliberately omit `signUpOnVerification` so
-      // the OTP flow can never implicitly create an account from a stray
-      // number entered on the sign-in page.
-      sendOTP: async ({ phoneNumber: to, code }) => {
-        await sendSms(to, `Your Singr verification code is: ${code}`)
-      },
-    }),
-    emailOTP({
-      sendVerificationOTP: async ({ email, otp, type }) => {
-        await sendEmail(
-          email,
-          type === 'sign-in'
-            ? 'Your Singr sign-in code'
-            : type === 'forget-password'
-              ? 'Your Singr password reset code'
-              : 'Your Singr verification code',
-          `Your code is: ${otp}`
-        )
-      },
-    }),
-    nextCookies(),
-  ],
+    },
+  },
+
+  plugins: plugins as Parameters<typeof betterAuth>[0]['plugins'],
 
   trustedOrigins: [
     baseURL,
@@ -425,66 +635,38 @@ function buildAuth(cookiePrefix: string) {
     'http://host.localhost:5000',
     'http://api.localhost:5000',
     'http://admin.localhost:5000',
+    'http://app.localhost:5000',
+    // Capacitor / native shell
+    'capacitor://localhost',
+    'http://localhost',
+    'singr://*',
   ].filter((u): u is string => !!u),
-  })
-}
-
-/**
- * Lazily-built per-surface Better Auth instances. They share the same
- * Postgres-backed user table but each emits a different cookie name (see
- * `SURFACE_COOKIE_PREFIXES`) so the browser can never accidentally present
- * a host-portal session cookie on `app.` or `admin.`. Resolution happens
- * at request time via `getAuthForHost()` below.
- */
-const authBySurface = new Map<AuthSurface, ReturnType<typeof buildAuth>>()
-
-export function getAuthForSurface(
-  surface: AuthSurface
-): ReturnType<typeof buildAuth> {
-  let instance = authBySurface.get(surface)
-  if (!instance) {
-    instance = buildAuth(SURFACE_COOKIE_PREFIXES[surface])
-    authBySurface.set(surface, instance)
-  }
-  return instance
-}
-
-const HOSTNAME_TO_SURFACE: Record<string, AuthSurface> = {
-  'host.singrkaraoke.com': 'host',
-  'admin.singrkaraoke.com': 'admin',
-  'app.singrkaraoke.com': 'singer',
-  'singrkaraoke.com': 'web',
-  'www.singrkaraoke.com': 'web',
-  'api.singrkaraoke.com': 'host',
-  'host.localhost': 'host',
-  'admin.localhost': 'admin',
-  'app.localhost': 'singer',
-  'api.localhost': 'host',
-  'singrkaraoke.localhost': 'web',
-}
-
-/**
- * Pick the right auth instance for an incoming request based on its host.
- * Falls back to the host-portal surface on unknown hostnames so existing
- * dev workflows (Replit preview, `localhost:5000`) keep working.
- */
-export function getAuthForHost(hostHeader: string | null | undefined) {
-  const hostname = (hostHeader?.split(':')[0] || '').toLowerCase()
-  const explicit = process.env['SINGR_AUTH_SURFACE_OVERRIDE'] as
-    | AuthSurface
-    | undefined
-  const surface: AuthSurface =
-    (explicit && SURFACE_COOKIE_PREFIXES[explicit] ? explicit : undefined) ||
-    HOSTNAME_TO_SURFACE[hostname] ||
-    'host'
-  return getAuthForSurface(surface)
-}
-
-/**
- * Default export remains the host-portal instance so existing imports
- * (`import { auth } from '@/lib/auth'`) keep working unchanged. New code
- * that needs surface-aware behavior should call `getAuthForHost()`.
- */
-export const auth = getAuthForSurface('host')
+})
 
 export type Auth = typeof auth
+
+/* ---------- Backwards-compat shims ----------
+ * The previous architecture exposed per-surface auth instances via
+ * `getAuthForHost(host)` / `getAuthForSurface(surface)`. We've collapsed
+ * to a single instance now (cookie scoped to `.singrkaraoke.com`), but
+ * keep these helpers as aliases so existing callers (the
+ * `/api/auth/[...all]` handler, `getAuthSession()`, etc.) keep working
+ * without a sweeping change.
+ */
+
+export type AuthSurface = 'host' | 'admin' | 'singer' | 'web'
+
+export function getAuthForSurface(_surface: AuthSurface) {
+  return auth
+}
+
+export function getAuthForHost(_hostHeader: string | null | undefined) {
+  return auth
+}
+
+export const SURFACE_COOKIE_PREFIXES = {
+  host: 'singr',
+  admin: 'singr',
+  singer: 'singr',
+  web: 'singr',
+} as const

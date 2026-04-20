@@ -16,6 +16,23 @@ const nextConfig = {
     },
   },
 
+  // Keep these CommonJS / native packages out of the Webpack bundle so
+  // Next.js loads them at runtime via `require()`. This silences the
+  // "Critical dependency: the request of a dependency is an expression"
+  // warnings emitted by Prisma's optional OpenTelemetry instrumentation
+  // and the Sentry SDK on every build.
+  serverExternalPackages: [
+    '@prisma/client',
+    '@prisma/instrumentation',
+    '@sentry/nextjs',
+    '@opentelemetry/instrumentation',
+    'argon2',
+    'bcryptjs',
+    'twilio',
+    'nodemailer',
+    'stripe',
+  ],
+
   // Image optimization
   images: {
     path: "/_next/image",

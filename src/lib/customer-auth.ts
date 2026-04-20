@@ -3,35 +3,26 @@ import { redirect } from 'next/navigation'
 import { getAuthSession, type AuthSession } from '@/lib/auth-server'
 
 /**
- * Customer / host-portal authorization guard.
+ * Host-portal authorization guards.
  *
- * The product runs four auth realms over a single Postgres DB
- * (customer / admin / support / singer). Cookie-name isolation in
- * `src/lib/auth.ts` already prevents a session minted on one surface
- * from being *presented* as a session on another, but route handlers
- * still have to refuse a request that arrives carrying the wrong
- * `accountType` (defense in depth — e.g. a stolen support cookie
- * being replayed against the host portal, or a future bug that
- * widens cookie scope).
+ * Historically named `customer-auth.ts` because the host role was called
+ * `customer` in the original schema. Behaviour is unchanged for callers:
+ * the function names stay the same so the ~30 routes that import them
+ * keep working; the underlying check now consults `session.user.roles`
+ * (which derives `accountType` for back-compat in `auth-server.ts`).
  *
  * `requireCustomerSession` is for server components / SSR pages
- * (it `redirect()`s to sign-in / `/admin` like the admin equivalent).
- * `requireCustomerApi` is for route handlers (it returns a JSON
- * response you can `return` straight from the handler when the
- * caller is unauthorised, otherwise it returns the session).
+ * (it `redirect()`s on failure). `requireCustomerApi` is for route
+ * handlers (returns a JSON 401/403 response).
  */
 
 export async function requireCustomerSession(): Promise<AuthSession> {
   const session = await getAuthSession()
-  if (!session?.user) {
-    redirect('/auth/signin')
-  }
-  if (session.user.accountType !== 'customer') {
-    // Admin / support users land on the admin console instead of the
-    // customer portal; anyone else gets bounced back to sign-in.
+  if (!session?.user) redirect('/auth/signin')
+  if (!session.user.roles?.includes('host')) {
     if (
-      session.user.accountType === 'admin' ||
-      session.user.accountType === 'support'
+      session.user.roles?.includes('super_admin') ||
+      session.user.roles?.includes('support')
     ) {
       redirect('/admin')
     }
@@ -52,14 +43,13 @@ export async function requireCustomerApi(): Promise<CustomerApiAuthResult> {
       response: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }),
     }
   }
-  if (session.user.accountType !== 'customer') {
+  if (!session.user.roles?.includes('host')) {
     return {
       ok: false,
       response: NextResponse.json(
         {
           error: 'Forbidden',
-          message:
-            'This endpoint is only available to customer (host) accounts.',
+          message: 'This endpoint is only available to host accounts.',
         },
         { status: 403 },
       ),
@@ -67,3 +57,8 @@ export async function requireCustomerApi(): Promise<CustomerApiAuthResult> {
   }
   return { ok: true, session }
 }
+
+// Re-export under the new name so new code can prefer the host
+// terminology. The legacy names above stay as aliases.
+export const requireHostSession = requireCustomerSession
+export const requireHostApi = requireCustomerApi

@@ -108,6 +108,28 @@ model User {
   twoFactorEnabled      Boolean       @default(false) @map("two_factor_enabled")
   mustSetPassword       Boolean       @default(false) @map("must_set_password")
 
+  // Unified RBAC: a user can hold one or more of:
+  //   "host"         (KJ running venues – formerly accountType=customer)
+  //   "singer"       (singer.app account)
+  //   "support"      (support staff)
+  //   "super_admin"  (full admin)
+  // Populated from `accountType`/`adminLevel` for legacy rows; new code
+  // should always read/write through this column.
+  roles                 String[]      @default([])
+  displayName           String?       @map("display_name")
+  avatarUrl             String?       @map("avatar_url")
+
+  // Stripe billing linkage owned by the Better Auth Stripe plugin.
+  stripeCustomerId      String?       @unique @map("stripe_customer_id")
+
+  // Better Auth admin plugin moderation fields.
+  banned                Boolean       @default(false)
+  banReason             String?       @map("ban_reason")
+  banExpires            DateTime?     @map("ban_expires") @db.Timestamptz(6)
+
+  lastLoginAt           DateTime?     @map("last_login_at") @db.Timestamptz(6)
+  lastLoginMethod       String?       @map("last_login_method")
+
   accounts       Account[]
   customers      Customer[]
   apiKeys        ApiKey[]
@@ -626,6 +648,55 @@ model MessageAttachment {
 
   @@index([messageId], map: "message_attachments_message_idx")
   @@map("message_attachments")
+  @@schema("public")
+}
+
+/* ============================================
+   AUDIT LOG (replacement for Better Auth audit-logs/sentinel)
+   ============================================ */
+
+model AuditLog {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  actorId     String?  @map("actor_id") @db.Uuid
+  action      String
+  resource    String?
+  resourceId  String?  @map("resource_id")
+  surface     String?  // host | admin | app | api | web | system
+  ipAddress   String?  @map("ip_address")
+  userAgent   String?  @map("user_agent")
+  metadata    Json     @default("{}")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([actorId], map: "audit_logs_actor_id_idx")
+  @@index([action], map: "audit_logs_action_idx")
+  @@index([createdAt], map: "audit_logs_created_at_idx")
+  @@map("audit_logs")
+  @@schema("public")
+}
+
+/* ============================================
+   BETTER AUTH STRIPE PLUGIN — managed by @better-auth/stripe.
+   Lives in `ba_subscriptions` to coexist with the legacy
+   `subscriptions` table during the migration.
+   ============================================ */
+
+model BaSubscription {
+  id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  plan                  String
+  referenceId           String    @map("reference_id")
+  stripeCustomerId      String?   @map("stripe_customer_id")
+  stripeSubscriptionId  String?   @unique @map("stripe_subscription_id")
+  status                String    @default("incomplete")
+  periodStart           DateTime? @map("period_start") @db.Timestamptz(6)
+  periodEnd             DateTime? @map("period_end") @db.Timestamptz(6)
+  cancelAtPeriodEnd     Boolean?  @map("cancel_at_period_end")
+  seats                 Int?
+  trialStart            DateTime? @map("trial_start") @db.Timestamptz(6)
+  trialEnd              DateTime? @map("trial_end") @db.Timestamptz(6)
+
+  @@index([referenceId], map: "ba_subscriptions_reference_id_idx")
+  @@index([stripeCustomerId], map: "ba_subscriptions_stripe_customer_id_idx")
+  @@map("ba_subscriptions")
   @@schema("public")
 }
 
