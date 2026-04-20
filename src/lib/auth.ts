@@ -432,11 +432,16 @@ function computeRoles(
     | null
     | undefined,
 ): string[] {
-  if (!dbUser) return ['host']
+  // Least privilege: an unknown / malformed user gets ZERO roles, not
+  // host. New signups get a role from the admin plugin's `defaultRole`
+  // ('host'), and the backfill script already populated `roles[]` for
+  // every pre-migration user. Any path that produces an empty array
+  // here will fail every role gate by design.
+  if (!dbUser) return []
   if (dbUser.roles && dbUser.roles.length > 0) return dbUser.roles
 
-  // Backfill: derive roles from the legacy enums for users that
-  // existed before the rename migration.
+  // Pre-migration rows: derive from the legacy enums. We do NOT fall
+  // back to 'host' on unrecognized accountType values.
   const r = new Set<string>()
   if (dbUser.accountType === 'customer') r.add('host')
   if (dbUser.accountType === 'support') r.add('support')
@@ -444,7 +449,6 @@ function computeRoles(
     r.add('support')
     if (dbUser.adminLevel === 'super_admin') r.add('super_admin')
   }
-  if (r.size === 0) r.add('host')
   return Array.from(r)
 }
 

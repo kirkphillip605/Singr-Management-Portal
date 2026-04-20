@@ -15,7 +15,8 @@ async function main() {
       r.add('support')
       if (u.adminLevel === 'super_admin') r.add('super_admin')
     }
-    if (r.size === 0) r.add('host')
+    // Least-privilege fallback: leave roles[] empty so the user has no
+    // access until an admin explicitly grants them a role.
     await prisma.user.update({
       where: { id: u.id },
       data: { roles: { set: Array.from(r) } },

@@ -82,6 +82,10 @@ function deriveRoles(
   accountType: string | null | undefined,
   adminLevel: string | null | undefined,
 ): string[] {
+  // Least-privilege fallback: an unrecognized accountType yields zero
+  // roles. Every guard in the app fails closed when `roles` is empty,
+  // so a malformed/partially-migrated user is denied by default
+  // instead of silently being treated as a host.
   const r = new Set<string>()
   if (accountType === 'customer') r.add('host')
   if (accountType === 'support') r.add('support')
@@ -89,7 +93,6 @@ function deriveRoles(
     r.add('support')
     if (adminLevel === 'super_admin') r.add('super_admin')
   }
-  if (r.size === 0) r.add('host')
   return Array.from(r)
 }
 
