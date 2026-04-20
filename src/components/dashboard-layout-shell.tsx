@@ -104,6 +104,26 @@ export function DashboardLayoutShell({
           {children}
         </main>
       </div>
+
+      <footer className="mt-auto border-t border-slate-200 bg-white">
+        <div className="mx-auto flex w-full max-w-7xl flex-col items-center justify-between gap-2 px-4 py-4 text-xs text-slate-500 md:flex-row">
+          <span>
+            © {new Date().getFullYear()} KirkNetworks, LLC dba Singr Karaoke.
+            All rights reserved.
+          </span>
+          <nav className="flex gap-4">
+            <Link href="/legal/privacy" className="hover:text-primary">
+              Privacy
+            </Link>
+            <Link href="/legal/terms" className="hover:text-primary">
+              Terms
+            </Link>
+            <Link href="/legal/refund" className="hover:text-primary">
+              Refund
+            </Link>
+          </nav>
+        </div>
+      </footer>
     </div>
   )
 }

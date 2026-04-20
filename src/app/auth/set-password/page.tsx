@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { Lock } from 'lucide-react'
 import { useSession, authClient } from '@/lib/auth-client'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { IconInput } from '@/components/ui/icon-input'
 import { Label } from '@/components/ui/label'
 import {
   Card,
@@ -72,26 +73,30 @@ export default function SetPasswordPage() {
             )}
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input
+              <IconInput
                 id="password"
                 type="password"
+                icon={Lock}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={6}
                 disabled={isLoading}
+                autoComplete="new-password"
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="confirm">Confirm password</Label>
-              <Input
+              <IconInput
                 id="confirm"
                 type="password"
+                icon={Lock}
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
                 required
                 minLength={6}
                 disabled={isLoading}
+                autoComplete="new-password"
               />
             </div>
             <Button type="submit" className="w-full" disabled={isLoading}>

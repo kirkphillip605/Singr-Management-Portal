@@ -3,13 +3,14 @@
 import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import { Mail, Lock } from 'lucide-react'
 import {
   signIn,
   useSession,
   phoneNumber as phoneClient,
 } from '@/lib/auth-client'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { IconInput } from '@/components/ui/icon-input'
 import { Label } from '@/components/ui/label'
 import {
   Card,
@@ -19,6 +20,9 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { PhoneInput, toE164US } from '@/components/phone-input'
+import { OtpInput } from '@/components/otp-input'
+import { PolicyDialog } from '@/components/legal-policy-dialog'
 
 export default function SignInPage() {
   return (
@@ -37,6 +41,10 @@ function SignInLoading() {
       </div>
     </div>
   )
+}
+
+function isValidEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
 }
 
 function SignInForm() {
@@ -62,11 +70,16 @@ function SignInForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    const cleanEmail = email.trim().toLowerCase()
+    if (!isValidEmail(cleanEmail)) {
+      setError('Please enter a valid email address')
+      return
+    }
     setIsLoading(true)
     setError('')
 
     const { error: signInError } = await signIn.email({
-      email,
+      email: cleanEmail,
       password,
       callbackURL: callbackUrl,
     })
@@ -82,8 +95,13 @@ function SignInForm() {
 
   const handleSendPhoneOtp = async () => {
     setError('')
+    const e164 = toE164US(phone)
+    if (!e164) {
+      setError('Please enter a valid US/CA phone number')
+      return
+    }
     setIsLoading(true)
-    const { error: err } = await phoneClient.sendOtp({ phoneNumber: phone })
+    const { error: err } = await phoneClient.sendOtp({ phoneNumber: e164 })
     setIsLoading(false)
     if (err) {
       setError(err.message || 'Could not send verification code')
@@ -92,12 +110,17 @@ function SignInForm() {
     setPhoneStage('sent')
   }
 
-  const handleVerifyPhoneOtp = async () => {
+  const handleVerifyPhoneOtp = async (codeOverride?: string) => {
     setError('')
+    const e164 = toE164US(phone)
+    if (!e164) {
+      setError('Please enter a valid US/CA phone number')
+      return
+    }
     setIsLoading(true)
     const { error: err } = await phoneClient.verify({
-      phoneNumber: phone,
-      code: phoneCode,
+      phoneNumber: e164,
+      code: codeOverride ?? phoneCode,
     })
     setIsLoading(false)
     if (err) {
@@ -122,7 +145,7 @@ function SignInForm() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 px-4 py-8">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
@@ -155,9 +178,10 @@ function SignInForm() {
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
-                  <Input
+                  <IconInput
                     id="email"
                     type="email"
+                    icon={Mail}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
@@ -176,9 +200,10 @@ function SignInForm() {
                       Forgot password?
                     </Link>
                   </div>
-                  <Input
+                  <IconInput
                     id="password"
                     type="password"
+                    icon={Lock}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
@@ -196,37 +221,56 @@ function SignInForm() {
             <TabsContent value="phone" className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="phone">Phone number</Label>
-                <Input
+                <PhoneInput
                   id="phone"
-                  type="tel"
-                  placeholder="+15551234567"
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  onChange={(formatted) => setPhone(formatted)}
                   disabled={isLoading || phoneStage === 'sent'}
-                  autoComplete="tel"
                 />
               </div>
               {phoneStage === 'sent' && (
                 <div className="space-y-2">
                   <Label htmlFor="phoneCode">Verification code</Label>
-                  <Input
+                  <OtpInput
                     id="phoneCode"
                     value={phoneCode}
-                    onChange={(e) => setPhoneCode(e.target.value)}
-                    autoComplete="one-time-code"
+                    onChange={setPhoneCode}
+                    onComplete={(code) => handleVerifyPhoneOtp(code)}
                     disabled={isLoading}
+                    autoFocus
                   />
                 </div>
               )}
               {phoneStage === 'idle' ? (
-                <Button
-                  type="button"
-                  className="w-full"
-                  onClick={handleSendPhoneOtp}
-                  disabled={isLoading || !phone}
-                >
-                  {isLoading ? 'Sending...' : 'Send verification code'}
-                </Button>
+                <>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    By providing your phone number and selecting &ldquo;Send
+                    Verification Code,&rdquo; you confirm that the number
+                    belongs to you and consent to receive a one-time
+                    verification code via SMS from Singr. Message and data
+                    rates may apply. View{' '}
+                    <PolicyDialog
+                      policy="privacy"
+                      trigger={
+                        <button
+                          type="button"
+                          className="text-primary underline hover:no-underline"
+                        >
+                          Privacy Policy
+                        </button>
+                      }
+                    />{' '}
+                    here.
+                  </p>
+                  <Button
+                    type="button"
+                    className="w-full"
+                    onClick={handleSendPhoneOtp}
+                    disabled={isLoading || !phone}
+                  >
+                    {isLoading ? 'Sending...' : 'Send Verification Code'}
+                  </Button>
+                </>
               ) : (
                 <div className="flex gap-2">
                   <Button
@@ -241,8 +285,8 @@ function SignInForm() {
                   <Button
                     type="button"
                     className="flex-1"
-                    onClick={handleVerifyPhoneOtp}
-                    disabled={isLoading || !phoneCode}
+                    onClick={() => handleVerifyPhoneOtp()}
+                    disabled={isLoading || phoneCode.length < 6}
                   >
                     {isLoading ? 'Verifying...' : 'Sign in'}
                   </Button>
@@ -282,6 +326,7 @@ function SignInForm() {
               Sign up
             </Link>
           </div>
+
         </CardContent>
       </Card>
     </div>

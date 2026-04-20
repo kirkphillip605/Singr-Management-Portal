@@ -10,13 +10,22 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
-import { User, Shield, CreditCard, Phone, KeyRound, Link2 } from 'lucide-react'
+import {
+  User,
+  Shield,
+  CreditCard,
+  Phone,
+  KeyRound,
+  Link2,
+  Mail,
+  Lock,
+  Building2,
+} from 'lucide-react'
 import {
   authClient,
   changePassword,
@@ -25,6 +34,10 @@ import {
   linkSocial,
   unlinkAccount,
 } from '@/lib/auth-client'
+import { IconInput } from '@/components/ui/icon-input'
+import { PhoneInput, toE164US } from '@/components/phone-input'
+import { OtpInput } from '@/components/otp-input'
+import { PolicyDialog } from '@/components/legal-policy-dialog'
 
 interface UserProps {
   id: string
@@ -55,10 +68,11 @@ export function SettingsClient({ user, activeSubscription }: Props) {
   const [newPassword, setNewPassword] = useState('')
   const [pwMsg, setPwMsg] = useState<string | null>(null)
 
-  const [phoneInput, setPhoneInput] = useState(user.phoneNumber)
+  const [phoneInput, setPhoneInput] = useState(user.phoneNumber ?? '')
   const [phoneOtp, setPhoneOtp] = useState('')
   const [phoneStage, setPhoneStage] = useState<'idle' | 'sent'>('idle')
   const [phoneMsg, setPhoneMsg] = useState<string | null>(null)
+  const [phoneConsent, setPhoneConsent] = useState(false)
 
   const [twoFaPassword, setTwoFaPassword] = useState('')
   const [totpUri, setTotpUri] = useState<string | null>(null)
@@ -121,7 +135,16 @@ export function SettingsClient({ user, activeSubscription }: Props) {
 
   const handleSendPhoneOtp = async () => {
     setPhoneMsg(null)
-    const { error } = await phoneClient.sendOtp({ phoneNumber: phoneInput })
+    if (!phoneConsent) {
+      setPhoneMsg('Please confirm SMS consent before sending a code')
+      return
+    }
+    const e164 = toE164US(phoneInput) || phoneInput
+    if (!/^\+1\d{10}$/.test(e164)) {
+      setPhoneMsg('Please enter a valid US/CA phone number')
+      return
+    }
+    const { error } = await phoneClient.sendOtp({ phoneNumber: e164 })
     if (error) {
       setPhoneMsg(error.message || 'Could not send code')
       return
@@ -130,11 +153,12 @@ export function SettingsClient({ user, activeSubscription }: Props) {
     setPhoneMsg('Verification code sent')
   }
 
-  const handleVerifyPhoneOtp = async () => {
+  const handleVerifyPhoneOtp = async (codeOverride?: string) => {
     setPhoneMsg(null)
+    const e164 = toE164US(phoneInput) || phoneInput
     const { error } = await phoneClient.verify({
-      phoneNumber: phoneInput,
-      code: phoneOtp,
+      phoneNumber: e164,
+      code: codeOverride ?? phoneOtp,
       updatePhoneNumber: true,
     })
     if (error) {
@@ -232,19 +256,23 @@ export function SettingsClient({ user, activeSubscription }: Props) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="name">Full name</Label>
-                  <Input
+                  <IconInput
                     id="name"
+                    icon={User}
                     value={name}
                     onChange={(e) => setName(e.target.value)}
+                    autoComplete="name"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
-                  <Input
+                  <IconInput
                     id="email"
                     type="email"
+                    icon={Mail}
                     defaultValue={user.email}
                     disabled
+                    autoComplete="email"
                   />
                   <p className="text-xs text-muted-foreground">
                     Email cannot be changed here. Contact support if needed.
@@ -254,10 +282,12 @@ export function SettingsClient({ user, activeSubscription }: Props) {
 
               <div className="space-y-2">
                 <Label htmlFor="businessName">Business name</Label>
-                <Input
+                <IconInput
                   id="businessName"
+                  icon={Building2}
                   value={businessName}
                   onChange={(e) => setBusinessName(e.target.value)}
+                  autoComplete="organization"
                 />
               </div>
 
@@ -282,12 +312,14 @@ export function SettingsClient({ user, activeSubscription }: Props) {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="newEmail">New email</Label>
-                <Input
+                <IconInput
                   id="newEmail"
                   type="email"
+                  icon={Mail}
                   value={newEmail}
                   onChange={(e) => setNewEmail(e.target.value)}
                   placeholder="you@example.com"
+                  autoComplete="email"
                 />
               </div>
               {emailMsg && (
@@ -313,20 +345,24 @@ export function SettingsClient({ user, activeSubscription }: Props) {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="currentPassword">Current password</Label>
-                <Input
+                <IconInput
                   id="currentPassword"
                   type="password"
+                  icon={Lock}
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
+                  autoComplete="current-password"
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="newPassword">New password</Label>
-                <Input
+                <IconInput
                   id="newPassword"
                   type="password"
+                  icon={Lock}
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
+                  autoComplete="new-password"
                 />
               </div>
               {pwMsg && (
@@ -399,11 +435,13 @@ export function SettingsClient({ user, activeSubscription }: Props) {
 
               <div className="space-y-2">
                 <Label htmlFor="twoFaPassword">Confirm with password</Label>
-                <Input
+                <IconInput
                   id="twoFaPassword"
                   type="password"
+                  icon={Lock}
                   value={twoFaPassword}
                   onChange={(e) => setTwoFaPassword(e.target.value)}
+                  autoComplete="current-password"
                 />
               </div>
 
@@ -461,24 +499,60 @@ export function SettingsClient({ user, activeSubscription }: Props) {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="phone">Phone number (E.164, e.g. +15551234567)</Label>
-                <Input
+                <Label htmlFor="phone">Phone number</Label>
+                <PhoneInput
                   id="phone"
-                  type="tel"
                   value={phoneInput}
-                  onChange={(e) => setPhoneInput(e.target.value)}
-                  placeholder="+15551234567"
+                  onChange={(formatted) => setPhoneInput(formatted)}
+                  disabled={phoneStage === 'sent'}
                 />
               </div>
+
+              <label className="flex items-start gap-3 rounded-md border border-input bg-background p-3 text-xs leading-relaxed text-muted-foreground">
+                <input
+                  type="checkbox"
+                  checked={phoneConsent}
+                  onChange={(e) => setPhoneConsent(e.target.checked)}
+                  disabled={phoneStage === 'sent'}
+                  className="mt-1 h-4 w-4 shrink-0 rounded border-input text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  aria-required="true"
+                />
+                <span>
+                  By checking this box and providing my mobile number, I
+                  confirm that the number belongs to me and I consent to
+                  receive SMS messages from Singr, including account-related
+                  notifications (such as verification codes, security alerts,
+                  and service updates). Message and data rates may apply.
+                  Message frequency will vary based on account activity. View{' '}
+                  <PolicyDialog
+                    policy="privacy"
+                    trigger={
+                      <button
+                        type="button"
+                        className="text-primary underline hover:no-underline"
+                      >
+                        Privacy Policy
+                      </button>
+                    }
+                  />{' '}
+                  here.
+                  <br />
+                  <br />I understand that I can opt out of non-essential
+                  messages at any time by following the instructions provided
+                  in the message (e.g., replying STOP), and that consent is
+                  not a condition of using the service.
+                </span>
+              </label>
 
               {phoneStage === 'sent' && (
                 <div className="space-y-2">
                   <Label htmlFor="otp">Verification code</Label>
-                  <Input
+                  <OtpInput
                     id="otp"
                     value={phoneOtp}
-                    onChange={(e) => setPhoneOtp(e.target.value)}
-                    autoComplete="one-time-code"
+                    onChange={setPhoneOtp}
+                    onComplete={(c) => handleVerifyPhoneOtp(c)}
+                    autoFocus
                   />
                 </div>
               )}
@@ -489,13 +563,23 @@ export function SettingsClient({ user, activeSubscription }: Props) {
 
               <div className="flex justify-end gap-2">
                 {phoneStage === 'idle' ? (
-                  <Button onClick={handleSendPhoneOtp}>Send code</Button>
+                  <Button
+                    onClick={handleSendPhoneOtp}
+                    disabled={!phoneConsent || !phoneInput}
+                  >
+                    Send code
+                  </Button>
                 ) : (
                   <>
                     <Button variant="outline" onClick={handleSendPhoneOtp}>
                       Resend
                     </Button>
-                    <Button onClick={handleVerifyPhoneOtp}>Verify</Button>
+                    <Button
+                      onClick={() => handleVerifyPhoneOtp()}
+                      disabled={phoneOtp.length < 6}
+                    >
+                      Verify
+                    </Button>
                   </>
                 )}
               </div>

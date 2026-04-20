@@ -3,9 +3,10 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { Mail, Lock, User, Building2 } from 'lucide-react'
 import { signUp, signIn, useSession } from '@/lib/auth-client'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { IconInput } from '@/components/ui/icon-input'
 import { Label } from '@/components/ui/label'
 import {
   Card,
@@ -14,6 +15,10 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+
+function isValidEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+}
 
 export default function SignUpPage() {
   const { data: session, isPending } = useSession()
@@ -35,15 +40,23 @@ export default function SignUpPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    const cleanEmail = formData.email.trim().toLowerCase()
+    if (!isValidEmail(cleanEmail)) {
+      setError('Please enter a valid email address')
+      return
+    }
     setIsLoading(true)
     setError('')
 
     const { error: signUpError } = await signUp.email({
-      email: formData.email,
+      email: cleanEmail,
       password: formData.password,
-      name: formData.name,
+      name: formData.name.trim(),
       // Custom additional fields
-      ...({ businessName: formData.businessName } as Record<string, unknown>),
+      ...({ businessName: formData.businessName.trim() } as Record<
+        string,
+        unknown
+      >),
       callbackURL: '/dashboard',
     })
 
@@ -77,7 +90,7 @@ export default function SignUpPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 px-4 py-8">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
@@ -103,37 +116,42 @@ export default function SignUpPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name">Full Name</Label>
-              <Input
+              <IconInput
                 id="name"
                 type="text"
+                icon={User}
                 value={formData.name}
                 onChange={(e) =>
                   setFormData({ ...formData, name: e.target.value })
                 }
                 required
                 disabled={isLoading}
+                autoComplete="name"
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input
+              <IconInput
                 id="email"
                 type="email"
+                icon={Mail}
                 value={formData.email}
                 onChange={(e) =>
                   setFormData({ ...formData, email: e.target.value })
                 }
                 required
                 disabled={isLoading}
+                autoComplete="email"
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input
+              <IconInput
                 id="password"
                 type="password"
+                icon={Lock}
                 value={formData.password}
                 onChange={(e) =>
                   setFormData({ ...formData, password: e.target.value })
@@ -141,20 +159,23 @@ export default function SignUpPage() {
                 required
                 minLength={6}
                 disabled={isLoading}
+                autoComplete="new-password"
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="businessName">Business Name</Label>
-              <Input
+              <IconInput
                 id="businessName"
                 type="text"
+                icon={Building2}
                 value={formData.businessName}
                 onChange={(e) =>
                   setFormData({ ...formData, businessName: e.target.value })
                 }
                 required
                 disabled={isLoading}
+                autoComplete="organization"
               />
             </div>
 

@@ -2,9 +2,10 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { KeyRound, ShieldCheck } from 'lucide-react'
 import { twoFactor } from '@/lib/auth-client'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { IconInput } from '@/components/ui/icon-input'
 import { Label } from '@/components/ui/label'
 import {
   Card,
@@ -13,6 +14,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { OtpInput } from '@/components/otp-input'
 
 type Method = 'totp' | 'otp' | 'backup'
 
@@ -34,18 +36,15 @@ export default function TwoFactorPage() {
     setOtpSent(true)
   }
 
-  const handleVerify = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const verify = async (codeValue: string) => {
     setIsLoading(true)
     setError('')
-
     const result =
       method === 'totp'
-        ? await twoFactor.verifyTotp({ code })
+        ? await twoFactor.verifyTotp({ code: codeValue })
         : method === 'otp'
-          ? await twoFactor.verifyOtp({ code })
-          : await twoFactor.verifyBackupCode({ code })
-
+          ? await twoFactor.verifyOtp({ code: codeValue })
+          : await twoFactor.verifyBackupCode({ code: codeValue })
     setIsLoading(false)
     if (result.error) {
       setError(result.error.message || 'Invalid code')
@@ -55,8 +54,15 @@ export default function TwoFactorPage() {
     router.refresh()
   }
 
+  const handleVerify = async (e: React.FormEvent) => {
+    e.preventDefault()
+    await verify(code)
+  }
+
+  const useBoxes = method === 'totp' || method === 'otp'
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 px-4 py-8">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">Two-Factor Authentication</CardTitle>
@@ -70,7 +76,10 @@ export default function TwoFactorPage() {
               type="button"
               variant={method === 'totp' ? 'default' : 'outline'}
               size="sm"
-              onClick={() => setMethod('totp')}
+              onClick={() => {
+                setMethod('totp')
+                setCode('')
+              }}
             >
               Authenticator
             </Button>
@@ -78,7 +87,10 @@ export default function TwoFactorPage() {
               type="button"
               variant={method === 'otp' ? 'default' : 'outline'}
               size="sm"
-              onClick={() => setMethod('otp')}
+              onClick={() => {
+                setMethod('otp')
+                setCode('')
+              }}
             >
               Email / SMS
             </Button>
@@ -86,7 +98,10 @@ export default function TwoFactorPage() {
               type="button"
               variant={method === 'backup' ? 'default' : 'outline'}
               size="sm"
-              onClick={() => setMethod('backup')}
+              onClick={() => {
+                setMethod('backup')
+                setCode('')
+              }}
             >
               Backup code
             </Button>
@@ -105,20 +120,46 @@ export default function TwoFactorPage() {
               </div>
             )}
             <div className="space-y-2">
-              <Label htmlFor="code">Code</Label>
-              <Input
-                id="code"
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                required
-                autoComplete="one-time-code"
-                disabled={isLoading}
-              />
+              <Label htmlFor="code">
+                {method === 'backup' ? 'Backup code' : '6-digit code'}
+              </Label>
+              {useBoxes ? (
+                <OtpInput
+                  id="code"
+                  value={code}
+                  onChange={setCode}
+                  onComplete={(c) => verify(c)}
+                  disabled={isLoading}
+                  autoFocus
+                />
+              ) : (
+                <IconInput
+                  id="code"
+                  icon={KeyRound}
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  required
+                  autoComplete="one-time-code"
+                  disabled={isLoading}
+                />
+              )}
             </div>
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={
+                isLoading ||
+                (useBoxes ? code.length < 6 : code.length === 0)
+              }
+            >
               {isLoading ? 'Verifying...' : 'Verify'}
             </Button>
           </form>
+
+          <p className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
+            <ShieldCheck className="h-3 w-3" /> Protected by two-factor
+            authentication
+          </p>
         </CardContent>
       </Card>
     </div>

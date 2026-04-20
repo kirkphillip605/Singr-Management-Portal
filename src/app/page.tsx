@@ -409,18 +409,69 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="bg-gray-900 text-white py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="flex items-center mb-4 md:mb-0">
-              <img 
-                src="/singr-icon.png"
-                alt="Singr Karaoke" 
-                className="h-8 w-8"
-              />
-              <span className="ml-2 text-xl font-bold">Singr Karaoke Connect</span>
+          <div className="grid gap-8 md:grid-cols-3">
+            <div>
+              <div className="flex items-center">
+                <img
+                  src="/singr-icon.png"
+                  alt="Singr Karaoke"
+                  className="h-8 w-8"
+                />
+                <span className="ml-2 text-xl font-bold">
+                  Singr Karaoke Connect
+                </span>
+              </div>
+              <p className="mt-3 text-sm text-gray-400">
+                A KirkNetworks, LLC product. Revolutionizing karaoke
+                experiences worldwide.
+              </p>
             </div>
-            <div className="text-gray-400 text-sm">
-              © 2025 Singr Karaoke. All rights reserved. Revolutionizing karaoke experiences worldwide.
+
+            <div>
+              <h4 className="text-sm font-semibold uppercase tracking-wider text-gray-300">
+                Legal
+              </h4>
+              <ul className="mt-3 space-y-2 text-sm">
+                <li>
+                  <Link href="/legal/privacy" className="text-gray-400 hover:text-white">
+                    Privacy Policy
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/legal/terms" className="text-gray-400 hover:text-white">
+                    Terms of Service
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/legal/refund" className="text-gray-400 hover:text-white">
+                    Refund Policy
+                  </Link>
+                </li>
+              </ul>
             </div>
+
+            <div>
+              <h4 className="text-sm font-semibold uppercase tracking-wider text-gray-300">
+                Contact
+              </h4>
+              <ul className="mt-3 space-y-1 text-sm text-gray-400">
+                <li>KirkNetworks, LLC dba Singr Karaoke</li>
+                <li>420 8th St SE, Watertown, SD 57201</li>
+                <li>(605) 760-8830</li>
+                <li>
+                  <a
+                    href="mailto:support@singrkaraoke.com"
+                    className="hover:text-white"
+                  >
+                    support@singrkaraoke.com
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="mt-10 border-t border-gray-800 pt-6 text-center text-xs text-gray-500">
+            © {new Date().getFullYear()} KirkNetworks, LLC. All rights reserved.
           </div>
         </div>
       </footer>

@@ -2,10 +2,11 @@
 
 import { Suspense, useState } from 'react'
 import Link from 'next/link'
+import { Lock } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { resetPassword } from '@/lib/auth-client'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { IconInput } from '@/components/ui/icon-input'
 import { Label } from '@/components/ui/label'
 import {
   Card,
@@ -62,7 +63,7 @@ function ResetPasswordForm() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 px-4 py-8">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">Reset Password</CardTitle>
@@ -77,26 +78,30 @@ function ResetPasswordForm() {
             )}
             <div className="space-y-2">
               <Label htmlFor="password">New password</Label>
-              <Input
+              <IconInput
                 id="password"
                 type="password"
+                icon={Lock}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={6}
                 disabled={isLoading}
+                autoComplete="new-password"
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="confirm">Confirm new password</Label>
-              <Input
+              <IconInput
                 id="confirm"
                 type="password"
+                icon={Lock}
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
                 required
                 minLength={6}
                 disabled={isLoading}
+                autoComplete="new-password"
               />
             </div>
             <Button type="submit" className="w-full" disabled={isLoading}>

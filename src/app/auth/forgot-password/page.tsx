@@ -2,9 +2,10 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { Mail } from 'lucide-react'
 import { authClient } from '@/lib/auth-client'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { IconInput } from '@/components/ui/icon-input'
 import { Label } from '@/components/ui/label'
 import {
   Card,
@@ -22,6 +23,11 @@ export default function ForgotPasswordPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    const cleanEmail = email.trim().toLowerCase()
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      setError('Please enter a valid email address')
+      return
+    }
     setIsLoading(true)
     setError('')
 
@@ -31,7 +37,7 @@ export default function ForgotPasswordPage() {
     // still works.
     const { error: err } = await authClient.$fetch('/forget-password', {
       method: 'POST',
-      body: { email, redirectTo: '/auth/reset-password' },
+      body: { email: cleanEmail, redirectTo: '/auth/reset-password' },
     })
     setIsLoading(false)
     if (err) {
@@ -65,13 +71,15 @@ export default function ForgotPasswordPage() {
               )}
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input
+                <IconInput
                   id="email"
                   type="email"
+                  icon={Mail}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   disabled={isLoading}
+                  autoComplete="email"
                 />
               </div>
               <Button type="submit" className="w-full" disabled={isLoading}>
