@@ -1,0 +1,32 @@
+You are an expert Next.js, Node.js, and Better Auth full-stack developer. We are migrating the Singr platform from isolated authentication realms to a unified authentication architecture with Role-Based Access Control (RBAC). The app is divided across four subdomains: singrkaraoke.com (landing), host.singrkaraoke.com (singer portal), admin.singrkaraoke.com (admin/support), and api.singrkaraoke.com (API layer).
+Please execute the following implementation plan step-by-step. Do not proceed to the next phase until the current phase is complete and functional.
+Phase 1: Build Stabilization & Dependency Resolution
+Review the provided build log file: Pasted--singr-karaoke-connect-1-0-0-build-next-build-Next-js-1_1776713793511.txt.
+Resolve the import trace errors at the top of the file.
+Fix all warnings to ensure a clean npm run build output.
+Add any missing dependencies to package.json to ensure the app runs efficiently and without terminal junk.
+Phase 2: Unified Better Auth & Database Schema Setup
+Refactor the Better Auth instance to act as a single source of truth for the entire platform. Users must only register once.
+Implement RBAC using Better Auth's custom session data/roles. Base roles include: customer, singer, support, and super_admin. Users can have multiple roles (e.g., ['customer', 'singer']).
+Update the database schema to support unified users, custom roles, and Better Auth plugin requirements. Ensure migrations are generated and applied.
+Configure CORS and cookie settings in the Better Auth instance to ensure sessions work seamlessly across our subdomains and natively on Capacitor mobile apps.
+Phase 3: Subdomain Routing, Middleware, & Onboarding Workflows
+Implement robust Next.js middleware to handle app-level authorization based on the user's Better Auth roles.
+If a user logs into a portal (e.g., Singer portal) but lacks the required role, block access and redirect them to a specific onboarding workflow.
+The workflow UI should state: "You are logged in, but you don't have a [Role] profile. Click here to register as a [Role]."
+This workflow must strictly toggle the role flag on their existing identity via Better Auth. It must NOT require a second password, trigger a new email verification, or cause "email already in use" errors.
+Phase 4: Better Auth Plugin Integration & Code Purge
+Strip out all manual logic for features that Better Auth handles natively. Delete deprecated files, routes, and custom authentication utilities.
+Integrate Better Auth plugins to handle the following:
+Authentication: 2FA, OTP (Email via Mailjet/SMTP, Phone via Twilio), Magic Links, and Google One Tap.
+Profile Management: Password changes, email verification, and account linking/unlinking.
+Payments: Better Auth Stripe plugin (replacing our custom Stripe logic).
+Phase 5: Environment Variables & Documentation
+Update .env.example. Remove obsolete variables tied to the old manual auth setup.
+Add necessary variables for Twilio, Mailjet/SMTP, Stripe, and the following OAuth providers: Facebook, Apple, TikTok, and Spotify.
+Update README.md with explicit instructions on how to configure the environment, including any specific server-side DNS configurations needed to support the wildcard subdomains I have pointed to the server.
+Phase 6: Admin Portal Foundation (Prep Work)
+Note: The UI/UX rebuild of the Admin portal will be a separate task, but the backend foundation must be laid now.
+Implement the Better Auth admin plugin alongside the access control plugin.
+Define strict capabilities: Ensure a support user has common-sense permissions but absolutely cannot impersonate a super_admin or alter super_admin accounts.
+Implement the dash() plugin to serve as the foundation for our Sentinel and audit logging, ensuring all impersonations, bans, and role changes are strictly tracked for admin review.

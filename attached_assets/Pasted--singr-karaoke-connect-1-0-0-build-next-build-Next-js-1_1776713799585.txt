@@ -1,0 +1,228 @@
+> singr-karaoke-connect@1.0.0 build
+> next build
+
+   ▲ Next.js 15.5.15
+   - Environments: .env
+   - Experiments (use with caution):
+     · serverActions
+     · optimizePackageImports
+
+   Creating an optimized production build ...
+ ⚠ Compiled with warnings in 36.5s
+
+./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/instrumentation.js
+Critical dependency: the request of a dependency is an expression
+
+Import trace for requested module:
+./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/instrumentation.js
+./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/node/index.js
+./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/platform/index.js
+./node_modules/@prisma/instrumentation/node_modules/@opentelemetry/instrumentation/build/esm/index.js
+./node_modules/@prisma/instrumentation/dist/index.js
+./node_modules/@sentry/node/build/cjs/integrations/tracing/prisma.js
+./node_modules/@sentry/node/build/cjs/index.js
+./node_modules/@sentry/nextjs/build/cjs/index.server.js
+./src/app/global-error.tsx
+
+
+Failed to compile.
+
+./src/app/admin/support/[ticketId]/page.tsx
+29:35  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+61:37  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+87:35  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/app/admin/support/page.tsx
+17:16  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+51:16  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+71:30  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+161:37  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/app/admin/users/[userId]/notes/page.tsx
+51:16  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+76:51  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/app/api/admin/support/tickets/[ticketId]/assign/route.ts
+30:37  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+48:22  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+53:22  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/app/api/admin/support/tickets/[ticketId]/messages/route.ts
+37:35  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+62:20  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+77:37  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+77:66  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/app/api/admin/support/tickets/[ticketId]/priority/route.ts
+30:37  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+38:22  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+43:22  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/app/api/admin/support/tickets/[ticketId]/status/route.ts
+30:37  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+38:22  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+46:22  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/app/api/admin/support/tickets/route.ts
+56:37  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+56:66  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/app/api/admin/users/[userId]/notes/[noteId]/route.ts
+31:35  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+43:38  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/app/api/admin/users/[userId]/notes/route.ts
+43:35  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/app/api/admin/venues/[venueId]/route.ts
+57:32  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/app/api/billing/cancel-subscription/route.ts
+52:35  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/app/api/billing/create-checkout-session/route.ts
+50:27  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+105:57  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/app/api/billing/reactivate-subscription/route.ts
+48:35  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/app/api/openkj/route.ts
+254:28  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+294:27  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+300:22  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+306:70  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+430:15  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+490:52  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+555:41  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+633:41  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/app/api/support/attachments/[ticketId]/[filename]/route.ts
+26:37  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/app/api/support/tickets/[ticketId]/messages/route.ts
+37:35  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+69:20  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+84:37  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+84:66  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/app/api/support/tickets/route.ts
+49:37  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+49:66  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/app/api/webhooks/stripe/route.ts
+51:67  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+52:66  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+56:65  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+57:64  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+288:54  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/app/auth/signin/page.tsx
+165:13  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./src/app/auth/signup/page.tsx
+97:13  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./src/app/dashboard/api-keys/page.tsx
+135:42  Warning: `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`.  react/no-unescaped-entities
+177:23  Warning: `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`.  react/no-unescaped-entities
+177:39  Warning: `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`.  react/no-unescaped-entities
+
+./src/app/dashboard/billing/page.tsx
+42:19  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+42:39  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+47:32  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+68:31  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+84:30  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+116:29  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+153:22  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+154:23  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+155:17  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+351:52  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+390:51  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/app/dashboard/billing/plans/page.tsx
+36:39  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/app/dashboard/page.tsx
+47:27  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+48:20  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/app/dashboard/support/[ticketId]/page.tsx
+37:35  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+68:37  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+94:35  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/app/dashboard/support/page.tsx
+76:16  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+101:16  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+110:80  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+117:43  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/app/dashboard/venues/new/page.tsx
+26:13  Warning: `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`.  react/no-unescaped-entities
+26:86  Warning: `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`.  react/no-unescaped-entities
+
+./src/app/legal/layout.tsx
+14:13  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./src/app/page.tsx
+58:11  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./src/components/admin/admin-api-key-generator.tsx
+83:14  Warning: 'err' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/admin/admin-ticket-actions.tsx
+59:14  Warning: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+91:14  Warning: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+123:14  Warning: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/admin/admin-ticket-create-modal.tsx
+247:40  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/components/api-key-actions.tsx
+78:14  Warning: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+103:14  Warning: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+187:90  Warning: `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`.  react/no-unescaped-entities
+245:57  Warning: `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`.  react/no-unescaped-entities
+
+./src/components/create-api-key-form.tsx
+65:87  Warning: `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`.  react/no-unescaped-entities
+
+./src/components/pricing-plans.tsx
+15:14  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/components/support/ticket-audit-trail.tsx
+20:14  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+21:14  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+34:37  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/components/ui/error-boundary.tsx
+69:19  Warning: `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`.  react/no-unescaped-entities
+
+./src/components/ui/use-toast.tsx
+17:46  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/components/venue-search-form.tsx
+420:26  Warning: `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`.  react/no-unescaped-entities
+500:22  Warning: `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`.  react/no-unescaped-entities
+
+./src/components/venue-toggle.tsx
+53:14  Warning: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/hooks/use-async.ts
+43:22  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+72:28  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+98:21  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+156:28  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/lib/subscription-normalize.ts
+18:26  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+18:46  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+23:39  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+45:38  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+60:44  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+73:49  Warning: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./src/middleware.ts
+163:9  Error: 'rewritten' is never reassigned. Use 'const' instead.  prefer-const
