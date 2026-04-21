@@ -73,7 +73,7 @@ export default async function SupportDashboardPage() {
   const supportDocs = process.env['SUPPORT_DOCS'] || 'https://docs.singrkaraoke.com'
 
   const [tickets, groupedCounts] = await Promise.all([
-    (prisma as any).supportTicket.findMany({
+    prisma.supportTicket.findMany({
       where: { requesterId: userId },
       include: {
         assignee: {
@@ -98,7 +98,7 @@ export default async function SupportDashboardPage() {
       },
       orderBy: { updatedAt: 'desc' },
     }),
-    (prisma as any).supportTicket.groupBy({
+    prisma.supportTicket.groupBy({
       by: ['status'],
       where: { requesterId: userId },
       _count: {

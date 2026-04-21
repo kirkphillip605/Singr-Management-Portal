@@ -95,7 +95,7 @@ export function AdminTicketCreateModal({ customers }: AdminTicketCreateModalProp
 
     const parsed = createTicketSchema.safeParse(formState)
     if (!parsed.success) {
-      setError(parsed.error.errors[0]?.message ?? 'Check the form and try again.')
+      setError(parsed.error.issues[0]?.message ?? 'Check the form and try again.')
       return
     }
 

@@ -40,7 +40,7 @@ export async function POST(
       return NextResponse.json({ error: 'Customer not found' }, { status: 404 })
     }
 
-    const note = await (prisma as any).userNote.create({
+    const note = await prisma.userNote.create({
       data: {
         userId,
         createdBy: session!.user!.id,
@@ -63,7 +63,7 @@ export async function POST(
     })
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.errors[0]?.message ?? 'Invalid payload' }, { status: 400 })
+      return NextResponse.json({ error: error.issues[0]?.message ?? 'Invalid payload' }, { status: 400 })
     }
 
     logger.error('Failed to create customer note', {

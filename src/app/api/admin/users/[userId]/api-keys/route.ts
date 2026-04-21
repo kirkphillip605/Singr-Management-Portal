@@ -79,7 +79,7 @@ export async function POST(
     })
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.errors[0]?.message ?? 'Validation error' }, { status: 400 })
+      return NextResponse.json({ error: error.issues[0]?.message ?? 'Validation error' }, { status: 400 })
     }
 
     logger.error('Failed to create API key as admin', { error })

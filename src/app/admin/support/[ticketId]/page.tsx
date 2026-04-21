@@ -26,7 +26,7 @@ export default async function AdminSupportTicketDetailPage({ params }: PageProps
   const paramsResolved = await params
   const { ticketId } = paramsResolved
 
-  const ticket = await (prisma as any).supportTicket.findFirst({
+  const ticket = await prisma.supportTicket.findFirst({
     where: {
       id: ticketId,
     },
@@ -58,7 +58,7 @@ export default async function AdminSupportTicketDetailPage({ params }: PageProps
     notFound()
   }
 
-  const messages = await (prisma as any).supportTicketMessage.findMany({
+  const messages = await prisma.supportTicketMessage.findMany({
     where: {
       ticketId,
     },
@@ -84,7 +84,7 @@ export default async function AdminSupportTicketDetailPage({ params }: PageProps
     orderBy: { createdAt: 'desc' },
   })
 
-  const audits = await (prisma as any).supportTicketAudit.findMany({
+  const audits = await prisma.supportTicketAudit.findMany({
     where: {
       ticketId,
     },

@@ -14,7 +14,7 @@ export default async function AdminSupportPage() {
   await requireAdminSession()
 
   const [tickets, groupedCounts, customers] = await Promise.all([
-    (prisma as any).supportTicket.findMany({
+    prisma.supportTicket.findMany({
       include: {
         requester: {
           select: {
@@ -48,7 +48,7 @@ export default async function AdminSupportPage() {
       orderBy: { updatedAt: 'desc' },
       take: 100,
     }),
-    (prisma as any).supportTicket.groupBy({
+    prisma.supportTicket.groupBy({
       by: ['status'],
       _count: {
         _all: true,

@@ -28,7 +28,7 @@ export async function PATCH(
     const body = await request.json()
     const payload = updateSchema.parse(body)
 
-    const note = await (prisma as any).userNote.findUnique({
+    const note = await prisma.userNote.findUnique({
       where: { id: noteId },
       select: {
         id: true,
@@ -40,7 +40,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Note not found' }, { status: 404 })
     }
 
-    const updated = await (prisma as any).userNote.update({
+    const updated = await prisma.userNote.update({
       where: { id: noteId },
       data: { important: payload.important },
     })
@@ -58,7 +58,7 @@ export async function PATCH(
     })
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.errors[0]?.message ?? 'Invalid payload' }, { status: 400 })
+      return NextResponse.json({ error: error.issues[0]?.message ?? 'Invalid payload' }, { status: 400 })
     }
 
     logger.error('Failed to toggle customer note importance', {

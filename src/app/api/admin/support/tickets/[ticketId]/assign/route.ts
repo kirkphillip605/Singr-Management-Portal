@@ -27,7 +27,7 @@ export async function PATCH(
   }
 
   try {
-    const ticket = await (prisma as any).supportTicket.findUnique({
+    const ticket = await prisma.supportTicket.findUnique({
       where: { id: ticketId },
     })
 
@@ -45,12 +45,12 @@ export async function PATCH(
       }
     }
 
-    await (prisma as any).supportTicket.update({
+    await prisma.supportTicket.update({
       where: { id: ticketId },
       data: { assigneeId: parsed.data.assigneeId },
     })
 
-    await (prisma as any).supportTicketAudit.create({
+    await prisma.supportTicketAudit.create({
       data: {
         ticketId,
         actorId: session.user!.id,

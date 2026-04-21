@@ -5,6 +5,7 @@ import path from 'path'
 
 import { requireAdminSession } from '@/lib/admin-auth'
 import { prisma } from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
 import { logger } from '@/lib/logger'
 import {
   persistSupportAttachment,
@@ -36,7 +37,7 @@ export async function POST(request: NextRequest) {
   })
 
   if (!payload.success) {
-    return NextResponse.json({ error: payload.error.errors[0]?.message ?? 'Invalid request' }, { status: 400 })
+    return NextResponse.json({ error: payload.error.issues[0]?.message ?? 'Invalid request' }, { status: 400 })
   }
 
   // Verify customer exists and is a customer
@@ -53,7 +54,7 @@ export async function POST(request: NextRequest) {
     .filter((value): value is File => value instanceof File && value.size > 0)
 
   try {
-    const result = await (prisma as any).$transaction(async (tx: any) => {
+    const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       // Get customer details for message body
       const user = await tx.user.findUnique({
         where: { id: payload.data.customerId },
@@ -121,13 +122,13 @@ Attachment: ${attachmentList}`
       })
 
       if (savedFiles.length) {
-        await tx.supportMessageAttachment.createMany({
+        await tx.messageAttachment.createMany({
           data: savedFiles.map((file) => ({
             messageId: message.id,
-            fileName: file.fileName,
-            mimeType: file.mimeType ?? null,
-            byteSize: BigInt(file.byteSize),
-            storageUrl: file.storageUrl,
+            filename: file.fileName,
+            mimetype: file.mimeType ?? null,
+            bytesize: BigInt(file.byteSize),
+            storageurl: file.storageUrl,
           })),
         })
       }

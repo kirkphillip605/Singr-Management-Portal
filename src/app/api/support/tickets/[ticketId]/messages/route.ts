@@ -5,6 +5,7 @@ import { format } from 'date-fns'
 
 import { getAuthSession } from '@/lib/auth-server'
 import { prisma } from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
 import { logger } from '@/lib/logger'
 import {
   persistSupportAttachment,
@@ -34,7 +35,7 @@ export async function POST(
     return NextResponse.json({ error: 'Message body is required' }, { status: 400 })
   }
 
-  const ticket = await (prisma as any).supportTicket.findFirst({
+  const ticket = await prisma.supportTicket.findFirst({
     where: {
       id: ticketId,
       requesterId: session.user.id,
@@ -81,7 +82,7 @@ export async function POST(
     .filter((value): value is File => value instanceof File && value.size > 0)
 
   try {
-    const result = await (prisma as any).$transaction(async (tx: any) => {
+    const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const message = await tx.supportTicketMessage.create({
         data: {
           ticketId,
@@ -138,13 +139,13 @@ export async function POST(
           }
 
           if (savedFiles.length) {
-            await tx.supportMessageAttachment.createMany({
+            await tx.messageAttachment.createMany({
               data: savedFiles.map((file) => ({
                 messageId: message.id,
-                fileName: file.fileName,
-                mimeType: file.mimeType ?? null,
-                byteSize: BigInt(file.byteSize),
-                storageUrl: file.storageUrl,
+                filename: file.fileName,
+                mimetype: file.mimeType ?? null,
+                bytesize: BigInt(file.byteSize),
+                storageurl: file.storageUrl,
               })),
             })
           }

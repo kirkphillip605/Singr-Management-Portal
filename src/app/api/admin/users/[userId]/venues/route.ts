@@ -170,7 +170,7 @@ export async function POST(
     })
   } catch (error: unknown) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.errors[0]?.message ?? 'Validation error' }, { status: 400 })
+      return NextResponse.json({ error: error.issues[0]?.message ?? 'Validation error' }, { status: 400 })
     }
 
     // @ts-expect-error Prisma error shape at runtime

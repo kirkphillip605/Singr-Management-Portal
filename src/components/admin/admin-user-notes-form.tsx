@@ -51,7 +51,7 @@ export function AdminUserNotesForm({ userId }: AdminUserNotesFormProps) {
     const parsed = createNoteSchema.safeParse(formState)
 
     if (!parsed.success) {
-      setError(parsed.error.errors[0]?.message ?? 'Please complete all required fields')
+      setError(parsed.error.issues[0]?.message ?? 'Please complete all required fields')
       return
     }
 
