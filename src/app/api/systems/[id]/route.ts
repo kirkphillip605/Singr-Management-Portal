@@ -49,7 +49,7 @@ export async function PATCH(
     return NextResponse.json({ system: updated })
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.errors[0]?.message ?? 'Validation error' }, { status: 400 })
+      return NextResponse.json({ error: error.issues[0]?.message ?? 'Validation error' }, { status: 400 })
     }
 
     console.error('Failed to update system', error)

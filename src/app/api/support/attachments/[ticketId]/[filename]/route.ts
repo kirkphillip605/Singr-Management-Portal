@@ -23,7 +23,7 @@ export async function GET(
 
   try {
     // Get the ticket
-    const ticket = await (prisma as any).supportTicket.findUnique({
+    const ticket = await prisma.supportTicket.findUnique({
       where: { id: ticketId },
       select: {
         requesterId: true,

@@ -34,7 +34,7 @@ export default async function SupportTicketDetailPage({ params }: PageProps) {
     redirect('/admin')
   }
 
-  const ticket = await (prisma as any).supportTicket.findFirst({
+  const ticket = await prisma.supportTicket.findFirst({
     where: {
       id: ticketId,
       requesterId: session.user.id,
@@ -65,7 +65,7 @@ export default async function SupportTicketDetailPage({ params }: PageProps) {
     notFound()
   }
 
-  const messages = await (prisma as any).supportTicketMessage.findMany({
+  const messages = await prisma.supportTicketMessage.findMany({
     where: {
       ticketId,
       visibility: 'public',
@@ -91,7 +91,7 @@ export default async function SupportTicketDetailPage({ params }: PageProps) {
     orderBy: { createdAt: 'desc' },
   })
 
-  const audits = await (prisma as any).supportTicketAudit.findMany({
+  const audits = await prisma.supportTicketAudit.findMany({
     where: {
       ticketId,
     },

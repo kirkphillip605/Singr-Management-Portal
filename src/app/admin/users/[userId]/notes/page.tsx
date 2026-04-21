@@ -48,7 +48,7 @@ export default async function AdminUserNotesPage({ params }: AdminUserNotesPageP
         createdAt: true,
       },
     }),
-    (prisma as any).userNote.findMany({
+    prisma.userNote.findMany({
       where: { userId },
       include: {
         author: {
