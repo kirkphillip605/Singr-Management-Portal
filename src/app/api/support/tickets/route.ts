@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
   })
 
   if (!payload.success) {
-    return NextResponse.json({ error: payload.error.errors[0]?.message ?? 'Invalid request' }, { status: 400 })
+    return NextResponse.json({ error: payload.error.issues[0]?.message ?? 'Invalid request' }, { status: 400 })
   }
 
   const attachments = formData
