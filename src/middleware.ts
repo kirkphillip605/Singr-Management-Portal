@@ -160,7 +160,7 @@ export function middleware(req: NextRequest) {
       return new NextResponse('Forbidden', { status: 403 })
     }
 
-    let rewritten = url.clone()
+    const rewritten = url.clone()
     if (!url.pathname.startsWith('/api')) {
       rewritten.pathname = `/api${url.pathname === '/' ? '' : url.pathname}`
     }
