@@ -44,6 +44,9 @@ RUN if [ -d "packages/database" ]; then pnpm --filter @singr/database exec prism
 # Build the target app
 RUN pnpm exec turbo run build --filter=${APP_PACKAGE}
 
+# Ensure public directory exists so the runner COPY command doesn't fail
+RUN mkdir -p /app/apps/${APP_NAME}/public
+
 # ── Stage 3: Runner ───────────────────────────────────────────────────────
 FROM node:24-alpine AS runner
 ARG APP_NAME
