@@ -27,15 +27,14 @@ ARG APP_PACKAGE
 COPY --from=pruner /app/out/json/ .
 COPY --from=pruner /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
 COPY --from=pruner /app/out/pnpm-workspace.yaml ./pnpm-workspace.yaml
-COPY --from=pruner /app/out/full/packages/database/prisma/ ./packages/database/prisma/
 RUN pnpm install --frozen-lockfile --prod=false
 
 # Copy source and build
 COPY --from=pruner /app/out/full/ .
 COPY turbo.json turbo.json
 
-# Generate Prisma client
-RUN pnpm --filter @singr/database exec prisma generate
+# Generate Prisma client if the database package is included in this prune
+RUN if [ -d "packages/database" ]; then pnpm --filter @singr/database exec prisma generate; fi
 
 # Build the target app
 RUN pnpm exec turbo run build --filter=${APP_PACKAGE}
