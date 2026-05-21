@@ -10,13 +10,13 @@
     "type-check": "turbo run type-check",
     "clean": "turbo run clean && rm -rf node_modules/.cache",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md}\"",
-    "db:generate": "pnpm --filter @singr/database exec prisma generate",
-    "db:push": "pnpm --filter @singr/database exec prisma db push",
-    "db:migrate": "pnpm --filter @singr/database exec prisma migrate dev",
-    "db:migrate:deploy": "pnpm --filter @singr/database exec prisma migrate deploy",
+    "db:generate": "pnpm --filter @singr/database run db:generate",
+    "db:push": "pnpm --filter @singr/database run db:push",
+    "db:migrate": "pnpm --filter @singr/database run db:migrate",
+    "db:migrate:deploy": "pnpm --filter @singr/database run db:migrate:deploy",
     "db:seed": "pnpm --filter @singr/database run db:seed",
-    "db:studio": "pnpm --filter @singr/database exec prisma studio",
-    "postinstall": "pnpm --filter @singr/database exec prisma generate"
+    "db:studio": "pnpm --filter @singr/database run db:studio",
+    "postinstall": "pnpm --filter @singr/database run db:generate"
   },
   "devDependencies": {
     "prettier": "^3.5.3",

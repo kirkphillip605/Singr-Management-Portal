@@ -25,7 +25,7 @@ const choices = [
   },
   {
     role: 'Karaoke Host' as const,
-    href: 'https://host.singrkaraoke.com',
+    href: '/host',
     icon: Headphones,
     tagline: 'For KJs & venue owners',
     description:
@@ -42,28 +42,24 @@ const choices = [
 export default function LandingPage() {
   const adminSignInHref = 'https://admin.singrkaraoke.com/auth/signin'
   return (
-    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-slate-100">
+    <div className="relative min-h-screen overflow-hidden bg-slate-50 text-slate-900">
       {/* Decorative gradient blobs */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -left-40 h-[28rem] w-[28rem] rounded-full bg-fuchsia-500/20 blur-3xl" />
-        <div className="absolute top-1/3 -right-40 h-[32rem] w-[32rem] rounded-full bg-indigo-500/20 blur-3xl" />
-        <div className="absolute -bottom-40 left-1/3 h-[28rem] w-[28rem] rounded-full bg-cyan-400/10 blur-3xl" />
+        <div className="absolute -top-40 -left-40 h-[28rem] w-[28rem] rounded-full bg-primary/10 blur-3xl" />
+        <div className="absolute top-1/3 -right-40 h-[32rem] w-[32rem] rounded-full bg-secondary/10 blur-3xl" />
       </div>
 
       <header className="relative z-10 mx-auto flex max-w-7xl items-center justify-between px-6 py-6 sm:px-8">
         <Link href="/" className="flex items-center gap-3">
           <img
-            src="/singr-icon.png"
+            src="/singr-logo-color.png"
             alt="Singr Karaoke"
-            className="h-9 w-9"
+            className="h-9 w-auto"
           />
-          <span className="text-base font-semibold tracking-tight">
-            Singr Karaoke
-          </span>
         </Link>
         <a
-          href="https://host.singrkaraoke.com"
-          className="hidden text-sm font-medium text-slate-300 transition hover:text-white sm:inline-flex"
+          href="https://host.singrkaraoke.com/auth/signin"
+          className="hidden text-sm font-medium text-slate-600 transition hover:text-slate-900 sm:inline-flex"
         >
           Host sign in
           <ArrowRight className="ml-1 h-4 w-4" />
@@ -72,14 +68,14 @@ export default function LandingPage() {
 
       <main className="relative z-10 mx-auto flex max-w-7xl flex-col items-center px-6 pb-24 pt-8 sm:px-8 sm:pt-16">
         <div className="mb-12 max-w-3xl text-center sm:mb-16">
-          <span className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium uppercase tracking-wider text-slate-300 backdrop-blur">
-            <Sparkles className="h-3.5 w-3.5 text-fuchsia-300" />
+          <span className="mb-5 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium uppercase tracking-wider text-slate-600 shadow-sm">
+            <Sparkles className="h-3.5 w-3.5 text-primary" />
             Karaoke, reimagined
           </span>
-          <h1 className="text-balance text-4xl font-semibold leading-tight tracking-tight sm:text-5xl md:text-6xl">
+          <h1 className="text-balance text-4xl font-bold leading-tight tracking-tight text-black sm:text-5xl md:text-6xl">
             One stage. Two ways in.
           </h1>
-          <p className="mt-5 text-pretty text-base leading-relaxed text-slate-300 sm:text-lg">
+          <p className="mt-5 text-pretty text-base leading-relaxed text-slate-600 sm:text-lg">
             Singr Karaoke brings singers and hosts together with a modern,
             real-time request platform. Pick the door that&rsquo;s yours.
           </p>
@@ -87,30 +83,29 @@ export default function LandingPage() {
 
         <div className="grid w-full gap-6 sm:gap-8 md:grid-cols-2">
           {choices.map((choice) => (
-            <a
+            <Link
               key={choice.role}
               href={choice.href}
-              className="group relative flex flex-col overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04] p-7 backdrop-blur-md transition duration-300 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 sm:p-9"
+              className="group relative flex flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white p-7 shadow-lg transition duration-300 hover:-translate-y-1 hover:border-primary/20 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 sm:p-9"
             >
-              <div className="absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-white/30 to-transparent opacity-0 transition group-hover:opacity-100" />
               <div className="mb-6 flex items-center justify-between">
-                <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-fuchsia-500/30 to-indigo-500/30 text-fuchsia-100 ring-1 ring-inset ring-white/10">
+                <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-tr from-[#EF3B30] to-[#FBB03B] text-white shadow-sm">
                   <choice.icon className="h-6 w-6" />
                 </span>
-                <span className="text-xs font-medium uppercase tracking-wider text-slate-400">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
                   {choice.tagline}
                 </span>
               </div>
-              <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+              <h2 className="text-2xl font-bold tracking-tight text-black sm:text-3xl">
                 {choice.role}
               </h2>
-              <p className="mt-3 text-sm leading-relaxed text-slate-300 sm:text-base">
+              <p className="mt-3 text-sm leading-relaxed text-slate-600 sm:text-base">
                 {choice.description}
               </p>
-              <ul className="mt-6 space-y-2 text-sm text-slate-300">
+              <ul className="mt-6 space-y-2 text-sm text-slate-600">
                 {choice.bullets.map((b) => (
                   <li key={b} className="flex items-start gap-2">
-                    <span className="mt-1.5 h-1.5 w-1.5 flex-none rounded-full bg-fuchsia-300" />
+                    <span className="mt-1.5 h-1.5 w-1.5 flex-none rounded-full bg-primary" />
                     <span>{b}</span>
                   </li>
                 ))}
@@ -119,17 +114,14 @@ export default function LandingPage() {
               <Button
                 asChild
                 size="lg"
-                className="mt-2 w-full justify-between bg-white text-slate-900 hover:bg-slate-100"
+                className="mt-2 w-full justify-between bg-gradient-to-tr from-[#EF3B30] to-[#FBB03B] text-white hover:opacity-90 border-0 shadow-md"
               >
                 <span>
                   {choice.cta}
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </span>
               </Button>
-              <div className="mt-3 text-xs text-slate-500">
-                {choice.href.replace('https://', '')}
-              </div>
-            </a>
+            </Link>
           ))}
         </div>
 
@@ -140,7 +132,7 @@ export default function LandingPage() {
         </p>
       </main>
 
-      <footer className="relative z-10 border-t border-white/5">
+      <footer className="relative z-10 border-t border-slate-200 bg-white">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-6 py-6 text-xs text-slate-500 sm:flex-row sm:px-8">
           <p>
             &copy; {new Date().getFullYear()} KirkNetworks, LLC. All rights
@@ -149,19 +141,19 @@ export default function LandingPage() {
           <div className="flex items-center gap-5">
             <Link
               href="/legal/privacy"
-              className="transition hover:text-slate-300"
+              className="transition hover:text-slate-900"
             >
               Privacy
             </Link>
             <Link
               href="/legal/terms"
-              className="transition hover:text-slate-300"
+              className="transition hover:text-slate-900"
             >
               Terms
             </Link>
             <a
               href={adminSignInHref}
-              className="transition hover:text-slate-300"
+              className="transition hover:text-slate-900"
             >
               Support login
             </a>

@@ -158,7 +158,7 @@ export function useAsyncWithRefetch<T = unknown, E = Error>(
 ): UseAsyncReturn<T, E> & { refetch: () => Promise<T | undefined> } {
   const { refetchInterval, ...asyncOptions } = options
   const asyncResult = useAsync<T, E>(asyncFunction, asyncOptions)
-  const intervalRef = useRef<NodeJS.Timeout>()
+  const intervalRef = useRef<NodeJS.Timeout | undefined>(undefined)
 
   const refetch = useCallback(async () => {
     return asyncResult.execute()

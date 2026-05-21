@@ -9,6 +9,7 @@
 FROM node:24-alpine AS base
 RUN apk add --no-cache libc6-compat
 RUN corepack enable && corepack prepare pnpm@9.15.0 --activate
+RUN npm install -g turbo@^2.5.4
 WORKDIR /app
 
 # ── Stage 1: Prune ────────────────────────────────────────────────────────
@@ -20,11 +21,13 @@ RUN pnpm exec turbo prune ${APP_PACKAGE} --docker
 # ── Stage 2: Install ──────────────────────────────────────────────────────
 FROM base AS installer
 ARG APP_NAME
+ARG APP_PACKAGE
 
 # Install dependencies first (cached unless lockfile changes)
 COPY --from=pruner /app/out/json/ .
 COPY --from=pruner /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
 COPY --from=pruner /app/out/pnpm-workspace.yaml ./pnpm-workspace.yaml
+COPY --from=pruner /app/out/full/packages/database/prisma/ ./packages/database/prisma/
 RUN pnpm install --frozen-lockfile --prod=false
 
 # Copy source and build

@@ -13,11 +13,13 @@ export const prisma =
     errorFormat: process.env.NODE_ENV === 'development' ? 'pretty' : 'minimal',
 
     // Connection pool optimization
-    datasources: {
-      db: {
-        url: process.env['DATABASE_URL'],
+    ...(process.env.DATABASE_URL ? {
+      datasources: {
+        db: {
+          url: process.env.DATABASE_URL,
+        },
       },
-    },
+    } : {}),
   })
 
 // Store Prisma client in global scope in development to prevent hot reload issues

@@ -114,6 +114,6 @@ export function ErrorBoundaryWithFallback({
 }: {
   children: ReactNode
   fallback?: ReactNode
-}): JSX.Element {
+}): ReactNode {
   return <ErrorBoundary fallback={fallback}>{children}</ErrorBoundary>
 }
