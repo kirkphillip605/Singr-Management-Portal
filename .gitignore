@@ -1,11 +1,46 @@
-/node_modules/
-*.env
-/config/ssl/
+# Secrets
+.secrets
+
+# Dependencies
+node_modules/
+
+# Environment
 .env
-/.next/
+.env.*
+!.env.example
+
+# Next.js
+.next/
+out/
+dist/
+build/
+
+# Turbo
 .turbo/
+
+# TypeScript
 tsconfig.tsbuildinfo
+
+# Sentry
 .env.sentry-build-plugin
+
+# Logs
 /logs/
+*.log
+
+# Lock files (pnpm manages this)
 package-lock.json
+
+# Uploads
 public/uploads/
+
+# SSL
+/config/ssl/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

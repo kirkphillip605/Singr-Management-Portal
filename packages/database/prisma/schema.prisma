@@ -1,0 +1,534 @@
+// Singr Karaoke Connect — Consolidated Prisma Schema
+// All users share a single `users` table with role-based access control.
+// Roles: "host", "singer", "support", "super_admin" (stored as string array).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  schemas  = ["public"]
+}
+
+/* ============================================
+   ENUMS
+   ============================================ */
+
+enum ApiKeyStatus {
+  active
+  revoked
+  expired
+  suspended
+
+  @@map("api_key_status")
+  @@schema("public")
+}
+
+enum PricingType {
+  one_time
+  recurring
+
+  @@map("pricing_type")
+  @@schema("public")
+}
+
+enum PricingInterval {
+  day
+  week
+  month
+  year
+
+  @@map("pricing_interval")
+  @@schema("public")
+}
+
+/* ============================================
+   CORE AUTH — Better Auth managed tables
+   ============================================ */
+
+model User {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                String
+  email               String    @unique
+  emailVerified       Boolean   @default(false) @map("email_verified")
+  image               String?
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // ── Profile ──
+  displayName         String?   @map("display_name")
+  avatarUrl           String?   @map("avatar_url")
+  businessName        String?   @map("business_name")
+  phoneNumber         String?   @unique @map("phone_number")
+  phoneNumberVerified Boolean   @default(false) @map("phone_number_verified")
+
+  // ── RBAC ──
+  // Valid values: "host", "singer", "support", "super_admin"
+  // A user can hold multiple roles simultaneously.
+  roles               String[]  @default([])
+
+  // ── Auth state ──
+  twoFactorEnabled    Boolean   @default(false) @map("two_factor_enabled")
+  mustSetPassword     Boolean   @default(false) @map("must_set_password")
+  lastLoginAt         DateTime? @map("last_login_at") @db.Timestamptz(6)
+  lastLoginMethod     String?   @map("last_login_method")
+
+  // ── Stripe billing ──
+  stripeCustomerId    String?   @unique @map("stripe_customer_id")
+
+  // ── Better Auth admin plugin ──
+  banned              Boolean   @default(false)
+  banReason           String?   @map("ban_reason")
+  banExpires          DateTime? @map("ban_expires") @db.Timestamptz(6)
+
+  // ── Relations ──
+  accounts            Account[]
+  sessions            Session[]
+  twoFactors          TwoFactor[]
+  passkeys            Passkey[]
+  apiKeys             ApiKey[]
+  subscriptions       Subscription[]
+  venues              Venue[]
+  systems             System[]
+  songDb              SongDb[]
+  state               State?
+  userNotesAbout      UserNote[]           @relation("NotesAboutUser")
+  userNotesBy         UserNote[]           @relation("NotesAuthoredBy")
+  favoriteSongs       SingerFavoriteSong[]
+  favoriteVenues      SingerFavoriteVenue[]
+  requestHistory      SingerRequestHistory[]
+  requests            Request[]
+
+  @@index([email], map: "idx_users_email")
+  @@index([roles], map: "idx_users_roles")
+  @@map("users")
+  @@schema("public")
+}
+
+model Account {
+  id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId                String    @map("user_id") @db.Uuid
+  accountId             String    @map("account_id")
+  providerId            String    @map("provider_id")
+  accessToken           String?   @map("access_token")
+  refreshToken          String?   @map("refresh_token")
+  idToken               String?   @map("id_token")
+  accessTokenExpiresAt  DateTime? @map("access_token_expires_at") @db.Timestamptz(6)
+  refreshTokenExpiresAt DateTime? @map("refresh_token_expires_at") @db.Timestamptz(6)
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  @@unique([providerId, accountId])
+  @@index([userId], map: "idx_accounts_user_id")
+  @@map("accounts")
+  @@schema("public")
+}
+
+model Session {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId            String    @map("user_id") @db.Uuid
+  token             String    @unique
+  expiresAt         DateTime  @map("expires_at") @db.Timestamptz(6)
+  ipAddress         String?   @map("ip_address")
+  userAgent         String?   @map("user_agent")
+  // Better Auth stores impersonation context on sessions
+  impersonatedBy    String?   @map("impersonated_by") @db.Uuid
+  activeOrganizationId String? @map("active_organization_id")
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  @@index([userId], map: "idx_sessions_user_id")
+  @@index([token], map: "idx_sessions_token")
+  @@map("sessions")
+  @@schema("public")
+}
+
+model Verification {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  identifier String
+  value      String
+  expiresAt  DateTime @map("expires_at") @db.Timestamptz(6)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([identifier], map: "idx_verifications_identifier")
+  @@index([expiresAt], map: "idx_verifications_expires_at")
+  @@map("verifications")
+  @@schema("public")
+}
+
+model TwoFactor {
+  id          String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String @map("user_id") @db.Uuid
+  secret      String
+  backupCodes String @map("backup_codes")
+
+  user User @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  @@index([userId], map: "idx_two_factors_user_id")
+  @@map("two_factors")
+  @@schema("public")
+}
+
+model Passkey {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                String?
+  publicKey           String    @map("public_key")
+  userId              String    @map("user_id") @db.Uuid
+  credentialID        String    @unique @map("credential_id")
+  counter             Int       @default(0)
+  deviceType          String?   @map("device_type")
+  backedUp            Boolean   @default(false) @map("backed_up")
+  transports          String?
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  @@index([userId], map: "idx_passkeys_user_id")
+  @@map("passkeys")
+  @@schema("public")
+}
+
+/* ============================================
+   BILLING / STRIPE
+   ============================================ */
+
+model ApiKey {
+  id          String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String       @map("user_id") @db.Uuid
+  description String?
+  apiKeyHash  String       @map("api_key_hash")
+  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  lastUsedAt  DateTime?    @map("last_used_at") @db.Timestamptz(6)
+  status      ApiKeyStatus @default(active)
+  revokedAt   DateTime?    @map("revoked_at") @db.Timestamptz(6)
+  updatedAt   DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  @@index([userId], map: "idx_api_keys_user_id")
+  @@map("api_keys")
+  @@schema("public")
+}
+
+model StripeProduct {
+  id                  String   @id
+  active              Boolean  @default(true)
+  name                String?
+  description         String?
+  images              String[] @default([])
+  metadata            Json     @default("{}")
+  createdAt           DateTime @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  livemode            Boolean  @default(false)
+  data                Json     @default("{}")
+
+  prices StripePrice[]
+
+  @@index([active], map: "idx_products_active")
+  @@map("products")
+  @@schema("public")
+}
+
+model StripePrice {
+  id                String   @id
+  active            Boolean  @default(true)
+  currency          String   @db.Char(3)
+  livemode          Boolean  @default(false)
+  metadata          Json     @default("{}")
+  nickname          String?
+  product           String
+  recurring         Json?
+  type              String
+  unitAmount        BigInt?  @map("unit_amount")
+  unitAmountDecimal String?  @map("unit_amount_decimal")
+  createdAt         DateTime @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  data              Json     @default("{}")
+
+  productRel StripeProduct? @relation(fields: [product], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  @@index([product], map: "idx_prices_product")
+  @@index([active], map: "idx_prices_active")
+  @@index([type], map: "idx_prices_type")
+  @@map("prices")
+  @@schema("public")
+}
+
+model Subscription {
+  id                 String    @id
+  userId             String    @map("user_id") @db.Uuid
+  status             String
+  currentPeriodStart DateTime  @map("current_period_start") @db.Timestamptz(6)
+  currentPeriodEnd   DateTime  @map("current_period_end") @db.Timestamptz(6)
+  cancelAtPeriodEnd  Boolean   @default(false) @map("cancel_at_period_end")
+  cancelAt           DateTime? @map("cancel_at") @db.Timestamptz(6)
+  canceledAt         DateTime? @map("canceled_at") @db.Timestamptz(6)
+  trialStart         DateTime? @map("trial_start") @db.Timestamptz(6)
+  trialEnd           DateTime? @map("trial_end") @db.Timestamptz(6)
+  metadata           Json      @default("{}")
+  createdAt          DateTime  @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime  @default(now()) @map("updated_at") @db.Timestamptz(6)
+  livemode           Boolean   @default(false)
+  data               Json      @default("{}")
+
+  user User @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  @@index([userId], map: "idx_subscriptions_user_id")
+  @@index([status], map: "idx_subscriptions_status")
+  @@map("subscriptions")
+  @@schema("public")
+}
+
+model StripeWebhookEvent {
+  id           Int       @id @default(autoincrement())
+  eventId      String    @unique @map("event_id")
+  payload      Json
+  receivedAt   DateTime  @default(now()) @map("received_at") @db.Timestamptz(6)
+  processed    Boolean   @default(false)
+  processedAt  DateTime? @map("processed_at") @db.Timestamptz(6)
+  errorMessage String?   @map("error_message")
+  eventType    String    @map("event_type")
+  livemode     Boolean   @default(false)
+
+  @@index([eventType], map: "idx_webhook_events_type")
+  @@index([processed], map: "idx_webhook_events_processed")
+  @@map("stripe_webhook_events")
+  @@schema("public")
+}
+
+/// Better Auth Stripe plugin managed subscription table.
+/// Coexists with the legacy `subscriptions` table.
+model BaSubscription {
+  id                   String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  plan                 String
+  referenceId          String    @map("reference_id")
+  stripeCustomerId     String?   @map("stripe_customer_id")
+  stripeSubscriptionId String?   @unique @map("stripe_subscription_id")
+  status               String    @default("incomplete")
+  periodStart          DateTime? @map("period_start") @db.Timestamptz(6)
+  periodEnd            DateTime? @map("period_end") @db.Timestamptz(6)
+  cancelAtPeriodEnd    Boolean?  @map("cancel_at_period_end")
+  seats                Int?
+  trialStart           DateTime? @map("trial_start") @db.Timestamptz(6)
+  trialEnd             DateTime? @map("trial_end") @db.Timestamptz(6)
+
+  @@index([referenceId], map: "idx_ba_subscriptions_reference_id")
+  @@index([stripeCustomerId], map: "idx_ba_subscriptions_stripe_customer_id")
+  @@map("ba_subscriptions")
+  @@schema("public")
+}
+
+/* ============================================
+   VENUES / STATE / MUSIC / REQUESTS
+   ============================================ */
+
+model Venue {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId            String   @map("user_id") @db.Uuid
+  openkjVenueId     Int      @unique @default(autoincrement()) @map("openkj_venue_id")
+  urlName           String   @map("url_name")
+  acceptingRequests Boolean  @default(true) @map("accepting_requests")
+  herePlaceId       String?  @map("here_place_id")
+  name              String
+  address           String
+  city              String
+  state             String
+  stateCode         String?  @map("state_code") @db.VarChar(5)
+  postalCode        String   @map("postal_code")
+  country           String?
+  countryCode       String?  @map("country_code") @db.VarChar(3)
+  phoneNumber       String?  @map("phone_number") @db.VarChar(20)
+  website           String?
+  latitude          Float?
+  longitude         Float?
+  logoUrl           String?  @map("logo_url")
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  accepting         Boolean  @default(false)
+  currentSystemId   Int      @default(1) @map("current_system_id")
+
+  user      User                  @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  requests  Request[]
+  favorites SingerFavoriteVenue[]
+  history   SingerRequestHistory[]
+
+  @@index([userId], map: "idx_venues_user_id")
+  @@index([openkjVenueId], map: "idx_venues_openkj_venue_id")
+  @@map("venues")
+  @@schema("public")
+}
+
+model State {
+  userId String @id @map("user_id") @db.Uuid
+  serial BigInt @default(1)
+
+  user User @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  @@map("state")
+  @@schema("public")
+}
+
+model System {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  openkjSystemId Int      @map("openkj_system_id")
+  name           String
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  @@unique([userId, openkjSystemId])
+  @@index([userId, openkjSystemId], map: "idx_systems_user_openkj")
+  @@map("systems")
+  @@schema("public")
+}
+
+model SongDb {
+  songId             BigInt   @id @default(autoincrement()) @map("song_id")
+  userId             String   @map("user_id") @db.Uuid
+  openkjSystemId     Int      @map("openkj_system_id")
+  artist             String   @db.VarChar(255)
+  title              String   @db.VarChar(255)
+  combined           String   @db.VarChar(255)
+  normalizedCombined String   @map("normalized_combined") @db.VarChar(255)
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  @@unique([userId, openkjSystemId, combined])
+  @@unique([userId, openkjSystemId, normalizedCombined])
+  @@index([userId, openkjSystemId, artist], map: "idx_songdb_user_system_artist")
+  @@map("songdb")
+  @@schema("public")
+}
+
+model Request {
+  requestId     BigInt   @id @default(autoincrement()) @map("request_id")
+  venueId       String   @map("venue_id") @db.Uuid
+  artist        String
+  title         String
+  singer        String?
+  keyChange     Int      @default(0) @map("key_change")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  processed     Boolean  @default(false)
+  requestedAt   DateTime @default(now()) @map("requested_at") @db.Timestamptz(6)
+  singerUserId  String?  @map("singer_user_id") @db.Uuid
+  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  openkjVenueId Int      @map("openkj_venue_id")
+
+  venue      Venue @relation(fields: [venueId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  singerUser User? @relation(fields: [singerUserId], references: [id], onUpdate: Cascade, onDelete: SetNull)
+
+  @@index([openkjVenueId, processed], map: "idx_requests_openkj_venue_processed")
+  @@index([singerUserId], map: "idx_requests_singer_user")
+  @@map("requests")
+  @@schema("public")
+}
+
+/* ============================================
+   SINGER FEATURES (linked to unified User)
+   ============================================ */
+
+model SingerFavoriteSong {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  artist    String?
+  title     String?
+  keyChange Int      @default(0) @map("key_change")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  @@index([userId], map: "idx_singer_fav_songs_user")
+  @@map("singer_favorite_songs")
+  @@schema("public")
+}
+
+model SingerRequestHistory {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String   @map("user_id") @db.Uuid
+  venueId         String   @map("venue_id") @db.Uuid
+  artist          String
+  title           String
+  keyChange       Int      @default(0) @map("key_change")
+  requestedAt     DateTime @default(now()) @map("requested_at") @db.Timestamptz(6)
+  songFingerprint String   @map("song_fingerprint")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user  User  @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  venue Venue @relation(fields: [venueId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  @@index([userId], map: "idx_singer_history_user")
+  @@map("singer_request_history")
+  @@schema("public")
+}
+
+model SingerFavoriteVenue {
+  userId    String   @map("user_id") @db.Uuid
+  venueId   String   @map("venue_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user  User  @relation(fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  venue Venue @relation(fields: [venueId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+
+  @@id([userId, venueId])
+  @@map("singer_favorite_venues")
+  @@schema("public")
+}
+
+/* ============================================
+   ADMIN TOOLS
+   ============================================ */
+
+model UserNote {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  createdBy String   @map("created_by") @db.Uuid
+  important Boolean  @default(false)
+  subject   String
+  note      String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user   User @relation("NotesAboutUser", fields: [userId], references: [id], onUpdate: Cascade, onDelete: Cascade)
+  author User @relation("NotesAuthoredBy", fields: [createdBy], references: [id], onUpdate: Cascade, onDelete: Restrict)
+
+  @@index([userId], map: "idx_user_notes_user")
+  @@map("user_notes")
+  @@schema("public")
+}
+
+/* ============================================
+   AUDIT LOG
+   ============================================ */
+
+model AuditLog {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  actorId   String?  @map("actor_id") @db.Uuid
+  action    String
+  resource  String?
+  resourceId String? @map("resource_id")
+  surface   String?  // host | admin | app | api | system
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  metadata  Json     @default("{}")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([actorId], map: "idx_audit_logs_actor")
+  @@index([action], map: "idx_audit_logs_action")
+  @@index([createdAt], map: "idx_audit_logs_created")
+  @@map("audit_logs")
+  @@schema("public")
+}

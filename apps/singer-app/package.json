@@ -1,0 +1,35 @@
+{
+  "name": "@singr/singer-app",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 3004",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "lint": "eslint src",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf dist node_modules/.cache"
+  },
+  "dependencies": {
+    "@ionic/react": "^8.5.4",
+    "@ionic/react-router": "^8.5.4",
+    "ionicons": "^7.4.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-router": "^5.3.4",
+    "react-router-dom": "^5.3.4"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.6.5",
+    "@capacitor/core": "^7.6.5",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@types/react-router": "^5.1.20",
+    "@types/react-router-dom": "^5.3.3",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "^5.8.3",
+    "vite": "^6.3.5",
+    "vite-plugin-pwa": "^0.21.1"
+  }
+}

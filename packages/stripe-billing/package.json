@@ -1,0 +1,22 @@
+{
+  "name": "@singr/stripe-billing",
+  "version": "0.0.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./client": "./src/client.ts",
+    "./normalize": "./src/normalize.ts",
+    "./format": "./src/format.ts"
+  },
+  "scripts": {
+    "build": "echo '@singr/stripe-billing: consumed via TypeScript references, no build step'"
+  },
+  "dependencies": {
+    "stripe": "^18.4.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3"
+  }
+}

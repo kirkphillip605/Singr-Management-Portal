@@ -1,0 +1,48 @@
+{
+  "name": "@singr/host-portal",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3001",
+    "build": "next build",
+    "start": "next start -p 3001",
+    "lint": "next lint",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf .next node_modules/.cache"
+  },
+  "dependencies": {
+    "@singr/auth": "workspace:*",
+    "@singr/config": "workspace:*",
+    "@singr/database": "workspace:*",
+    "@singr/stripe-billing": "workspace:*",
+    "@singr/types": "workspace:*",
+    "@singr/ui": "workspace:*",
+    "@sentry/nextjs": "^10.17.0",
+    "@stripe/stripe-js": "^4.6.0",
+    "bcryptjs": "^2.4.3",
+    "date-fns": "^3.6.0",
+    "jose": "^6.2.2",
+    "lucide-react": "^0.447.0",
+    "next": "^15.5.15",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-hook-form": "^7.53.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@singr/config": "workspace:*",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^22.7.4",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^9.32.0",
+    "eslint-config-next": "^15.4.6",
+    "postcss": "^8.4.47",
+    "prettier": "^3.3.3",
+    "prettier-plugin-tailwindcss": "^0.6.5",
+    "tailwindcss": "^3.4.13",
+    "tailwindcss-animate": "^1.0.7",
+    "typescript": "^5.8.3"
+  }
+}

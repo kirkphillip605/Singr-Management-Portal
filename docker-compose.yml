@@ -1,0 +1,138 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Singr Karaoke Connect — Docker Compose
+# ─────────────────────────────────────────────────────────────────────────────
+# Usage:
+#   docker compose up -d              # Start all services
+#   docker compose up -d db redis     # Start infra only (for local dev)
+#   docker compose logs -f api        # Tail logs for a specific service
+#   docker compose down               # Stop all services
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+  # ── PostgreSQL ──────────────────────────────────────────────────────────
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: singr
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-singr_dev_password}
+      POSTGRES_DB: singr
+    ports:
+      - "${PORT_DB:-25432}:5432"
+    volumes:
+      - singr-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U singr"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ── Redis ───────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    ports:
+      - "${PORT_REDIS:-26379}:6379"
+    volumes:
+      - singr-redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ── Marketing Site ──────────────────────────────────────────────────────
+  marketing:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        APP_NAME: marketing
+        APP_PACKAGE: "@singr/marketing"
+    restart: unless-stopped
+    ports:
+      - "${PORT_MARKETING:-25000}:3000"
+    env_file: .env
+    environment:
+      - PORT=3000
+      - HOSTNAME=0.0.0.0
+
+  # ── Host Portal ─────────────────────────────────────────────────────────
+  host-portal:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        APP_NAME: host-portal
+        APP_PACKAGE: "@singr/host-portal"
+    restart: unless-stopped
+    ports:
+      - "${PORT_HOST_PORTAL:-25001}:3000"
+    env_file: .env
+    environment:
+      - PORT=3000
+      - HOSTNAME=0.0.0.0
+    volumes:
+      - singr-uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # ── Admin Console ───────────────────────────────────────────────────────
+  admin-console:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        APP_NAME: admin-console
+        APP_PACKAGE: "@singr/admin-console"
+    restart: unless-stopped
+    ports:
+      - "${PORT_ADMIN_CONSOLE:-25002}:3000"
+    env_file: .env
+    environment:
+      - PORT=3000
+      - HOSTNAME=0.0.0.0
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # ── API ─────────────────────────────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        APP_NAME: api
+        APP_PACKAGE: "@singr/api"
+    restart: unless-stopped
+    ports:
+      - "${PORT_API:-25003}:3000"
+    env_file: .env
+    environment:
+      - PORT=3000
+      - HOSTNAME=0.0.0.0
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # ── Singer App (Ionic PWA) ─────────────────────────────────────────────
+  singer-app:
+    build:
+      context: .
+      dockerfile: apps/singer-app/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "${PORT_SINGER_APP:-25004}:80"
+
+volumes:
+  singr-db-data:
+  singr-redis-data:
+  singr-uploads:

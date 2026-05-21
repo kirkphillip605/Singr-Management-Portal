@@ -1,0 +1,81 @@
+/* Singr Karaoke — Ionic Theme Variables */
+
+:root {
+  /* ── Brand Colors ── */
+  --ion-color-primary: #7c3aed;
+  --ion-color-primary-rgb: 124, 58, 237;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: #6d33d1;
+  --ion-color-primary-tint: #894def;
+
+  --ion-color-secondary: #a855f7;
+  --ion-color-secondary-rgb: 168, 85, 247;
+  --ion-color-secondary-contrast: #ffffff;
+  --ion-color-secondary-contrast-rgb: 255, 255, 255;
+  --ion-color-secondary-shade: #944bd9;
+  --ion-color-secondary-tint: #b166f8;
+
+  --ion-color-tertiary: #06b6d4;
+  --ion-color-tertiary-rgb: 6, 182, 212;
+  --ion-color-tertiary-contrast: #ffffff;
+  --ion-color-tertiary-contrast-rgb: 255, 255, 255;
+  --ion-color-tertiary-shade: #05a0bb;
+  --ion-color-tertiary-tint: #1fbdd8;
+}
+
+/* ── Dark Mode (default for Singr) ── */
+body {
+  --ion-background-color: #0f0a1a;
+  --ion-background-color-rgb: 15, 10, 26;
+
+  --ion-text-color: #f0eaf8;
+  --ion-text-color-rgb: 240, 234, 248;
+
+  --ion-color-step-50: #1a1425;
+  --ion-color-step-100: #251e30;
+  --ion-color-step-150: #30283b;
+  --ion-color-step-200: #3b3246;
+  --ion-color-step-250: #463c51;
+  --ion-color-step-300: #51465c;
+  --ion-color-step-350: #5c5067;
+  --ion-color-step-400: #675a72;
+  --ion-color-step-450: #72647d;
+  --ion-color-step-500: #7d6e88;
+  --ion-color-step-550: #887893;
+  --ion-color-step-600: #93829e;
+  --ion-color-step-650: #9e8ca9;
+  --ion-color-step-700: #a996b4;
+  --ion-color-step-750: #b4a0bf;
+  --ion-color-step-800: #bfaaca;
+  --ion-color-step-850: #cab4d5;
+  --ion-color-step-900: #d5bee0;
+  --ion-color-step-950: #e0c8eb;
+
+  --ion-toolbar-background: #1a1425;
+  --ion-tab-bar-background: #1a1425;
+  --ion-tab-bar-color: #7d6e88;
+  --ion-tab-bar-color-selected: #a855f7;
+  --ion-card-background: #1a1425;
+  --ion-item-background: #1a1425;
+}
+
+/* ── Typography ── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+* {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* ── Custom utilities ── */
+.singr-gradient-text {
+  background: linear-gradient(135deg, #a855f7, #06b6d4);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.singr-card-glow {
+  box-shadow: 0 0 20px rgba(124, 58, 237, 0.15);
+  border: 1px solid rgba(124, 58, 237, 0.2);
+}

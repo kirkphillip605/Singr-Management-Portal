@@ -1,0 +1,21 @@
+{
+  "name": "@singr/redis",
+  "version": "0.0.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./client": "./src/client.ts",
+    "./rate-limiter": "./src/rate-limiter.ts"
+  },
+  "scripts": {
+    "build": "echo '@singr/redis: consumed via TypeScript references, no build step'"
+  },
+  "dependencies": {
+    "ioredis": "^5.6.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3"
+  }
+}
