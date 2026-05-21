@@ -1,9 +1,9 @@
-import { NextResponse } from 'next/server'
-
 export default function ApiHomePage() {
-  return NextResponse.json({
-    service: 'Singr Karaoke Connect API',
-    version: '1.0.0',
-    docs: 'https://singrkaraoke.com/docs/api',
-  })
+  return (
+    <div style={{ fontFamily: 'monospace', padding: '2rem' }}>
+      <h1>Singr Karaoke Connect API</h1>
+      <p>Version: 1.0.0</p>
+      <a href="https://singrkaraoke.com/docs/api">Documentation</a>
+    </div>
+  )
 }

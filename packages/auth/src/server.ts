@@ -123,8 +123,8 @@ const baseURL =
     ? `https://${process.env['REPLIT_DEV_DOMAIN']}`
     : 'http://localhost:5000')
 
-const secret = process.env["BETTER_AUTH_SECRET"] || process.env["NEXTAUTH_SECRET"] || (process.env.NODE_ENV === 'production' && !process.env.CI ? null : 'dummy_secret_for_build_only_12345678901234567890')
-if (!secret && process.env.npm_lifecycle_event !== 'build') {
+const secret = process.env["BETTER_AUTH_SECRET"] || process.env["NEXTAUTH_SECRET"] || (process.env.NODE_ENV === 'production' && !process.env["CI"] ? null : 'dummy_secret_for_build_only_12345678901234567890')
+if (!secret && process.env["npm_lifecycle_event"] !== 'build') {
   throw new Error(
     'BETTER_AUTH_SECRET (or legacy NEXTAUTH_SECRET) must be set. Generate one with `openssl rand -base64 32`.',
   )

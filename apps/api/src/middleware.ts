@@ -19,7 +19,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Rate limiting (100 requests per minute per IP)
-  const ip = request.ip || request.headers.get('x-forwarded-for') || 'anonymous'
+  const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'anonymous'
   const limitResult = await rateLimit(`ratelimit:api:${ip}`, 100, 60000)
 
   if (!limitResult.allowed) {

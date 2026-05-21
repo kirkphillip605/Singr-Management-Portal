@@ -152,14 +152,10 @@ async function authenticateApiKey(apiKey: string) {
   try {
     const apiKeys = await prisma.apiKey.findMany({
       include: {
-        customer: {
+        user: {
           include: {
-            user: {
-              include: {
-                venues: true,
-                systems: true,
-              },
-            },
+            venues: true,
+            systems: true,
           },
         },
       },
@@ -190,9 +186,9 @@ async function authenticateApiKey(apiKey: string) {
         return { error: true, errorString: 'The API key provided is not currently active' }
       }
 
-      const hasActiveSubscription = await verifyActiveSubscription(
-        key.customer.stripeCustomerId
-      )
+      const hasActiveSubscription = key.user.stripeCustomerId 
+        ? await verifyActiveSubscription(key.user.stripeCustomerId)
+        : false
 
       // Update last-used timestamp
       await prisma.apiKey.update({
@@ -202,10 +198,9 @@ async function authenticateApiKey(apiKey: string) {
 
       return {
         apiKeyId: key.id,
-        customer: key.customer,
-        user: key.customer.user,
-        venues: key.customer.user.venues,
-        systems: key.customer.user.systems,
+        user: key.user,
+        venues: key.user.venues,
+        systems: key.user.systems,
         hasActiveSubscription,
       }
     }
