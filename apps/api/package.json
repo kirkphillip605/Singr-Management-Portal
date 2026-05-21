@@ -14,6 +14,7 @@
     "@singr/auth": "workspace:*",
     "@singr/config": "workspace:*",
     "@singr/database": "workspace:*",
+    "@singr/redis": "workspace:*",
     "@singr/stripe-billing": "workspace:*",
     "@singr/types": "workspace:*",
     "@sentry/nextjs": "^10.17.0",
