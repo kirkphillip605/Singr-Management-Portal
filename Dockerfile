@@ -17,6 +17,11 @@ FROM base AS pruner
 ARG APP_PACKAGE
 COPY . .
 RUN pnpm exec turbo prune ${APP_PACKAGE} --docker
+# Ensure prisma schema is available for postinstall scripts by copying it to the json workspace if it was pruned
+RUN if [ -d "out/full/packages/database/prisma" ]; then \
+      mkdir -p out/json/packages/database/prisma && \
+      cp -r out/full/packages/database/prisma/* out/json/packages/database/prisma/; \
+    fi
 
 # ── Stage 2: Install ──────────────────────────────────────────────────────
 FROM base AS installer
