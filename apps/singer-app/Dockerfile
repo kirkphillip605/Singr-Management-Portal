@@ -2,9 +2,10 @@ FROM node:24-alpine AS build
 RUN corepack enable && corepack prepare pnpm@9.15.0 --activate
 WORKDIR /app
 COPY apps/singer-app/package.json ./
-RUN pnpm install --frozen-lockfile 2>/dev/null || pnpm install
+RUN pnpm install
 COPY apps/singer-app/ ./
 RUN pnpm build
+
 
 FROM nginx:alpine
 COPY --from=build /app/dist /usr/share/nginx/html

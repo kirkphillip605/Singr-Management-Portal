@@ -44,3 +44,6 @@ public/uploads/
 # OS
 .DS_Store
 Thumbs.db
+
+# pnpm store
+**/.pnpm-store/

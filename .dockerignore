@@ -1,5 +1,7 @@
 node_modules
+**/node_modules
 .next
+**/.next
 .git
 *.md
 !README.md
@@ -7,6 +9,10 @@ node_modules
 !.env.example
 .DS_Store
 .turbo
+**/.turbo
 coverage
 dist
+**/dist
 .cache
+**/.cache
+**/.pnpm-store
