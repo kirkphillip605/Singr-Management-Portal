@@ -50,6 +50,7 @@ RUN mkdir -p /app/apps/${APP_NAME}/public
 # ── Stage 3: Runner ───────────────────────────────────────────────────────
 FROM node:24-alpine AS runner
 ARG APP_NAME
+ENV APP_NAME=${APP_NAME}
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
@@ -72,4 +73,4 @@ ENV HOSTNAME=0.0.0.0
 
 EXPOSE 3000
 
-CMD ["node", "apps/${APP_NAME}/server.js"]
+CMD ["sh", "-c", "exec node apps/${APP_NAME}/server.js"]
