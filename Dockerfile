@@ -39,7 +39,10 @@ COPY --from=pruner /app/out/full/ .
 COPY turbo.json turbo.json
 
 # Generate Prisma client if the database package is included in this prune
-RUN if [ -d "packages/database" ]; then pnpm --filter @singr/database exec prisma generate; fi
+RUN if [ -d "packages/database" ]; then \
+      pnpm --filter @singr/database exec prisma generate && \
+      find node_modules/ -name "libquery_engine-*.so.node" -exec cp {} /app/query-engine.so.node \; ; \
+    fi
 
 # Build the target app
 RUN pnpm exec turbo run build --filter=${APP_PACKAGE}
@@ -61,6 +64,10 @@ WORKDIR /app
 COPY --from=installer --chown=nextjs:nodejs /app/apps/${APP_NAME}/.next/standalone ./
 COPY --from=installer --chown=nextjs:nodejs /app/apps/${APP_NAME}/.next/static ./apps/${APP_NAME}/.next/static
 COPY --from=installer --chown=nextjs:nodejs /app/apps/${APP_NAME}/public ./apps/${APP_NAME}/public
+
+# Copy Prisma query engine if it was generated
+COPY --from=installer --chown=nextjs:nodejs /app/query-engine.so.node* ./
+ENV PRISMA_QUERY_ENGINE_LIBRARY=/app/query-engine.so.node
 
 # Create upload directory
 RUN mkdir -p /app/uploads && chown nextjs:nodejs /app/uploads
